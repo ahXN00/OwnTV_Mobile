@@ -1,0 +1,20 @@
+# Technical Kotlin literals explicitly excluded from translation.
+# schema-version: 1
+# Format: <count>\t<category>\t<relative path>\t<content with \t/\n escaped>
+# category empty: Empty literal; no user-visible text.
+# category assertion: Reviewed developer-only assertion text.
+# category log: Developer diagnostic or log tag.
+# category regex: Regular-expression syntax.
+# category sql: Database query or schema syntax.
+# category json: JSON field or protocol key.
+# category uri: URI parameter or addressing key.
+# category preference-key: Stable persisted preference key.
+# category file-path: Filesystem path or segment.
+# category room-schema: Room table, index, or column identifier.
+# category compiler: Compiler or lint directive.
+# category performance: Developer performance marker.
+# category locale: Locale or Android resource identifier.
+# category mime: MIME protocol value.
+# category url: URL or URI address.
+# category protocol: Stable protocol or comparison identifier.
+# category technical: Reviewed non-user-facing technical literal.

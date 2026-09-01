@@ -1,4 +1,24 @@
+import java.io.ByteArrayOutputStream
 import java.util.Properties
+import javax.inject.Inject
+import org.gradle.process.ExecOperations
+
+// Packaged locale qualifiers are read from tools/i18n/locales.json entries where packaged = true.
+// That catalogue is owned by the core repo (ahXN00/OwnTV_Core), which holds the strings; the copy
+// here exists only because Gradle needs the list before any dependency is resolved, so core's copy
+// never reaches this build. The pin-bump PR refreshes both files together — never edit one alone,
+// or a new language is silently stripped out of the APK while the build stays green.
+// The build consumes the ``resourceQualifier`` field specifically (NOT languageTag, NOT weblateCode):
+// a runtime BCP-47 tag fed straight into localeFilters is the bug this schema exists to prevent.
+val localesCatalogueFile = rootProject.file("tools/i18n/locales.json")
+@Suppress("UNCHECKED_CAST")
+val packagedLocaleQualifiers: Set<String> = run {
+    if (!localesCatalogueFile.isFile) return@run emptySet()
+    val raw = groovy.json.JsonSlurper().parseText(localesCatalogueFile.readText()) as List<Map<String, Any>>
+    raw.mapNotNull { entry ->
+        if ((entry["packaged"] as? Boolean) == true) entry["resourceQualifier"] as? String else null
+    }.toSet()
+}
 
 plugins {
     alias(libs.plugins.android.application)
@@ -106,6 +126,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Pseudolocales (en-XA / ar-XB) are the layout-stress instrument: they lengthen every
+            // string and mirror the layout, so an overflowing screen shows up before a translator
+            // ever sees it. localeFilters below would otherwise strip them, so the debug-only
+            // qualifiers are added back through the per-variant API in the androidComponents block.
+            isPseudoLocalesEnabled = true
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -124,6 +151,15 @@ android {
         buildConfig = true
     }
 
+    androidResources {
+        // Packages only the catalogue entries marked packaged = true — the same 24 locales the TV
+        // app ships, because both read the same strings out of core. Without this, every library
+        // locale folder ships too (appcompat alone contributes ~85), and nothing can strip a locale
+        // afterwards: shrinkResources removes unreferenced resources, never locales. The debug-only
+        // pseudolocale qualifiers are added back per variant below; release ships neither.
+        localeFilters.addAll(packagedLocaleQualifiers)
+    }
+
     packaging {
         jniLibs {
             // Every .so here is an already-stripped prebuilt from a dependency, so AGP's strip step
@@ -132,11 +168,125 @@ android {
         }
     }
 
+    lint {
+        // CI gates on this (see .github/workflows/android.yml), so an error must mean something.
+        abortOnError = true
+        warningsAsErrors = false
+        // A counted sentence must use Android plural resources; keep this invariant fatal so a new
+        // extraction cannot reintroduce English-only quantity wording. The strings live in core, but
+        // the call site that needs a plural is here.
+        fatal += "PluralsCandidate"
+        // local.properties is developer-local and never committed (its Windows SDK path cannot be
+        // escaped without breaking the local tooling that writes it). CI has no such file at all.
+        disable += "PropertyEscape"
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+
+// Re-add the debug-only pseudolocale qualifiers that the shared `localeFilters` set above would
+// otherwise strip. This is the per-variant SetProperty form (the androidResources block sets the
+// MutableSet extension form, which applies to every variant equally and so cannot keep
+// pseudolocales out of release). Release variants ship neither pseudolocale.
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.androidResources.localeFilters.addAll("en-rXA", "ar-rXB")
+    }
+}
+
+// --- hardcoded-literal gate ----------------------------------------------------------------
+//
+// The same check CI runs, moved onto the developer's own machine. CI is still the enforcing gate —
+// this only makes the failure arrive seconds after writing the string instead of minutes after
+// pushing it. Wired in while this app is still empty, on purpose: retrofitting it onto twenty
+// finished screens is a far worse job.
+//
+// Deliberately NOT offered: any flag that records the literal and turns the build green. A red build
+// means the string moves into core's strings_*.xml or is declared technical — those are the only two
+// exits.
+abstract class VerifyI18nLiterals : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val kotlinSources: ConfigurableFileCollection
+
+    /** The checker and its two reviewed manifests: edit any of them and the verdict may change. */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val toolInputs: ConfigurableFileCollection
+
+    @get:Internal
+    abstract val repoRoot: DirectoryProperty
+
+    @get:OutputFile
+    abstract val stamp: RegularFileProperty
+
+    @get:Inject
+    abstract val execOps: ExecOperations
+
+    private fun interpreter(): String? = listOf("python", "python3").firstOrNull { candidate ->
+        runCatching {
+            execOps.exec {
+                commandLine(candidate, "--version")
+                isIgnoreExitValue = true
+                standardOutput = ByteArrayOutputStream()
+                errorOutput = ByteArrayOutputStream()
+            }.exitValue == 0
+        }.getOrDefault(false)
+    }
+
+    @TaskAction
+    fun verify() {
+        val python = interpreter()
+        if (python == null) {
+            // Failing here would block anyone without Python from building at all. Warn loudly
+            // instead — CI still enforces it, so the worst case is a late failure, not a missed one.
+            logger.warn(
+                "\n  WARNING: Python was not found, so the hardcoded-text check did not run." +
+                    "\n  Install Python 3 to catch untranslatable text before pushing; CI will still catch it.\n",
+            )
+            stamp.get().asFile.writeText("skipped: no python interpreter\n")
+            return
+        }
+        val output = ByteArrayOutputStream()
+        val result = execOps.exec {
+            workingDir = repoRoot.get().asFile
+            commandLine(python, "tools/i18n/check_hardcoded_strings.py", "verify", "--bootstrap")
+            environment("PYTHONIOENCODING", "utf-8")
+            isIgnoreExitValue = true
+            standardOutput = output
+            errorOutput = output
+        }
+        if (result.exitValue != 0) {
+            logger.error(output.toString(Charsets.UTF_8))
+            throw GradleException("Hardcoded text check failed — see the report above.")
+        }
+        stamp.get().asFile.writeText("ok\n")
+    }
+}
+
+val verifyI18nLiterals = tasks.register<VerifyI18nLiterals>("verifyI18nLiterals") {
+    group = "verification"
+    description = "Fails the build on user-visible text left hardcoded in Kotlin."
+    // :app is the only module in this repo. Core's own Kotlin is gated by the identical task in the
+    // core repo, so a literal cannot escape by moving between the two. A new module here needs a
+    // line added HERE as well as in check_hardcoded_strings.py's SRC_ROOTS — Plan 1 Phase 9 found
+    // an undeclared input silently skipping the gate whenever only that module changed.
+    kotlinSources.from(fileTree("src/main/java") { include("**/*.kt") })
+    toolInputs.from(
+        rootProject.file("tools/i18n/check_hardcoded_strings.py"),
+        rootProject.file("tools/i18n/hardcoded_baseline.txt"),
+        rootProject.file("tools/i18n/safe_literals.txt"),
+    )
+    repoRoot.set(rootProject.layout.projectDirectory)
+    stamp.set(layout.buildDirectory.file("i18n/literal-inventory.txt"))
+}
+
+// preBuild fronts every variant, so debug compile checks and release assembles are both covered.
+// Inputs are declared above, so an unchanged source tree makes this UP-TO-DATE and free.
+tasks.named("preBuild") { dependsOn(verifyI18nLiterals) }
 
 dependencies {
     // The shared engine, from its own repository — https://github.com/ahXN00/OwnTV_Core. Set
