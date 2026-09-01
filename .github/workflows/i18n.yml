@@ -59,7 +59,10 @@ jobs:
 
       - name: Fetch base branch
         if: ${{ github.event_name == 'pull_request' }}
-        run: git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}"
+        # No --depth here. The checkout above is already complete (fetch-depth: 0), and a shallow
+        # fetch into a complete clone writes .git/shallow and truncates it — after which
+        # `git merge-base` can fail outright, which under `set -e` is an exit 1 with no message.
+        run: git fetch --no-tags origin "${GITHUB_BASE_REF}"
 
       - name: Hardcoded-literal ratchet
         env:

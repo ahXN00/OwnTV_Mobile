@@ -593,9 +593,13 @@ def cmd_verify_ci(args) -> int:
     if probe.returncode != 0:
         return cmd_verify(argparse.Namespace(base=None, bootstrap=True))
 
+    # encoding="utf-8" explicitly, never text=True: that decodes with the platform's preferred
+    # encoding, which is cp1252 on Windows and can be plain ASCII on a CI runner with no locale set.
+    # The baseline is UTF-8 and its literals contain "·" and "…", so either default turns every
+    # non-ASCII line into a phantom REGRESSION against a baseline that in fact already lists it.
     base_text = subprocess.run(
         ["git", "show", f"{base_sha}:tools/i18n/hardcoded_baseline.txt"],
-        cwd=ROOT, text=True, capture_output=True, check=True,
+        cwd=ROOT, encoding="utf-8", capture_output=True, check=True,
     ).stdout
     current_text = BASELINE.read_text(encoding="utf-8")
     base_version = _scanner_version(base_text) or 1
