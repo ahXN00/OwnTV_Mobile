@@ -20,6 +20,9 @@ release automation.
   emulator, signed with the same key as the TV app so both apps come from one certificate.
 - **A development harness screen** stands in for the real app while it is being built. It is not
   translated and will be removed.
+- **The app shell**: a bottom bar of five tabs on a phone and a navigation rail on a tablet, which
+  swap over as the screen turns. Tabs for content you do not have are hidden, by the same rule the
+  TV app uses, and each tab keeps its own place in its list when you leave it and come back.
 
 ### 🌍 It speaks 26 languages on day one
 

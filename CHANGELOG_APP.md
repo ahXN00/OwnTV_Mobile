@@ -17,6 +17,7 @@
 ### New features
 
 - **The mobile app builds, signs and installs**
+- **Bottom bar on a phone, navigation rail on a tablet**
 - **Phone and emulator builds from one signing key, shared with the TV app**
 - **26 languages on day one, inherited from the core library**
 - **Translation checks in CI** — hardcoded text, number formats, text overflow, packaged languages

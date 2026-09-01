@@ -20,5 +20,18 @@
 # category technical: Reviewed non-user-facing technical literal.
 
 3	empty	app/src/main/java/tv/own/owntv/mobile/dev/ThemeGalleryScreen.kt	\0
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	downloads
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	guide
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	home
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	library
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	live
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	more
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	movies
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	series
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	settings
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Dev harness
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Theme gallery
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	dev_gallery
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	dev_harness
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileColors.kt	\0
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileTheme.kt	\0

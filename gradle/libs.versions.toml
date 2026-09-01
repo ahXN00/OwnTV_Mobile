@@ -64,6 +64,9 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
+# The extended icon set: the phone UI needs Live TV, Library, Guide, Cast and Downloads glyphs that the
+# core set does not carry. R8 keeps only the icons actually referenced.
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 # Material 3 for touch. The TV app's androidx.tv:tv-material has NO place in this repo: its
 # components assume a focus-driven, ten-foot UI. If a screen seems to need it, it is TV code.
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }

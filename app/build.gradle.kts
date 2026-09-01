@@ -314,6 +314,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
     // Window size classes — this app has to lay out for a phone and a tablet from one build.
     implementation(libs.androidx.compose.adaptive)
 
