@@ -34,6 +34,9 @@ permissions:
   # "Resource not accessible by integration" and the pull request sits there forever, green.
   checks: read
   statuses: read
+  # And `actions: read` on top, because the same query walks each check's checkSuite.workflowRun to
+  # build the run URL it prints. Without it the read fails one level deeper, with the same message.
+  actions: read
 
 concurrency:
   group: automerge-core-bump
