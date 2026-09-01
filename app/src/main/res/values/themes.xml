@@ -1,0 +1,11 @@
+<resources>
+    <!--
+      Activity window theme. The real UI is pure Jetpack Compose (Material 3); this framework theme
+      only governs the launch window before Compose draws, so it is kept minimal and paints the
+      window the brand background to avoid a flash.
+    -->
+    <style name="Theme.OwnTVMobile" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/owntv_window_bg</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
