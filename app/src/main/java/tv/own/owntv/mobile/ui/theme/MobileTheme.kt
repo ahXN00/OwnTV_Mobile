@@ -1,0 +1,80 @@
+package tv.own.owntv.mobile.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.koinInject
+import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.theme.AccentColor
+import tv.own.owntv.core.theme.FontCustomization
+import tv.own.owntv.core.theme.GlassConfig
+import tv.own.owntv.core.theme.ThemeMode
+import tv.own.owntv.core.theme.UiFontScale
+import tv.own.owntv.core.theme.UiZoom
+
+/**
+ * The app's theme, driven entirely by the settings the user already has.
+ *
+ * Every value is core's, so the choices made on the TV app — dark or light, the accent, the zoom,
+ * the font, the Glass Effect — come across with a backup restore and apply here unchanged.
+ */
+@Composable
+fun MobileTheme(content: @Composable () -> Unit) {
+    val settings: SettingsRepository = koinInject()
+    val themeMode by settings.themeMode.collectAsStateWithLifecycle(ThemeMode.DARK)
+    val accent by settings.accent.collectAsStateWithLifecycle(AccentColor.TEAL)
+    val customAccent by settings.customAccent.collectAsStateWithLifecycle("")
+    val uiZoomPercent by settings.uiZoomPercent.collectAsStateWithLifecycle(UiZoom.DEFAULT)
+    val fonts by settings.fontCustomization.collectAsStateWithLifecycle(FontCustomization())
+    val glass by settings.glassConfig.collectAsStateWithLifecycle(GlassConfig())
+
+    MobileTheme(
+        themeMode = themeMode,
+        accent = accent,
+        customAccent = customAccent,
+        uiZoomPercent = uiZoomPercent,
+        fonts = fonts,
+        glass = glass,
+        content = content,
+    )
+}
+
+/** The same theme with its inputs supplied directly — for previews and for the theme gallery. */
+@Composable
+fun MobileTheme(
+    themeMode: ThemeMode,
+    accent: AccentColor,
+    customAccent: String = "",
+    uiZoomPercent: Int = UiZoom.DEFAULT,
+    fonts: FontCustomization = FontCustomization(),
+    glass: GlassConfig = GlassConfig(),
+    content: @Composable () -> Unit,
+) {
+    val isDark = when (themeMode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+    val base = LocalDensity.current
+
+    CompositionLocalProvider(
+        // UI Zoom scales every dp and the font setting scales every sp, so a layout keeps its
+        // proportions at any setting instead of text outgrowing the box it sits in.
+        LocalDensity provides Density(
+            density = base.density * UiZoom.factor(uiZoomPercent),
+            fontScale = base.fontScale * UiFontScale.factor(fonts.sizePercent),
+        ),
+        LocalGlass provides glass,
+    ) {
+        MaterialTheme(
+            colorScheme = mobileColorScheme(isDark, accent, customAccent),
+            typography = mobileTypography(fonts.mainFamily.asComposeFamily()),
+            content = content,
+        )
+    }
+}
