@@ -29,6 +29,11 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # `gh pr checks` reads statusCheckRollup, which needs these two. An explicit permissions block
+  # sets every scope it does not name to none, so leaving them out fails the whole step with
+  # "Resource not accessible by integration" and the pull request sits there forever, green.
+  checks: read
+  statuses: read
 
 concurrency:
   group: automerge-core-bump
