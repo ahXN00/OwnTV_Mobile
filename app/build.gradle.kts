@@ -331,6 +331,9 @@ dependencies {
     implementation(libs.androidx.paging.compose)
 
     // Image loading
+    // Media3's SubtitleView, for the image subtitles the engine renders through ExoPlayer.
+    implementation(libs.androidx.media3.ui)
+
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -37,9 +38,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
 import tv.own.owntv.mobile.ui.nav.MobileNavHost
+import tv.own.owntv.mobile.ui.nav.PLAYER_ROUTE
+import tv.own.owntv.mobile.ui.player.MiniPlayer
+import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 
 /**
  * The frame every screen sits in: a top app bar that collapses as you scroll, the navigation itself,
@@ -66,7 +71,21 @@ fun MobileShell(
     val useRail = windowWidthDp >= 600
     val destinations =
         (if (useRail) MobileDestination.rail else MobileDestination.bottomBar).visible(sections)
+    // A detail route ("live/42/false") keeps its tab selected and its tab's title: on a phone the
+    // channel you opened is still Live TV, and the bottom bar must not go blank while you watch it.
     val current = destinations.firstOrNull { it.route == currentRoute }
+        ?: destinations.firstOrNull { currentRoute?.startsWith("${it.route}/") == true }
+
+    // The full screen player is the one destination that owns the whole display: no bars, no rail,
+    // and no mini player, because the thing the mini player would be showing is already on screen.
+    val fullscreen = currentRoute == PLAYER_ROUTE
+    val tuner: LiveTuner = koinInject()
+    val playing by tuner.channel.collectAsStateWithLifecycle()
+    // Only ever ONE view of the picture at a time: the engine renders into a single surface, and a
+    // second one attaching would take it away from the first. So no mini player on a screen that is
+    // already showing the stream.
+    val showingStream = fullscreen || currentRoute?.startsWith("${MobileDestination.LIVE.route}/") == true
+    val showMini = playing != null && !showingStream
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
@@ -75,7 +94,7 @@ fun MobileShell(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            if (!fullscreen) TopAppBar(
                 title = {
                     Text(
                         text = stringResource(current?.labelRes ?: MobileDestination.HOME.labelRes),
@@ -109,23 +128,32 @@ fun MobileShell(
             )
         },
         bottomBar = {
-            if (!useRail) {
-                NavigationBar {
-                    destinations.forEach { destination ->
-                        NavigationBarItem(
-                            selected = destination == current,
-                            onClick = { navController.onNavClick(destination, current, shellViewModel) },
-                            icon = { NavIcon(destination) },
-                            label = { NavLabel(destination) },
-                            modifier = Modifier.longPressResetsScroll(destination, shellViewModel),
-                        )
+            if (!fullscreen) {
+                // The mini player shares the bottom bar slot, above the tabs, so it is docked in both
+                // layouts — a rail screen has no bottom bar of its own and would otherwise lose it.
+                Column {
+                    if (showMini) {
+                        MiniPlayer(tuner = tuner, onExpand = { navController.navigate(PLAYER_ROUTE) })
+                    }
+                    if (!useRail) {
+                        NavigationBar {
+                            destinations.forEach { destination ->
+                                NavigationBarItem(
+                                    selected = destination == current,
+                                    onClick = { navController.onNavClick(destination, current, shellViewModel) },
+                                    icon = { NavIcon(destination) },
+                                    label = { NavLabel(destination) },
+                                    modifier = Modifier.longPressResetsScroll(destination, shellViewModel),
+                                )
+                            }
+                        }
                     }
                 }
             }
         },
     ) { insets ->
         Row(Modifier.padding(insets)) {
-            if (useRail) {
+            if (useRail && !fullscreen) {
                 NavigationRail {
                     destinations.forEach { destination ->
                         NavigationRailItem(

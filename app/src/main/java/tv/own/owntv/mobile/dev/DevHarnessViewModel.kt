@@ -197,7 +197,9 @@ class DevHarnessViewModel(
     }
 
     override fun onCleared() {
-        player.release()
+        // stop, not release: the engine is a singleton, and since Plan 4 Phase 3 the real Live TV
+        // screen uses the same instance — releasing it here would leave that screen a dead player.
+        player.stop()
         super.onCleared()
     }
 }

@@ -16,6 +16,7 @@ import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.sync.work.KoinWorkerFactory
 import tv.own.owntv.core.util.CrashRecorder
 import tv.own.owntv.mobile.dev.devModule
+import tv.own.owntv.mobile.di.liveModule
 import tv.own.owntv.mobile.di.playerModule
 import tv.own.owntv.mobile.di.shellModule
 
@@ -77,7 +78,7 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
         startKoin {
             androidLogger(if (BuildConfig.DEBUG) Level.ERROR else Level.NONE)
             androidContext(this@OwnTVMobileApp)
-            modules(coreModule, databaseModule, dataModule, playerModule, shellModule, devModule)
+            modules(coreModule, databaseModule, dataModule, playerModule, shellModule, liveModule, devModule)
         }
     }
 }

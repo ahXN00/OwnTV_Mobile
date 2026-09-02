@@ -1,0 +1,39 @@
+package tv.own.owntv.mobile.di
+
+import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.module
+import tv.own.owntv.core.live.LiveArchiveUrls
+import tv.own.owntv.core.live.LiveEpgReader
+import tv.own.owntv.mobile.ui.screens.live.ChannelDetailViewModel
+import tv.own.owntv.mobile.ui.screens.live.LiveTuner
+import tv.own.owntv.mobile.ui.screens.live.LiveViewModel
+
+/**
+ * Live TV's view models, and the tuner they share.
+ *
+ * The tuner is a `single` on purpose: it is what is playing, and what is playing outlives the screen
+ * that started it — the channel screen, the full screen player and the mini player all read this one
+ * object. The two guide helpers are plain core classes with no module of their own, so they are
+ * assembled here rather than reached for by type.
+ */
+val liveModule = module {
+    single { LiveEpgReader(get(), get(), get(), get(), get()) }
+    single { LiveArchiveUrls(get(), get(), get(), get()) }
+    single {
+        LiveTuner(
+            channelDao = get(),
+            categoryDao = get(),
+            historyDao = get(),
+            profileDao = get(),
+            sourceDao = get(),
+            settings = get(),
+            customize = get(),
+            streamUrlResolver = get(),
+            epgReader = get(),
+            archiveUrls = get(),
+            player = get(),
+        )
+    }
+    viewModelOf(::LiveViewModel)
+    viewModelOf(::ChannelDetailViewModel)
+}

@@ -18,6 +18,16 @@
 
 - **The mobile app builds, signs and installs**
 - **Bottom bar on a phone, navigation rail on a tablet**
+- **Live TV: channel list with categories, logos and now/next**
+- **Press and hold a channel for its full menu**
+- **Watch a channel with the guide, the other channels and catch-up below it**
+- **Catch-up TV**
+- **Pull down to refresh the playlist**
+- **Full screen player with the complete control bar**
+- **Touch gestures: skip, scrub, volume, brightness, zoom, speed and mute**
+- **Rewind live TV into the archive, and Go live**
+- **Mini player above the tabs**
+- **Volume boost, picture size, playback speed and stream information**
 - **Phone and emulator builds from one signing key, shared with the TV app**
 - **26 languages on day one, inherited from the core library**
 - **Translation checks in CI** — hardcoded text, number formats, text overflow, packaged languages

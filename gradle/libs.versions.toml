@@ -24,6 +24,9 @@ coroutines = "1.11.0"
 
 # --- Third party ---
 coil = "3.6.0"
+# Media3 — only the subtitle view. The player itself is core's; this app draws the image
+# subtitles (PGS/VOBSUB/DVB) the engine hands to ExoPlayer, and nothing else from media3.
+media3 = "1.11.0"
 koin = "4.2.2"
 
 # --- Test ---
@@ -49,6 +52,7 @@ libmpv = "1.0.0"
 # settings, strings — comes from here; this repo adds the phone/tablet shell only.
 owntv-core = { group = "tv.own.owntv", name = "core", version.ref = "owntvCore" }
 owntv-player-core = { group = "tv.own.owntv", name = "player-core", version.ref = "owntvCore" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 libmpv = { group = "dev.jdtech.mpv", name = "libmpv", version.ref = "libmpv" }
 
 # Core
