@@ -24,6 +24,20 @@ release automation.
   swap over as the screen turns. Tabs for content you do not have are hidden, by the same rule the
   TV app uses, and each tab keeps its own place in its list when you leave it and come back.
 
+### 🔌 Getting your own playlist in
+
+- **The app asks for a playlist the first time it opens**, and offers two ways in: add a playlist, or
+  restore a backup you made on the television.
+- **All three kinds of playlist**: an Xtream account, an M3U address, and a MAG / Stalker portal with
+  its MAC address and the device presets that go with it.
+- **An M3U file already on the phone** can be picked with the phone's own file picker instead of
+  typing an address.
+- **A backup from the TV app restores everything** — playlists, favourites, what you have watched,
+  your channel order and your settings. An encrypted backup asks for its password and lets you try
+  again if it is wrong.
+- **The import shows what it is doing** while it runs, counts what it found, and cleans up after
+  itself if it fails, so a failed attempt never leaves half a playlist behind.
+
 ### 📺 Live TV
 
 - **The channel list**, with the categories along the top as chips: every channel shows its number,
@@ -41,6 +55,57 @@ release automation.
 - **Catch-up** opens a list of programmes the provider still keeps, newest first; pick one to replay.
 - **Pull the list down to refresh it**, which runs the same playlist sync the TV app's manual refresh
   runs.
+
+### 🎬 Films and shows
+
+- **Movies and Series**, on a phone as two tabs of one screen and on a tablet as two entries in the
+  side rail, with the categories along the top as chips.
+- **Your whole catalogue scrolls**, however large it is — it is loaded a page at a time as you reach
+  it, so opening the app is no slower with a hundred thousand films than with a hundred.
+- **Sort it your way** — by name, by date added, by year or by rating — and switch between a poster
+  grid and a list.
+- **Pinch to make the posters bigger or smaller**, or use the size slider; the app remembers the size
+  you chose.
+- **Press and hold a film or a show for its menu**: favourite, play in another app, mark as watched,
+  download, remove from history and hide, in the order you arranged them in Settings.
+- **Tap one to open it**, with its picture, year, rating, length and description, and a **Resume**
+  button that starts where you stopped — the same place the television stopped, because both apps
+  share it.
+- **A show opens on the season of the last episode you watched**, with a bar under each episode
+  showing how far through it you are.
+- **Films play in the same player as live television**, in the mini bar or full screen, with all the
+  same controls and gestures.
+
+### 🏠 Home
+
+- **The same Home as your television.** The rows you arranged there appear here in the same order,
+  and the ones you hid stay hidden — it is one setting, kept with your profile, not two.
+- **A card at the top for what you were last watching**, with a bar showing how far in you were and a
+  button that carries straight on. Swipe sideways for the ones before it. A live channel gets the
+  same card and takes you to the channel.
+- **Rows for films and shows you have started**, each poster carrying its own progress bar.
+- **Your favourite and recently watched channels**, either as logos to pick from or as a list of what
+  is on each of them right now — tap the switch above the row to change your mind, on either device.
+- **What is trending**, but only the titles your own playlist actually has.
+- **The weather at the top**, in °C or °F, exactly as you set it on the television.
+- **Nothing yet?** Home says so and offers to add a playlist.
+
+### 📅 The guide
+
+- **Three guides, and the app remembers which one you like.** *On now* is a list of every channel
+  with what is playing, a bar showing how far through it is, and what is on next — it is what a
+  phone held upright can actually read. *Grid* is the television's guide: the channel names stay
+  pinned down the left while the programmes slide sideways, all the rows moving together. *Timeline*
+  is one channel's whole evening read top to bottom.
+- **A day at a time**, with the days along the top; today opens at the half hour you are in rather
+  than at this morning.
+- **A button that jumps the grid back to now**, however far you have scrolled.
+- **Search the channels and filter them by category**, with your favourites as their own chip.
+- **Tap a programme** for its description, and from there watch the channel, replay the programme
+  from the start when your provider keeps an archive, or favourite the channel.
+- **A size slider** makes the grid show more of the evening at once, or less of it larger.
+- **It stays quick on a big playlist**, because the guide is read one row at a time as that row
+  reaches the screen instead of loading the whole lineup.
 
 ### ▶️ The player
 

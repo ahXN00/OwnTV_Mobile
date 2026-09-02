@@ -225,9 +225,20 @@ class LiveTuner(
         )
     }
 
-    /** Replay a past programme from the archive. Seekable, so it plays as VOD rather than as live. */
-    fun playCatchup(programme: EpgProgrammeEntity) {
-        val channel = _channel.value ?: return
+    /**
+     * Replay a past programme from the archive. Seekable, so it plays as VOD rather than as live.
+     *
+     * [on] is the channel it aired on, for the Guide, where a programme is picked without tuning its
+     * channel first — starting the live stream only to abandon it a second later would cost the user
+     * a connection and the provider a session. Omitted, it is the channel already playing.
+     */
+    fun playCatchup(programme: EpgProgrammeEntity, on: ChannelEntity? = null) {
+        val channel = on ?: _channel.value ?: return
+        if (channel.id != loadedId) {
+            loadedId = channel.id
+            _channel.value = channel
+            _nowNext.value = null
+        }
         scope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
             if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao)) return@launch

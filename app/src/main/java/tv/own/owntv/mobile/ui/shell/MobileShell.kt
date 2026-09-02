@@ -43,7 +43,11 @@ import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
 import tv.own.owntv.mobile.ui.nav.MobileNavHost
 import tv.own.owntv.mobile.ui.nav.PLAYER_ROUTE
+import tv.own.owntv.mobile.ui.nav.SETUP_ROUTE
+import tv.own.owntv.mobile.ui.setup.SetupFlow
+import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.mobile.ui.player.MiniPlayer
+import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 
 /**
@@ -64,6 +68,15 @@ fun MobileShell(
 ) {
     val shellViewModel: ShellViewModel = koinViewModel()
     val sections by shellViewModel.visibleSections.collectAsStateWithLifecycle()
+    val needsSetup by shellViewModel.needsSetup.collectAsStateWithLifecycle()
+
+    // A brand new install has no playlist, so there is nothing for the tabs to show: the setup flow
+    // IS the app until one exists. No cancel — there is nowhere to cancel to.
+    if (needsSetup == true) {
+        SetupFlow(onDone = { }, modifier = modifier)
+        return
+    }
+
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -78,14 +91,17 @@ fun MobileShell(
 
     // The full screen player is the one destination that owns the whole display: no bars, no rail,
     // and no mini player, because the thing the mini player would be showing is already on screen.
-    val fullscreen = currentRoute == PLAYER_ROUTE
+    val fullscreen = currentRoute == PLAYER_ROUTE || currentRoute == SETUP_ROUTE
     val tuner: LiveTuner = koinInject()
-    val playing by tuner.channel.collectAsStateWithLifecycle()
+    val vodTuner: VodTuner = koinInject()
+    val channel by tuner.channel.collectAsStateWithLifecycle()
+    val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
+    val film by vodTuner.playing.collectAsStateWithLifecycle()
     // Only ever ONE view of the picture at a time: the engine renders into a single surface, and a
     // second one attaching would take it away from the first. So no mini player on a screen that is
     // already showing the stream.
     val showingStream = fullscreen || currentRoute?.startsWith("${MobileDestination.LIVE.route}/") == true
-    val showMini = playing != null && !showingStream
+    val showMini = (channel != null || film != null) && !showingStream
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
@@ -133,7 +149,17 @@ fun MobileShell(
                 // layouts — a rail screen has no bottom bar of its own and would otherwise lose it.
                 Column {
                     if (showMini) {
-                        MiniPlayer(tuner = tuner, onExpand = { navController.navigate(PLAYER_ROUTE) })
+                        // A channel wins when there is one, because the two tuners cannot both be
+                        // playing and the live one is what the other stops before it starts.
+                        val live = channel
+                        MiniPlayer(
+                            player = tuner.player,
+                            title = live?.name ?: film?.title.orEmpty(),
+                            subtitle = if (live != null) nowNext?.now?.title else film?.subtitle,
+                            artworkUrl = live?.displayLogoUrl ?: film?.posterUrl,
+                            onExpand = { navController.navigate(PLAYER_ROUTE) },
+                            onStop = { if (live != null) tuner.stop() else vodTuner.stop() },
+                        )
                     }
                     if (!useRail) {
                         NavigationBar {

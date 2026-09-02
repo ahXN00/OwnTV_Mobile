@@ -18,6 +18,24 @@
 
 - **The mobile app builds, signs and installs**
 - **Bottom bar on a phone, navigation rail on a tablet**
+- **Add your playlist from the phone: Xtream, M3U or MAG portal**
+- **Pick an M3U file with the phone's file picker**
+- **Restore a backup made on the TV app, encrypted ones included**
+- **Movies and Series, with categories, sorting and grid or list**
+- **Pinch to resize the posters**
+- **Press and hold a film or show for its full menu**
+- **Film and show details with Resume, seasons and episode progress**
+- **A show opens on the season you last watched**
+- **Home with your own rows, in your order, hiding what you hid on the TV**
+- **A hero card for what you were last watching, with Resume**
+- **Continue-watching rows for films and shows, with progress**
+- **Favourite and recent channels, as logos or as what is on now**
+- **Trending titles your playlist actually has**
+- **Weather on Home, in your own °C or °F**
+- **TV guide in three shapes: On now, Grid and Timeline**
+- **Day chips, jump to now, search and category filter in the guide**
+- **Tap a programme for its description, catch-up replay or the channel**
+- **Size slider for the guide grid**
 - **Live TV: channel list with categories, logos and now/next**
 - **Press and hold a channel for its full menu**
 - **Watch a channel with the guide, the other channels and catch-up below it**

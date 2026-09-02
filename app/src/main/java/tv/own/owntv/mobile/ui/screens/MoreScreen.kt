@@ -10,6 +10,8 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.HorizontalDivider
@@ -35,6 +37,7 @@ fun MoreScreen(
     scrollToTop: SharedFlow<String>,
     onNavigate: (MobileDestination) -> Unit,
     onDevRoute: (DevRoute) -> Unit,
+    onAddSource: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -53,6 +56,10 @@ fun MoreScreen(
             MoreRow(R.string.content_category_favorites, Icons.Filled.Favorite)
             MoreRow(R.string.content_category_history, Icons.Filled.History)
             HorizontalDivider()
+            // Both land on the same flow, which asks again which of the two it is — but a user who
+            // came here to restore a backup should not have to find it behind "add a playlist".
+            MoreRow(R.string.setup_add_playlist, Icons.Filled.PlaylistAdd, onAddSource)
+            MoreRow(R.string.setup_restore_backup, Icons.Filled.Restore, onAddSource)
             MoreRow(R.string.settings_sync_now, Icons.Filled.Sync)
             MoreRow(R.string.settings_about, Icons.Filled.Info)
 

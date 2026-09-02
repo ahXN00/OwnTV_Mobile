@@ -32,10 +32,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.mobile.R
-import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.player.OwnTVPlayer
 
 private val BAR_HEIGHT = 64.dp
 private const val DISMISS_DRAG_PX = 120f
@@ -46,17 +45,24 @@ private const val DISMISS_DRAG_PX = 120f
  * It is the same engine and the same stream as the full screen player — the picture simply moves into
  * a smaller box — so opening it costs nothing and closing it is the only thing in the app that
  * actually stops playback. A radio channel has no picture to move, so its artwork stands in.
+ *
+ * It is told what to say rather than which tuner to ask, because a channel and a film are two
+ * different objects and this bar is the same bar for both.
  */
 @Composable
-fun MiniPlayer(tuner: LiveTuner, onExpand: () -> Unit, modifier: Modifier = Modifier) {
-    val channel by tuner.channel.collectAsStateWithLifecycle()
-    val current = channel ?: return
-    val player = tuner.player
+fun MiniPlayer(
+    player: OwnTVPlayer,
+    title: String,
+    onExpand: () -> Unit,
+    onStop: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    artworkUrl: String? = null,
+) {
     val playing by player.isPlaying.collectAsStateWithLifecycle()
     val position by player.position.collectAsStateWithLifecycle()
     val duration by player.duration.collectAsStateWithLifecycle()
     val audioOnly by player.audioOnlyMedia.collectAsStateWithLifecycle()
-    val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
 
     Column(
         modifier
@@ -67,7 +73,7 @@ fun MiniPlayer(tuner: LiveTuner, onExpand: () -> Unit, modifier: Modifier = Modi
                 var travel = 0f
                 detectVerticalDragGestures(
                     onDragEnd = {
-                        if (travel > DISMISS_DRAG_PX) tuner.stop()
+                        if (travel > DISMISS_DRAG_PX) onStop()
                         travel = 0f
                     },
                     onVerticalDrag = { _, delta -> travel += delta },
@@ -87,7 +93,7 @@ fun MiniPlayer(tuner: LiveTuner, onExpand: () -> Unit, modifier: Modifier = Modi
             ) {
                 if (audioOnly) {
                     AsyncImage(
-                        model = current.displayLogoUrl,
+                        model = artworkUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxHeight(),
@@ -102,15 +108,15 @@ fun MiniPlayer(tuner: LiveTuner, onExpand: () -> Unit, modifier: Modifier = Modi
                     .padding(horizontal = MobileDimens.GapSmall),
             ) {
                 Text(
-                    text = current.name,
+                    text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                nowNext?.now?.title?.let { title ->
+                subtitle?.let { line ->
                     Text(
-                        text = title,
+                        text = line,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -124,7 +130,7 @@ fun MiniPlayer(tuner: LiveTuner, onExpand: () -> Unit, modifier: Modifier = Modi
                     contentDescription = stringResource(R.string.settings_remote_action_play_pause),
                 )
             }
-            IconButton(onClick = { tuner.stop() }) {
+            IconButton(onClick = onStop) {
                 Icon(Icons.Filled.Close, stringResource(R.string.content_close))
             }
         }

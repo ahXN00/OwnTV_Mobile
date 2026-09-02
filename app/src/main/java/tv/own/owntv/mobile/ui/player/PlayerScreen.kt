@@ -37,6 +37,7 @@ import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.PipController
+import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.PlaybackFailure
 import tv.own.owntv.player.ZoomMode
@@ -61,6 +62,7 @@ fun PlayerScreen(
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
     tuner: LiveTuner = koinInject(),
+    vodTuner: VodTuner = koinInject(),
     pip: PipController = koinInject(),
 ) {
     val player = tuner.player
@@ -70,6 +72,7 @@ fun PlayerScreen(
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val channel by tuner.channel.collectAsStateWithLifecycle()
+    val film by vodTuner.playing.collectAsStateWithLifecycle()
     val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
     val siblings by tuner.siblings.collectAsStateWithLifecycle()
     val offsetSec by tuner.offsetSec.collectAsStateWithLifecycle()
@@ -206,8 +209,9 @@ fun PlayerScreen(
 
         PlayerControls(
             player = player,
-            title = channel?.name.orEmpty(),
-            subtitle = nowNext?.now?.title,
+            // Whichever tuner has the surface. Only one of them ever does.
+            title = channel?.name ?: film?.title.orEmpty(),
+            subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
             // Nothing is drawn over the picture in the little window: it is a thumbnail, and the
             // system draws its own buttons on top of it.
             visible = controlsVisible && !inPip,

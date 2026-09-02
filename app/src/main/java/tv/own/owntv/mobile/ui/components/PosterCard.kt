@@ -1,7 +1,7 @@
 package tv.own.owntv.mobile.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -39,12 +39,13 @@ fun PosterCard(
     progress: Float? = null,
     width: Dp = MobileDimens.PosterWidthPortrait,
     onClick: () -> Unit = {},
+    onLongClick: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
             .width(width)
             .clip(RoundedCornerShape(MobileDimens.CardCorner))
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(bottom = MobileDimens.GapTiny),
     ) {
         Box(

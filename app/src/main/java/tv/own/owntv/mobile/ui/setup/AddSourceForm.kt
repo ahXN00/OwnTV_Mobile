@@ -1,0 +1,434 @@
+package tv.own.owntv.mobile.ui.setup
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.coroutines.launch
+import tv.own.owntv.core.settings.PlaylistAutoRefresh
+import tv.own.owntv.core.settings.PlaylistRefresh
+import tv.own.owntv.core.setup.MAG_USER_AGENTS
+import tv.own.owntv.core.stalker.StalkerClient
+import tv.own.owntv.core.sync.SyncScopeChoice
+import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.FilterChipRow
+import tv.own.owntv.mobile.ui.components.MobileBottomSheet
+import tv.own.owntv.mobile.ui.components.MobileButton
+import tv.own.owntv.mobile.ui.components.MobileButtonStyle
+import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.MobileTextField
+import tv.own.owntv.mobile.ui.theme.MobileDimens
+
+/** Which kind of provider the form is asking about. */
+enum class SourceKind { XTREAM, M3U, STALKER }
+
+/**
+ * One playlist's details, as one scrolling page.
+ *
+ * The television asks the same questions across several popups because a remote control cannot
+ * scroll a long form comfortably. A phone is the opposite: a popup would put the keyboard over the
+ * field being typed into, so everything — including the optional half — is on this page, and the
+ * page scrolls under the keyboard.
+ */
+@Composable
+fun AddSourceForm(
+    onStartXtream: (
+        name: String, server: String, username: String, password: String, userAgent: String,
+        autoRefresh: PlaylistRefresh, live: SyncScopeChoice, movies: SyncScopeChoice,
+        series: SyncScopeChoice, preferHls: Boolean,
+    ) -> Unit,
+    onStartM3u: (name: String, url: String, userAgent: String, autoRefresh: PlaylistRefresh) -> Unit,
+    onStartStalker: (
+        name: String, portalUrl: String, mac: String, serialNumber: String, deviceId: String,
+        deviceId2: String, signature: String, userAgent: String, autoRefresh: PlaylistRefresh,
+        live: SyncScopeChoice, movies: SyncScopeChoice, series: SyncScopeChoice,
+    ) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var kind by rememberSaveable { mutableStateOf(SourceKind.XTREAM) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var server by rememberSaveable { mutableStateOf("") }
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var m3uUrl by rememberSaveable { mutableStateOf("") }
+    var portalUrl by rememberSaveable { mutableStateOf("") }
+    var mac by rememberSaveable { mutableStateOf("") }
+    var serialNumber by rememberSaveable { mutableStateOf("") }
+    var deviceId by rememberSaveable { mutableStateOf("") }
+    var deviceId2 by rememberSaveable { mutableStateOf("") }
+    var signature by rememberSaveable { mutableStateOf("") }
+    var userAgent by rememberSaveable { mutableStateOf("") }
+    var preferHls by rememberSaveable { mutableStateOf(false) }
+    var refreshMode by rememberSaveable { mutableStateOf(PlaylistAutoRefresh.OFF) }
+    var manualDays by rememberSaveable { mutableStateOf(PlaylistRefresh().manualDays.toString()) }
+    // Stalker has no bulk catalogue endpoint, so its films and series are fetched later by default.
+    var syncLive by rememberSaveable { mutableStateOf(SyncScopeChoice.Now) }
+    var syncMovies by rememberSaveable { mutableStateOf(SyncScopeChoice.Now) }
+    var syncSeries by rememberSaveable { mutableStateOf(SyncScopeChoice.Now) }
+    var showRefreshSheet by remember { mutableStateOf(false) }
+    var showDeviceSheet by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val pickPlaylist = rememberPlaylistFilePicker { uri ->
+        scope.launch {
+            copyPickedFile(context, uri, java.io.File(context.filesDir, PLAYLIST_DIR))?.let { file ->
+                m3uUrl = file.absolutePath
+                if (name.isBlank()) name = file.nameWithoutExtension
+            }
+        }
+    }
+
+    val macValid = StalkerClient.canonicalizeMac(mac) != null
+    val autoRefresh = PlaylistRefresh(refreshMode, manualDays.toIntOrNull() ?: PlaylistRefresh().manualDays)
+    val hasAnySection = syncLive != SyncScopeChoice.Off ||
+        syncMovies != SyncScopeChoice.Off ||
+        syncSeries != SyncScopeChoice.Off
+    val canStart = when (kind) {
+        SourceKind.XTREAM ->
+            server.isNotBlank() && username.isNotBlank() && password.isNotBlank() && hasAnySection
+        SourceKind.M3U -> m3uUrl.isNotBlank()
+        SourceKind.STALKER -> StalkerClient.isValidPortalUrl(portalUrl) && macValid && hasAnySection
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .navigationBarsPadding()
+            .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.ScreenPaddingV),
+        verticalArrangement = Arrangement.spacedBy(MobileDimens.GapMedium),
+    ) {
+        Text(
+            text = stringResource(R.string.setup_byo_source_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FilterChipRow(
+            labels = listOf(
+                stringResource(R.string.setup_xtream),
+                stringResource(R.string.setup_m3u),
+                stringResource(R.string.setup_stalker_mac),
+            ),
+            selectedIndex = kind.ordinal,
+            onSelect = { index ->
+                kind = SourceKind.entries[index]
+                // Stalker portals answer one item at a time, so a full film catalogue on the spot is
+                // an hour of requests; the television makes the same choice for the same reason.
+                if (kind == SourceKind.STALKER) {
+                    syncMovies = SyncScopeChoice.Later
+                    syncSeries = SyncScopeChoice.Later
+                }
+            },
+        )
+        MobileTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = stringResource(R.string.setup_source_name_optional),
+            placeholder = stringResource(R.string.setup_default_iptv),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        when (kind) {
+            SourceKind.XTREAM -> {
+                MobileTextField(
+                    value = server,
+                    onValueChange = { server = it },
+                    label = stringResource(R.string.setup_server_url),
+                    placeholder = stringResource(R.string.setup_server_example),
+                    keyboardType = KeyboardType.Uri,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = stringResource(R.string.setup_username),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = stringResource(R.string.setup_password),
+                    isPassword = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SwitchRow(
+                    label = stringResource(R.string.setup_prefer_hls_live_tv),
+                    description = stringResource(R.string.setup_prefer_hls_description),
+                    checked = preferHls,
+                    onCheckedChange = { preferHls = it },
+                )
+            }
+            SourceKind.M3U -> {
+                MobileTextField(
+                    value = m3uUrl,
+                    onValueChange = { m3uUrl = it },
+                    label = stringResource(R.string.setup_playlist_url_local_file),
+                    placeholder = stringResource(R.string.setup_playlist_example),
+                    keyboardType = KeyboardType.Uri,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileButton(
+                    text = stringResource(R.string.setup_local_file_choose),
+                    onClick = { pickPlaylist() },
+                    style = MobileButtonStyle.SECONDARY,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            SourceKind.STALKER -> {
+                MobileTextField(
+                    value = portalUrl,
+                    onValueChange = { portalUrl = it },
+                    label = stringResource(R.string.setup_portal_url),
+                    placeholder = stringResource(R.string.setup_portal_example),
+                    keyboardType = KeyboardType.Uri,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileTextField(
+                    value = mac,
+                    onValueChange = { mac = it },
+                    label = stringResource(R.string.setup_mac_address),
+                    placeholder = stringResource(R.string.setup_mac_example),
+                    isError = mac.isNotBlank() && !macValid,
+                    supportingText = stringResource(R.string.setup_mac_invalid).takeIf { mac.isNotBlank() && !macValid },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.setup_stalker_advanced_identity),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                MobileTextField(
+                    value = serialNumber,
+                    onValueChange = { serialNumber = it },
+                    label = stringResource(R.string.setup_stalker_serial_number_optional),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileTextField(
+                    value = deviceId,
+                    onValueChange = { deviceId = it },
+                    label = stringResource(R.string.setup_stalker_device_id_optional),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileTextField(
+                    value = deviceId2,
+                    onValueChange = { deviceId2 = it },
+                    label = stringResource(R.string.setup_stalker_device_id2_optional),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileTextField(
+                    value = signature,
+                    onValueChange = { signature = it },
+                    label = stringResource(R.string.setup_stalker_signature_optional),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MobileListRow(
+                    title = stringResource(R.string.setup_device_model_preset),
+                    subtitle = stringResource(
+                        MAG_USER_AGENTS.firstOrNull { it.userAgent == userAgent }?.labelRes
+                            ?: MAG_USER_AGENTS.first().labelRes,
+                    ),
+                    onClick = { showDeviceSheet = true },
+                )
+            }
+        }
+
+        MobileTextField(
+            value = userAgent,
+            onValueChange = { userAgent = it },
+            label = stringResource(R.string.setup_user_agent_optional),
+            placeholder = stringResource(R.string.setup_user_agent_example),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        MobileListRow(
+            title = stringResource(R.string.setup_auto_refresh),
+            subtitle = stringResource(refreshMode.labelRes()),
+            onClick = { showRefreshSheet = true },
+        )
+        if (refreshMode == PlaylistAutoRefresh.MANUAL) {
+            MobileTextField(
+                value = manualDays,
+                onValueChange = { manualDays = it.filter(Char::isDigit).take(3) },
+                label = stringResource(R.string.settings_sources_refresh_days_title),
+                supportingText = stringResource(R.string.settings_sources_refresh_days_hint),
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        if (kind != SourceKind.M3U) {
+            Text(
+                text = stringResource(R.string.setup_what_to_sync),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.setup_sync_choices),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ScopeRow(
+                label = stringResource(R.string.setup_live_tv),
+                description = stringResource(R.string.setup_channels_categories),
+                value = syncLive,
+                onChange = { syncLive = it },
+            )
+            ScopeRow(
+                label = stringResource(R.string.setup_movies),
+                description = stringResource(R.string.setup_vod_movie_catalog),
+                value = syncMovies,
+                onChange = { syncMovies = it },
+            )
+            ScopeRow(
+                label = stringResource(R.string.setup_series),
+                description = stringResource(R.string.setup_tv_series_catalog),
+                value = syncSeries,
+                onChange = { syncSeries = it },
+            )
+        }
+
+        MobileButton(
+            text = stringResource(R.string.setup_start_import),
+            onClick = {
+                when (kind) {
+                    SourceKind.XTREAM -> onStartXtream(
+                        name, server, username, password, userAgent, autoRefresh,
+                        syncLive, syncMovies, syncSeries, preferHls,
+                    )
+                    SourceKind.M3U -> onStartM3u(name, m3uUrl, userAgent, autoRefresh)
+                    SourceKind.STALKER -> onStartStalker(
+                        name, portalUrl, mac, serialNumber, deviceId, deviceId2, signature,
+                        userAgent, autoRefresh, syncLive, syncMovies, syncSeries,
+                    )
+                }
+            },
+            enabled = canStart,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+
+    if (showRefreshSheet) {
+        MobileBottomSheet(
+            onDismissRequest = { showRefreshSheet = false },
+            title = stringResource(R.string.setup_auto_refresh_title),
+        ) {
+            Text(
+                text = stringResource(R.string.setup_auto_refresh_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
+            )
+            PlaylistAutoRefresh.entries.forEach { mode ->
+                MobileListRow(
+                    title = stringResource(mode.labelRes()),
+                    trailing = { RadioButton(selected = mode == refreshMode, onClick = null) },
+                    onClick = { refreshMode = mode; showRefreshSheet = false },
+                )
+            }
+        }
+    }
+    if (showDeviceSheet) {
+        MobileBottomSheet(
+            onDismissRequest = { showDeviceSheet = false },
+            title = stringResource(R.string.setup_device_model_preset_title),
+        ) {
+            MAG_USER_AGENTS.forEach { preset ->
+                MobileListRow(
+                    title = stringResource(preset.labelRes),
+                    trailing = { RadioButton(selected = preset.userAgent == userAgent, onClick = null) },
+                    onClick = { userAgent = preset.userAgent; showDeviceSheet = false },
+                )
+            }
+        }
+    }
+}
+
+/** Now, Later or not at all — one row per catalogue, cycled by tapping it. */
+@Composable
+private fun ScopeRow(
+    label: String,
+    description: String,
+    value: SyncScopeChoice,
+    onChange: (SyncScopeChoice) -> Unit,
+) {
+    val options = listOf(SyncScopeChoice.Now, SyncScopeChoice.Later, SyncScopeChoice.Off)
+    val valueLabel = stringResource(
+        when (value) {
+            SyncScopeChoice.Now -> R.string.setup_now
+            SyncScopeChoice.Later -> R.string.setup_later
+            SyncScopeChoice.Off -> R.string.setup_off
+        },
+    )
+    MobileListRow(
+        title = label,
+        subtitle = description,
+        // No "◀ value ▶" arrows: those tell a remote control which way to press, and a thumb just
+        // taps the row.
+        trailing = {
+            Text(
+                text = valueLabel,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        },
+        onClick = { onChange(options[(options.indexOf(value) + 1) % options.size]) },
+    )
+}
+
+@Composable
+private fun SwitchRow(
+    label: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapMedium),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+private fun PlaylistAutoRefresh.labelRes(): Int = when (this) {
+    PlaylistAutoRefresh.OFF -> R.string.settings_sources_refresh_off
+    PlaylistAutoRefresh.STARTUP -> R.string.settings_sources_refresh_startup
+    PlaylistAutoRefresh.HOURS_6 -> R.string.settings_sources_refresh_6h
+    PlaylistAutoRefresh.HOURS_12 -> R.string.settings_sources_refresh_12h
+    PlaylistAutoRefresh.MANUAL -> R.string.settings_sources_refresh_manual
+}
+
+/** Where a playlist picked from the phone's storage is kept. */
+private const val PLAYLIST_DIR = "playlists"
