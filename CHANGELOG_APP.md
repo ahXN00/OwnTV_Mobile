@@ -28,6 +28,11 @@
 - **Rewind live TV into the archive, and Go live**
 - **Mini player above the tabs**
 - **Volume boost, picture size, playback speed and stream information**
+- **Calls pause playback and hanging up resumes it**
+- **Unplugging headphones stops the sound**
+- **Lock screen and notification playback controls**
+- **Background playback: the sound continues when you leave the app**
+- **Picture-in-Picture, with pause and channel +/− buttons**
 - **Phone and emulator builds from one signing key, shared with the TV app**
 - **26 languages on day one, inherited from the core library**
 - **Translation checks in CI** — hardcoded text, number formats, text overflow, packaged languages

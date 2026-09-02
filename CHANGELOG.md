@@ -62,6 +62,26 @@ release automation.
 - **When playback fails, it says why** — in your language, with the same wording the TV app uses, and
   a retry button.
 
+### 📱 It behaves like a phone, not a television
+
+- **A call pauses the film and hanging up resumes it.** Anything that takes the sound away for a
+  moment — a call, a navigation prompt, a voice assistant — pauses playback and gives it back
+  afterwards. If you paused it yourself while the call was going on, it stays paused: your choice is
+  the newer one. The television still ducks the volume instead of pausing, because pausing live
+  television loses the live edge.
+- **Pulling out headphones stops the sound** instead of throwing it out of the loudspeaker, and
+  plugging them back in does not start it again by itself.
+- **Playback controls on the lock screen and in the notification shade**, with the channel name, what
+  is on, the logo, and play, pause and a seek bar for anything that can be seeked.
+- **It keeps playing when you leave the app.** The picture is dropped and the sound carries on, so a
+  radio station or a match you are only listening to costs almost no battery; coming back to the app
+  brings the picture straight back without restarting the stream. The same thing happens when the
+  screen turns off.
+- **Press home while watching and the video shrinks into a floating window**, with buttons for pause
+  and for the previous and next channel. Tapping the window brings the app back; closing it stops
+  playback.
+- **The screen stays awake while there is a picture**, and is allowed to sleep when there is not.
+
 ### 🌍 It speaks 26 languages on day one
 
 - **Every user-visible string comes from the core library**, already translated, so the mobile app

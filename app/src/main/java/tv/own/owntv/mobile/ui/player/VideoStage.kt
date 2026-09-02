@@ -64,6 +64,9 @@ fun VideoStage(player: OwnTVPlayer, modifier: Modifier = Modifier, subtitleScale
     val videoSize by player.videoSize.collectAsStateWithLifecycle()
     val zoom by player.zoomMode.collectAsStateWithLifecycle()
 
+    // Keeping the screen awake is MainActivity's job, not this composable's: three of these exist and
+    // they hand the stream to one another, so whichever one was disposed last won.
+
     BoxWithConstraints(
         modifier.background(Color.Black).clipToBounds(),
         contentAlignment = Alignment.Center,

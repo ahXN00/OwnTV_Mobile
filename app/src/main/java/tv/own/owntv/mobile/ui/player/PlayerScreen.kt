@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.PlaybackFailure
 import tv.own.owntv.player.ZoomMode
@@ -60,9 +61,11 @@ fun PlayerScreen(
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
     tuner: LiveTuner = koinInject(),
+    pip: PipController = koinInject(),
 ) {
     val player = tuner.player
     val activity = LocalActivity.current
+    val inPip by pip.inPip.collectAsStateWithLifecycle()
     val res = LocalResources.current
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -87,17 +90,20 @@ fun PlayerScreen(
     // percent on its own would throw most of the movement away.
     val carry = remember { Carry() }
 
-    // Full screen means full screen: no status bar, no navigation bar, and the display stays awake
-    // through a film nobody is touching.
+    // Full screen means full screen: no status bar, no navigation bar. The display is kept awake by
+    // VideoStage, which knows whether there is a picture to stay awake for.
+    //
+    // This is also where the activity learns that the picture is on screen, which is the difference
+    // between "home was pressed while watching" (Picture-in-Picture) and "home was pressed" (leave).
     DisposableEffect(activity) {
         val window = activity?.window
         val insets = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
         insets?.hide(WindowInsetsCompat.Type.systemBars())
-        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        pip.playerOnScreen.value = true
         onDispose {
+            pip.playerOnScreen.value = false
             insets?.show(WindowInsetsCompat.Type.systemBars())
-            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             if (window != null) {
                 window.attributes = window.attributes.apply {
@@ -202,7 +208,9 @@ fun PlayerScreen(
             player = player,
             title = channel?.name.orEmpty(),
             subtitle = nowNext?.now?.title,
-            visible = controlsVisible,
+            // Nothing is drawn over the picture in the little window: it is a thumbnail, and the
+            // system draws its own buttons on top of it.
+            visible = controlsVisible && !inPip,
             isLive = isLive,
             offsetSec = offsetSec,
             archiveWindowSec = tuner.archiveWindowSec(),
@@ -213,7 +221,7 @@ fun PlayerScreen(
             onDock = onExit,
         )
 
-        hud?.let { text ->
+        hud.takeIf { !inPip }?.let { text ->
             Text(
                 text = text,
                 style = MaterialTheme.typography.headlineSmall,
@@ -226,7 +234,7 @@ fun PlayerScreen(
         }
     }
 
-    sheet?.let { open ->
+    sheet.takeIf { !inPip }?.let { open ->
         PlayerSheetHost(
             sheet = open,
             player = player,

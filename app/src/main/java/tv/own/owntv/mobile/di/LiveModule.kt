@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.di
 
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import tv.own.owntv.core.live.LiveArchiveUrls
@@ -21,6 +22,7 @@ val liveModule = module {
     single { LiveArchiveUrls(get(), get(), get(), get()) }
     single {
         LiveTuner(
+            context = androidContext(),
             channelDao = get(),
             categoryDao = get(),
             historyDao = get(),
@@ -31,6 +33,7 @@ val liveModule = module {
             streamUrlResolver = get(),
             epgReader = get(),
             archiveUrls = get(),
+            session = get(),
             player = get(),
         )
     }

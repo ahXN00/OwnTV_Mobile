@@ -19,7 +19,15 @@
 # category protocol: Stable protocol or comparison identifier.
 # category technical: Reviewed non-user-facing technical literal.
 
+1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	down
+1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	pip_action
+1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	toggle
+1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	tv.own.owntv.mobile.PIP
+1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	up
 3	empty	app/src/main/java/tv/own/owntv/mobile/dev/ThemeGalleryScreen.kt	\0
+1	preference-key	app/src/main/java/tv/own/owntv/mobile/playback/PlaybackService.kt	owntv_playback
+1	protocol	app/src/main/java/tv/own/owntv/mobile/playback/PlaybackService.kt	tv.own.owntv.mobile.STOP
+1	protocol	app/src/main/java/tv/own/owntv/mobile/playback/PlaybackService.kt	tv.own.owntv.mobile.TOGGLE
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	downloads
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	guide
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	home

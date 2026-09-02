@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.live
 
+import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,7 +36,10 @@ import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.StreamUrlResolver
+import tv.own.owntv.mobile.playback.PlaybackService
+import tv.own.owntv.player.MpvPlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
+import tv.own.owntv.player.PlaybackSession
 
 /**
  * What is playing, and everything a screen needs to ask about it.
@@ -50,6 +54,7 @@ import tv.own.owntv.player.OwnTVPlayer
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LiveTuner(
+    private val context: Context,
     private val channelDao: ChannelDao,
     private val categoryDao: CategoryDao,
     private val historyDao: HistoryDao,
@@ -60,10 +65,29 @@ class LiveTuner(
     private val streamUrlResolver: StreamUrlResolver,
     private val epgReader: LiveEpgReader,
     private val archiveUrls: LiveArchiveUrls,
+    private val session: PlaybackSession,
     val player: OwnTVPlayer,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /**
+     * The engine as the rest of the system sees it. Published to [session] whenever a stream starts,
+     * withdrawn in [stop] — this class is the only thing that knows whether anything is playing at
+     * all, so it is the only thing that can answer a call, a headphone unplug or a lockscreen button
+     * correctly.
+     */
+    private val engine by lazy { MpvPlaybackEngine(player) }
+
+    /**
+     * Hand the stream to the system: the session takes the lockscreen and the audio focus, the
+     * foreground service keeps the process alive once the app leaves the screen. Both are idempotent,
+     * so every `play()` call can go through here.
+     */
+    private fun publishToSystem() {
+        session.attach(engine)
+        PlaybackService.start(context)
+    }
 
     private val ctx: StateFlow<ActiveProfileSources> = activeProfileSources(settings, sourceDao)
         .stateIn(scope, SharingStarted.Eagerly, ActiveProfileSources(-1L, emptyList()))
@@ -125,6 +149,18 @@ class LiveTuner(
         scope.launch { start(channel) }
     }
 
+    /**
+     * The next (+1) or previous (−1) channel of the same folder, wrapping at both ends — Channel +/−
+     * from the Picture-in-Picture window, where there is no room for a list.
+     */
+    fun step(delta: Int) {
+        val list = _siblings.value
+        if (list.size < 2) return
+        val index = list.indexOfFirst { it.id == loadedId }
+        if (index < 0) return
+        switchTo(list[(index + delta).mod(list.size)])
+    }
+
     private suspend fun start(channel: ChannelEntity) {
         timeshift.clear() // a new channel is never still rewound into the old one's archive
         // A renamed channel keeps its new name on this screen too — the row the user tapped had it.
@@ -150,6 +186,7 @@ class LiveTuner(
             userAgent = source?.userAgent,
             httpHeaders = channel.httpHeaders,
         )
+        publishToSystem()
         recordHistory(pid, channel.id)
         _nowNext.value = epgReader.nowNext(channel, custom.value, settings.epgOffsetMinutes.first())
     }
@@ -207,6 +244,7 @@ class LiveTuner(
                 userAgent = source?.userAgent,
                 httpHeaders = channel.httpHeaders,
             )
+            publishToSystem()
             recordHistory(pid, channel.id)
             // The clock over a replay says yesterday 13:00, not now — same as on the television.
             timeshift.followArchiveFrom(programme.startMs)
@@ -248,6 +286,7 @@ class LiveTuner(
             httpHeaders = ch.httpHeaders,
             rewindStartMs = startMs,
         )
+        publishToSystem()
         return true
     }
 
@@ -257,6 +296,10 @@ class LiveTuner(
         loadedId = null
         _channel.value = null
         _nowNext.value = null
+        // Withdraw first: a session left published after the sound stops keeps answering the
+        // lockscreen and the headphone button for a stream that no longer exists.
+        session.attach(null)
+        PlaybackService.stop(context)
         player.stop()
     }
 

@@ -18,6 +18,7 @@ import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.ProfileEntity
 import tv.own.owntv.core.repository.SourceRepository
+import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.sync.SyncResult
 import tv.own.owntv.player.OwnTVPlayer
 
@@ -48,6 +49,7 @@ class DevHarnessViewModel(
     private val seriesDao: SeriesDao,
     private val sourceRepository: SourceRepository,
     private val backupManager: BackupManager,
+    private val settings: SettingsRepository,
     val player: OwnTVPlayer,
 ) : ViewModel() {
 
@@ -68,6 +70,13 @@ class DevHarnessViewModel(
     /** Reads the profile, its sources and the raw row counts straight out of core's DAOs. */
     private suspend fun refresh(status: String) {
         val profile = withContext(Dispatchers.IO) { profileDao.getAllOnce().firstOrNull() }
+        // Every real screen reads its sources through activeProfileSources(), which starts from
+        // settings.activeProfileId — not from "the first profile in the table". This harness makes a
+        // profile behind core's back, so without this the whole app stays empty while the harness
+        // itself lists channels, and Live TV looks broken when it is only unaddressed.
+        if (profile != null && settings.activeProfileIdNow() != profile.id) {
+            settings.setActiveProfile(profile.id)
+        }
         val sources = withContext(Dispatchers.IO) {
             profile?.let { sourceDao.sourceIdsForProfile(it.id) }.orEmpty()
         }
