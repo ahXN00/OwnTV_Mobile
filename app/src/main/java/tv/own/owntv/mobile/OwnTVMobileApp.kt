@@ -16,11 +16,14 @@ import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.sync.work.KoinWorkerFactory
 import tv.own.owntv.core.util.CrashRecorder
 import tv.own.owntv.mobile.dev.devModule
+import tv.own.owntv.mobile.di.downloadsModule
 import tv.own.owntv.mobile.di.guideModule
 import tv.own.owntv.mobile.di.homeModule
 import tv.own.owntv.mobile.di.libraryModule
 import tv.own.owntv.mobile.di.liveModule
 import tv.own.owntv.mobile.di.playerModule
+import tv.own.owntv.mobile.di.searchModule
+import tv.own.owntv.mobile.di.settingsModule
 import tv.own.owntv.mobile.di.shellModule
 
 /**
@@ -83,7 +86,8 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
             androidContext(this@OwnTVMobileApp)
             modules(
                 coreModule, databaseModule, dataModule, playerModule, shellModule,
-                liveModule, libraryModule, guideModule, homeModule, devModule,
+                liveModule, libraryModule, guideModule, homeModule, searchModule,
+                downloadsModule, settingsModule, devModule,
             )
         }
     }

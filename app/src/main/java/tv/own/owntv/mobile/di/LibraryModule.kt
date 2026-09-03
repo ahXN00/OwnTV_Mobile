@@ -29,6 +29,7 @@ val libraryModule = module {
             externalPlayerLauncher = get(),
             session = get(),
             liveTuner = get(),
+            dataSaver = get(),
             player = get(),
         )
     }

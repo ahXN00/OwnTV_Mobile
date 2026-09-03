@@ -39,7 +39,8 @@ fun Modifier.playerGestures(
     onSwipeUp: () -> Unit,
     onSpeedHold: (held: Boolean) -> Unit,
     onTwoFingerTap: () -> Unit,
-): Modifier = pointerInput(Unit) {
+    sensitivity: Float = 1f,
+): Modifier = pointerInput(sensitivity) {
     val slop = viewConfiguration.touchSlop
     val longPress = viewConfiguration.longPressTimeoutMillis
     val doubleTap = viewConfiguration.doubleTapTimeoutMillis
@@ -93,11 +94,14 @@ fun Modifier.playerGestures(
                         }
                     }
                     when (mode) {
-                        Mode.SCRUB -> onScrub(delta.x / size.width)
+                        // Sensitivity scales how far the value moves, not how far the finger has to
+                        // travel to be recognised: the slop above stays the system's, so a drag is
+                        // still a drag at 50% and the setting only changes what it is worth.
+                        Mode.SCRUB -> onScrub(delta.x / size.width * sensitivity)
                         // Up is more, which is why the sign flips: dragging toward the top of the
                         // screen raises brightness and volume, as it does everywhere else on a phone.
-                        Mode.LEFT_COLUMN -> onBrightness(-delta.y / size.height)
-                        Mode.RIGHT_COLUMN -> onVolume(-delta.y / size.height)
+                        Mode.LEFT_COLUMN -> onBrightness(-delta.y / size.height * sensitivity)
+                        Mode.RIGHT_COLUMN -> onVolume(-delta.y / size.height * sensitivity)
                         else -> Unit
                     }
                     if (mode != Mode.UNDECIDED) change.consume()

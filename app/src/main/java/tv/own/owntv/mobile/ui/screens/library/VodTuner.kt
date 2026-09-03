@@ -32,6 +32,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.ReconnectUrlProvider
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.MpvPlaybackEngine
@@ -72,6 +73,7 @@ class VodTuner(
     private val externalPlayerLauncher: ExternalPlayerLauncher,
     private val session: PlaybackSession,
     private val liveTuner: LiveTuner,
+    private val dataSaver: DataSaverGate,
     val player: OwnTVPlayer,
 ) {
 
@@ -115,6 +117,7 @@ class VodTuner(
             return handOver(movie.name, source, movie.streamUrl, movie.httpHeaders, pid, MediaType.MOVIE, movie.id)
         }
 
+        if (!dataSaver.allowsStreaming()) return false
         val url = resolve(source, movie.streamUrl) ?: return false
         saveProgress()
         liveTuner.stop()
@@ -148,6 +151,7 @@ class VodTuner(
             return handOver(title, source, episode.streamUrl, episode.httpHeaders, pid, MediaType.EPISODE, episode.id)
         }
 
+        if (!dataSaver.allowsStreaming()) return false
         val url = resolve(source, episode.streamUrl) ?: return false
         saveProgress()
         liveTuner.stop()
@@ -167,6 +171,57 @@ class VodTuner(
         )
         began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl))
         return true
+    }
+
+    /**
+     * Play a file that is already on this phone.
+     *
+     * Offline is the whole point of a download, so nothing here asks the provider anything: no URL to
+     * resolve, no headers, no reconnect. The resume position is still the film's own, so one started
+     * over the network carries on from where it stopped.
+     */
+    suspend fun playDownload(
+        mediaType: MediaType,
+        itemId: Long,
+        filePath: String,
+        title: String,
+        posterUrl: String?,
+    ): Boolean {
+        val pid = currentProfileId() ?: return false
+        if (!downloadAllowed(mediaType, itemId, pid)) return false
+        if (settings.externalPlayerFor(mediaType).first()) {
+            externalPlayerLauncher.launch(filePath, title)
+            return false
+        }
+        saveProgress()
+        liveTuner.stop()
+        val resume = withContext(Dispatchers.IO) { progressDao.get(pid, mediaType, itemId) }
+        player.play(
+            url = filePath,
+            title = title,
+            isLive = false,
+            startPositionMs = resume?.positionMs ?: 0L,
+        )
+        began(pid, VodPlayback(mediaType, itemId, title, posterUrl = posterUrl))
+        return true
+    }
+
+    /**
+     * A kids profile must not reach an adult title just because its file is already on disk. A
+     * download whose playlist has since been deleted cannot be classified at all, so a kids profile
+     * is refused it — the same call the television makes.
+     */
+    private suspend fun downloadAllowed(mediaType: MediaType, itemId: Long, profileId: Long): Boolean {
+        val item = withContext(Dispatchers.IO) {
+            when (mediaType) {
+                MediaType.MOVIE -> movieDao.getById(itemId)?.categoryId to true
+                else -> seriesDao.getEpisodeById(itemId)
+                    ?.let { seriesDao.getSeriesById(it.seriesId) }
+                    ?.let { it.categoryId to true } ?: (null to false)
+            }
+        }
+        if (mediaType == MediaType.MOVIE && item.first == null && !item.second) return false
+        return AdultCategoryClassifier.allows(profileId, item.first, profileDao, categoryDao)
     }
 
     /** Hand the item to VLC, MX Player or whatever else is installed — the long-press action, and the

@@ -1,0 +1,998 @@
+package tv.own.owntv.mobile.ui.screens.settings
+
+import androidx.annotation.StringRes
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.androidx.compose.koinViewModel
+import tv.own.owntv.core.database.entity.FOLLOW_GLOBAL_LATENCY_SECS
+import tv.own.owntv.core.database.entity.FOLLOW_GLOBAL_PREROLL
+import tv.own.owntv.core.database.entity.SourceEntity
+import tv.own.owntv.core.player.EnginePreference
+import tv.own.owntv.core.player.SurroundMode
+import tv.own.owntv.core.settings.LiveBuffer
+import tv.own.owntv.core.settings.LiveLatency
+import tv.own.owntv.core.settings.SeekSteps
+import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.settings.SubtitleStyle
+import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.MobileBottomSheet
+import tv.own.owntv.mobile.ui.components.SettingRow
+import tv.own.owntv.player.ZoomMode
+
+/** Which picker is open. One at a time, so one nullable holds them all. */
+private enum class PlaybackSheet {
+    LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
+    SUB_SIZE, SUB_COLOR, SUB_POSITION, SUB_BACKGROUND, RESUME, LATENCY, SEEK_STEP, REWIND_STEP,
+
+    /**
+     * The per-playlist overrides, two levels each: pick the playlist, then pick its value. The second
+     * level goes back to the first rather than closing, because setting two playlists in a row is the
+     * normal case and a full trip from the row for each one is not.
+     */
+    ENGINE_SOURCES, ENGINE_SOURCE, LATENCY_SOURCES, LATENCY_SOURCE, LATENCY_SOURCE_CUSTOM,
+    PREROLL_SOURCES, PREROLL_SOURCE,
+}
+
+/** Which set of remembered per-item choices a confirmation is about to forget. */
+private enum class ResetTarget(
+    @param:StringRes val titleRes: Int,
+    @param:StringRes val descriptionRes: Int,
+) {
+    ENGINE_PINS(
+        R.string.settings_reset_player_choices_confirm,
+        R.string.settings_reset_player_choices_confirm_description,
+    ),
+    ZOOM(
+        R.string.settings_reset_saved_zoom_confirm,
+        R.string.settings_reset_saved_zoom_confirm_description,
+    ),
+    VOLUME(
+        R.string.settings_reset_saved_volume_confirm,
+        R.string.settings_reset_saved_volume_confirm_description,
+    ),
+    AUDIO_DELAY(
+        R.string.settings_reset_saved_audio_delay_confirm,
+        R.string.settings_reset_saved_audio_delay_confirm_description,
+    ),
+}
+
+/**
+ * Everything about the video player, plus the four settings that only exist on a phone.
+ *
+ * The engine, subtitle and live-latency settings are core's and shared with the TV app — the same
+ * stored values, so a backup taken here restores onto a television and means the same thing. What is
+ * new below the "Mobile" heading is the set a television has no use for: a screen that gets locked, a
+ * window that can float over another app, and a data plan that gets billed.
+ */
+@Composable
+fun SettingsPlaybackPage(
+    modifier: Modifier = Modifier,
+    vm: SettingsViewModel = koinViewModel(),
+) {
+    val s = vm.settings
+    var sheet by remember { mutableStateOf<PlaybackSheet?>(null) }
+    var resetting by remember { mutableStateOf<ResetTarget?>(null) }
+    // Which playlist the second level of a per-playlist picker is editing.
+    var overrideSource by remember { mutableStateOf<SourceEntity?>(null) }
+    // What to run if the user accepts the low-latency warning, and what to run if they back out.
+    var lowWarning by remember { mutableStateOf<Pair<() -> Unit, () -> Unit>?>(null) }
+
+    val sources by vm.sources.collectAsStateWithLifecycle()
+    val enginePins by vm.vodEnginePinCount.collectAsStateWithLifecycle()
+    val savedZoom by vm.savedZoomCount.collectAsStateWithLifecycle()
+    val savedVolume by vm.savedVolumeCount.collectAsStateWithLifecycle()
+    val savedAudioDelay by vm.savedAudioDelayCount.collectAsStateWithLifecycle()
+
+    val liveEngine = s.liveEnginePreference.pref(EnginePreference.EXO_FIRST)
+    val vodEngine = s.vodEnginePreference.pref(EnginePreference.MPV_FIRST)
+    val hwDecoding = s.hwDecoding.pref(true)
+    val deinterlace = s.deinterlace.pref(false)
+    val hdr = s.hdrEnabled.pref(true)
+    val autoFrameRate = s.autoFrameRate.pref(false)
+    val zoom = s.defaultZoom.pref(ZoomMode.FIT.name)
+    val volume = s.defaultVolume.pref(100)
+    val surround = s.surroundMode.pref(SurroundMode.AUTO)
+    val audioLang = s.preferredAudioLang.pref("")
+    val audioDelay = s.audioDelayMs.pref(0)
+    val subStyle = s.subtitleStyleEnabled.pref(false)
+    val subScale = s.subtitleScaleExo.pref(SubtitleStyle.SCALE_DEFAULT)
+    val subColor = s.subtitleColor.pref(SubtitleStyle.COLOR_DEFAULT)
+    val subPosition = s.subtitlePosition.pref(SubtitleStyle.Position.DEFAULT)
+    val subBackground = s.subtitleBgOpacity.pref(SubtitleStyle.OPACITY_DEFAULT)
+    val subLang = s.preferredSubLang.pref("")
+    val latency = LiveLatency.fromName(s.liveLatencyMode.pref(LiveLatency.BALANCED.name))
+    val latencySecs = s.liveLatencyCustomSecs.pref(LiveBuffer.CUSTOM_DEFAULT)
+    val preroll = s.livePrerollSecs.pref(0)
+    val tuneTimeout = s.liveTuneTimeoutSecs.pref(0)
+    val seekStep = s.seekStepSec.pref(SeekSteps.DEFAULT_SEEK_STEP_SEC)
+    val rewindStep = s.liveRewindStepSec.pref(SeekSteps.DEFAULT_LIVE_REWIND_STEP_SEC)
+    val resume = s.resumeMode.pref(SettingsRepository.ResumeMode.AUTO)
+    val autoPlayNext = s.autoPlayNext.pref(true)
+    val externalLive = s.externalPlayerLive.pref(false)
+    val externalMovies = s.externalPlayerMovies.pref(false)
+    val externalSeries = s.externalPlayerSeries.pref(false)
+    val backgroundPlayback = s.backgroundPlayback.pref(true)
+    val pip = s.pipEnabled.pref(true)
+    val dataSaver = s.dataSaver.pref(false)
+    val gesture = s.gestureSensitivityPct.pref(100)
+    val measuredStats = s.measuredStreamStats.pref(true)
+    val detailedLogging = s.detailedDiagnostics.pref(false)
+
+    SettingsPage(modifier) {
+        settingsSection(R.string.settings_vp_section_engine)
+        item(key = "live-engine") {
+            SettingRow(
+                title = stringResource(R.string.settings_live_tv_player),
+                subtitle = stringResource(R.string.settings_live_player_description),
+                value = engineLabel(liveEngine),
+                onClick = { sheet = PlaybackSheet.LIVE_ENGINE },
+            )
+        }
+        if (sources.isNotEmpty()) {
+            item(key = "live-engine-sources") {
+                SettingRow(
+                    title = stringResource(R.string.settings_live_engine_per_playlist),
+                    subtitle = stringResource(R.string.settings_live_engine_per_playlist_description),
+                    value = overrideCountLabel(sources.count { it.liveEnginePreference != null }),
+                    onClick = { sheet = PlaybackSheet.ENGINE_SOURCES },
+                )
+            }
+        }
+        item(key = "vod-engine") {
+            SettingRow(
+                title = stringResource(R.string.settings_movies_series_player),
+                subtitle = stringResource(R.string.settings_movies_player_description),
+                value = engineLabel(vodEngine),
+                onClick = { sheet = PlaybackSheet.VOD_ENGINE },
+            )
+        }
+        item(key = "reset-pins") {
+            SettingRow(
+                title = stringResource(R.string.settings_reset_player_choices),
+                subtitle = stringResource(R.string.settings_reset_player_choices_description),
+                value = rememberedCountLabel(enginePins),
+                enabled = enginePins > 0,
+                onClick = { resetting = ResetTarget.ENGINE_PINS },
+            )
+        }
+        item(key = "hw-decoding") {
+            SettingRow(
+                title = stringResource(R.string.settings_hardware_decoding),
+                subtitle = stringResource(R.string.settings_hardware_decoding_description),
+                checked = hwDecoding,
+                onCheckedChange = { on -> vm.edit { setHwDecoding(on) } },
+            )
+        }
+        item(key = "deinterlace") {
+            SettingRow(
+                title = stringResource(R.string.settings_deinterlace),
+                subtitle = stringResource(R.string.settings_deinterlace_description),
+                checked = deinterlace,
+                onCheckedChange = { on -> vm.edit { setDeinterlace(on) } },
+            )
+        }
+        item(key = "hdr") {
+            SettingRow(
+                title = stringResource(R.string.settings_quick_hdr),
+                subtitle = stringResource(R.string.settings_hdr_description),
+                checked = hdr,
+                onCheckedChange = { on -> vm.edit { setHdrEnabled(on) } },
+            )
+        }
+        item(key = "auto-frame-rate") {
+            SettingRow(
+                title = stringResource(R.string.settings_auto_frame_rate),
+                subtitle = stringResource(R.string.settings_auto_frame_rate_description),
+                checked = autoFrameRate,
+                onCheckedChange = { on -> vm.edit { setAutoFrameRate(on) } },
+            )
+        }
+        item(key = "zoom") {
+            SettingRow(
+                title = stringResource(R.string.settings_default_zoom),
+                subtitle = stringResource(R.string.settings_default_zoom_description),
+                value = stringResource(zoomModeOf(zoom).labelRes),
+                onClick = { sheet = PlaybackSheet.ZOOM },
+            )
+        }
+        item(key = "reset-zoom") {
+            SettingRow(
+                title = stringResource(R.string.settings_reset_saved_zoom),
+                subtitle = stringResource(R.string.settings_reset_saved_zoom_description),
+                value = rememberedCountLabel(savedZoom),
+                enabled = savedZoom > 0,
+                onClick = { resetting = ResetTarget.ZOOM },
+            )
+        }
+
+        settingsSection(R.string.settings_vp_section_sound)
+        item(key = "volume") {
+            SettingsSlider(
+                title = stringResource(R.string.settings_default_volume),
+                subtitle = stringResource(R.string.settings_default_volume_description),
+                value = volume,
+                range = 0..150,
+                onValueChange = { pct -> vm.edit { setDefaultVolume(pct) } },
+            )
+        }
+        item(key = "reset-volume") {
+            SettingRow(
+                title = stringResource(R.string.settings_reset_saved_volume),
+                subtitle = stringResource(R.string.settings_reset_saved_volume_description),
+                value = rememberedCountLabel(savedVolume),
+                enabled = savedVolume > 0,
+                onClick = { resetting = ResetTarget.VOLUME },
+            )
+        }
+        item(key = "surround") {
+            SettingRow(
+                title = stringResource(R.string.settings_surround_sound),
+                subtitle = stringResource(R.string.settings_surround_description),
+                value = stringResource(surround.labelRes()),
+                onClick = { sheet = PlaybackSheet.SURROUND },
+            )
+        }
+        item(key = "audio-lang") {
+            SettingRow(
+                title = stringResource(R.string.settings_preferred_audio_language),
+                value = trackLanguageName(audioLang),
+                onClick = { sheet = PlaybackSheet.AUDIO_LANG },
+            )
+        }
+        item(key = "audio-sync") {
+            // 25 ms steps across ±5s: the offset being corrected is a device's picture-processing
+            // delay, which lands in the tens of milliseconds — a coarser step could only bracket it.
+            SettingsSlider(
+                title = stringResource(R.string.settings_audio_sync),
+                subtitle = stringResource(R.string.settings_audio_sync_description),
+                value = audioDelay,
+                range = -5000..5000,
+                steps = 399,
+                valueLabel = stringResource(R.string.settings_audio_delay_value, audioDelay),
+                onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
+            )
+        }
+        item(key = "reset-audio-delay") {
+            SettingRow(
+                title = stringResource(R.string.settings_reset_saved_audio_delay),
+                subtitle = stringResource(R.string.settings_reset_saved_audio_delay_description),
+                value = rememberedCountLabel(savedAudioDelay),
+                enabled = savedAudioDelay > 0,
+                onClick = { resetting = ResetTarget.AUDIO_DELAY },
+            )
+        }
+
+        settingsSection(R.string.settings_subtitle_appearance)
+        item(key = "sub-style") {
+            SettingRow(
+                title = stringResource(R.string.settings_subtitle_appearance),
+                subtitle = stringResource(R.string.settings_subtitle_appearance_description),
+                checked = subStyle,
+                onCheckedChange = { on -> vm.edit { setSubtitleStyleEnabled(on) } },
+            )
+        }
+        if (subStyle) {
+            item(key = "sub-size") {
+                SettingRow(
+                    title = stringResource(R.string.settings_subtitle_size),
+                    subtitle = stringResource(R.string.settings_subtitle_size_description),
+                    value = stringResource(subSizeLabelRes(subScale)),
+                    onClick = { sheet = PlaybackSheet.SUB_SIZE },
+                )
+            }
+            item(key = "sub-color") {
+                SettingRow(
+                    title = stringResource(R.string.settings_subtitle_color_short),
+                    subtitle = stringResource(R.string.settings_subtitle_color_description),
+                    value = subColorLabel(subColor),
+                    onClick = { sheet = PlaybackSheet.SUB_COLOR },
+                )
+            }
+            item(key = "sub-position") {
+                SettingRow(
+                    title = stringResource(R.string.settings_subtitle_position_short),
+                    subtitle = stringResource(R.string.settings_subtitle_position_description),
+                    value = stringResource(subPosition.labelRes()),
+                    onClick = { sheet = PlaybackSheet.SUB_POSITION },
+                )
+            }
+            item(key = "sub-background") {
+                SettingRow(
+                    title = stringResource(R.string.settings_subtitle_background_transparency),
+                    subtitle = stringResource(R.string.settings_subtitle_background_description),
+                    value = subBackgroundLabel(subBackground),
+                    onClick = { sheet = PlaybackSheet.SUB_BACKGROUND },
+                )
+            }
+        }
+        item(key = "sub-lang") {
+            SettingRow(
+                title = stringResource(R.string.settings_preferred_subtitle_language),
+                subtitle = stringResource(R.string.settings_preferred_language_description),
+                value = trackLanguageName(subLang),
+                onClick = { sheet = PlaybackSheet.SUB_LANG },
+            )
+        }
+
+        settingsSection(R.string.common_nav_live_tv)
+        item(key = "latency") {
+            SettingRow(
+                title = stringResource(R.string.settings_live_latency),
+                subtitle = stringResource(R.string.settings_live_latency_description),
+                value = if (latency == LiveLatency.CUSTOM) {
+                    stringResource(R.string.settings_live_buffer_seconds, latencySecs)
+                } else {
+                    stringResource(latency.labelRes())
+                },
+                onClick = { sheet = PlaybackSheet.LATENCY },
+            )
+        }
+        if (latency == LiveLatency.CUSTOM) {
+            item(key = "latency-secs") {
+                SettingsSlider(
+                    title = stringResource(R.string.settings_live_latency_custom),
+                    value = latencySecs,
+                    range = LiveBuffer.CUSTOM_MIN..LiveBuffer.CUSTOM_MAX,
+                    valueLabel = stringResource(R.string.settings_live_buffer_seconds, latencySecs),
+                    // The acknowledgement is asked once, on the drag that crosses below Balanced.
+                    // Asking at every step would make the slider unusable; never asking would let a
+                    // buffer too small for the stream look like the app breaking rather than a choice.
+                    onValueChange = { secs ->
+                        vm.edit { setLiveLatencyCustomSecs(secs) }
+                        if (LiveBuffer.isLowLatency(secs) && !LiveBuffer.isLowLatency(latencySecs)) {
+                            lowWarning = Pair(
+                                {},
+                                { vm.edit { setLiveLatencyMode(LiveLatency.BALANCED.name) } },
+                            )
+                        }
+                    },
+                )
+            }
+        }
+        if (sources.isNotEmpty()) {
+            item(key = "latency-sources") {
+                SettingRow(
+                    title = stringResource(R.string.settings_live_latency_per_playlist),
+                    subtitle = stringResource(R.string.settings_live_latency_per_playlist_description),
+                    value = overrideCountLabel(sources.count { it.liveLatencyMode != null }),
+                    onClick = { sheet = PlaybackSheet.LATENCY_SOURCES },
+                )
+            }
+        }
+        item(key = "preroll") {
+            SettingsSlider(
+                title = stringResource(R.string.settings_live_preroll),
+                subtitle = stringResource(R.string.settings_live_preroll_description),
+                value = preroll,
+                range = 0..30,
+                valueLabel = stringResource(R.string.settings_video_seconds, preroll),
+                onValueChange = { secs -> vm.edit { setLivePrerollSecs(secs) } },
+            )
+        }
+        if (sources.isNotEmpty()) {
+            item(key = "preroll-sources") {
+                SettingRow(
+                    title = stringResource(R.string.settings_live_preroll_per_playlist),
+                    subtitle = stringResource(R.string.settings_live_preroll_per_playlist_description),
+                    value = overrideCountLabel(
+                        sources.count { it.livePrerollSecs != FOLLOW_GLOBAL_PREROLL },
+                    ),
+                    onClick = { sheet = PlaybackSheet.PREROLL_SOURCES },
+                )
+            }
+        }
+        item(key = "tune-timeout") {
+            SettingsSlider(
+                title = stringResource(R.string.settings_live_tune_timeout),
+                subtitle = stringResource(R.string.settings_live_tune_timeout_description),
+                value = tuneTimeout,
+                range = 0..60,
+                valueLabel = stringResource(R.string.settings_live_buffer_seconds, tuneTimeout),
+                onValueChange = { secs -> vm.edit { setLiveTuneTimeoutSecs(secs) } },
+            )
+        }
+        item(key = "rewind-step") {
+            SettingRow(
+                title = stringResource(R.string.settings_live_rewind_step),
+                subtitle = stringResource(R.string.settings_live_rewind_step_description),
+                value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
+                onClick = { sheet = PlaybackSheet.REWIND_STEP },
+            )
+        }
+
+        settingsSection(R.string.settings_vp_section_episodes)
+        item(key = "seek-step") {
+            SettingRow(
+                title = stringResource(R.string.settings_seek_step),
+                subtitle = stringResource(R.string.settings_seek_step_description),
+                value = stringResource(R.string.settings_live_buffer_seconds, seekStep),
+                onClick = { sheet = PlaybackSheet.SEEK_STEP },
+            )
+        }
+        item(key = "resume") {
+            SettingRow(
+                title = stringResource(R.string.settings_resume_playback),
+                subtitle = stringResource(R.string.settings_resume_playback_description),
+                value = stringResource(resume.labelRes()),
+                onClick = { sheet = PlaybackSheet.RESUME },
+            )
+        }
+        item(key = "autoplay") {
+            SettingRow(
+                title = stringResource(R.string.settings_quick_autoplay),
+                checked = autoPlayNext,
+                onCheckedChange = { on -> vm.edit { setAutoPlayNext(on) } },
+            )
+        }
+
+        settingsSection(R.string.settings_external_player)
+        settingsNote(R.string.settings_external_player_row_description)
+        item(key = "external-live") {
+            SettingRow(
+                title = stringResource(R.string.common_nav_live_tv),
+                checked = externalLive,
+                onCheckedChange = { on ->
+                    vm.edit {
+                        setExternalPlayer(SettingsRepository.ExternalPlayerSection.LIVE_TV, on)
+                    }
+                },
+            )
+        }
+        item(key = "external-movies") {
+            SettingRow(
+                title = stringResource(R.string.common_nav_movies),
+                checked = externalMovies,
+                onCheckedChange = { on ->
+                    vm.edit {
+                        setExternalPlayer(SettingsRepository.ExternalPlayerSection.MOVIES, on)
+                    }
+                },
+            )
+        }
+        item(key = "external-series") {
+            SettingRow(
+                title = stringResource(R.string.common_nav_series),
+                checked = externalSeries,
+                onCheckedChange = { on ->
+                    vm.edit {
+                        setExternalPlayer(SettingsRepository.ExternalPlayerSection.SERIES, on)
+                    }
+                },
+            )
+        }
+
+        settingsSection(R.string.settings_playback_mobile)
+        item(key = "background-playback") {
+            SettingRow(
+                title = stringResource(R.string.settings_background_playback),
+                subtitle = stringResource(R.string.settings_background_playback_description),
+                checked = backgroundPlayback,
+                onCheckedChange = { on -> vm.edit { setBackgroundPlayback(on) } },
+            )
+        }
+        item(key = "pip") {
+            SettingRow(
+                title = stringResource(R.string.settings_pip),
+                subtitle = stringResource(R.string.settings_pip_description),
+                checked = pip,
+                onCheckedChange = { on -> vm.edit { setPipEnabled(on) } },
+            )
+        }
+        item(key = "data-saver") {
+            SettingRow(
+                title = stringResource(R.string.settings_data_saver),
+                subtitle = stringResource(R.string.settings_data_saver_description),
+                checked = dataSaver,
+                onCheckedChange = { on -> vm.edit { setDataSaver(on) } },
+            )
+        }
+        item(key = "gesture") {
+            SettingsSlider(
+                title = stringResource(R.string.settings_gesture_sensitivity),
+                subtitle = stringResource(R.string.settings_gesture_sensitivity_description),
+                value = gesture,
+                range = 50..200,
+                onValueChange = { pct -> vm.edit { setGestureSensitivityPct(pct) } },
+            )
+        }
+
+        settingsSection(R.string.settings_diagnostics)
+        item(key = "measured-stats") {
+            SettingRow(
+                title = stringResource(R.string.settings_measured_stats),
+                subtitle = stringResource(R.string.settings_measured_stats_description),
+                checked = measuredStats,
+                onCheckedChange = { on -> vm.edit { setMeasuredStreamStats(on) } },
+            )
+        }
+        item(key = "detailed-logging") {
+            SettingRow(
+                title = stringResource(R.string.settings_detailed_playback_logging),
+                subtitle = stringResource(R.string.settings_detailed_playback_logging_description),
+                checked = detailedLogging,
+                onCheckedChange = { on -> vm.edit { setDetailedDiagnostics(on) } },
+            )
+        }
+    }
+
+    val dismiss = { sheet = null }
+    // The playlist a second-level picker is editing, re-read from the live list so the value it shows
+    // is the one just saved rather than the one captured when the row was tapped.
+    val editing = sources.firstOrNull { it.id == overrideSource?.id }
+    when (sheet) {
+        PlaybackSheet.LIVE_ENGINE -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_tv_player),
+            choices = EnginePreference.entries.map { SettingsChoice(it, engineLabel(it)) },
+            selected = liveEngine,
+            onSelect = { picked -> vm.edit { setLiveEnginePreference(picked) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.VOD_ENGINE -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_movies_series_player),
+            choices = EnginePreference.entries.map { SettingsChoice(it, engineLabel(it)) },
+            selected = vodEngine,
+            onSelect = { picked -> vm.edit { setVodEnginePreference(picked) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.ZOOM -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_default_zoom),
+            choices = ZoomMode.entries.map { SettingsChoice(it, stringResource(it.labelRes)) },
+            selected = zoomModeOf(zoom),
+            onSelect = { picked -> vm.edit { setDefaultZoom(picked.name) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.SURROUND -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_surround_sound),
+            choices = SurroundMode.entries.map {
+                SettingsChoice(it, stringResource(it.labelRes()), stringResource(it.descriptionRes()))
+            },
+            selected = surround,
+            onSelect = { picked -> vm.edit { setSurroundMode(picked) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.AUDIO_LANG -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_preferred_audio_language),
+            choices = TRACK_LANGUAGE_CODES.map { SettingsChoice(it, trackLanguageName(it)) },
+            selected = audioLang,
+            onSelect = { code -> vm.edit { setPreferredAudioLang(code) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.SUB_LANG -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_preferred_subtitle_language),
+            choices = TRACK_LANGUAGE_CODES.map { SettingsChoice(it, trackLanguageName(it)) },
+            selected = subLang,
+            onSelect = { code -> vm.edit { setPreferredSubLang(code) } },
+            onDismiss = dismiss,
+        )
+        // One size for both engines: a phone has one screen, and the TV app's split exists because
+        // ExoPlayer and mpv measure text differently on a ten-foot one, not because a user wants
+        // subtitles that change size when the stream falls back to the other engine.
+        PlaybackSheet.SUB_SIZE -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_subtitle_size),
+            choices = SUB_SIZES.map { (scale, labelRes) ->
+                SettingsChoice(scale, stringResource(labelRes))
+            },
+            selected = nearestSubSize(subScale),
+            onSelect = { scale -> vm.edit { setSubtitleScaleExo(scale); setSubtitleScaleMpv(scale) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.SUB_COLOR -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_subtitle_color_short),
+            choices = listOf(
+                SettingsChoice(
+                    SubtitleStyle.COLOR_DEFAULT,
+                    stringResource(R.string.settings_subtitle_default),
+                    stringResource(R.string.settings_subtitle_color_default_description),
+                ),
+            ) + SUB_COLOR_PRESETS.map { (labelRes, hex) ->
+                SettingsChoice(hex, stringResource(labelRes))
+            },
+            selected = subColor,
+            onSelect = { hex -> vm.edit { setSubtitleColor(hex) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.SUB_POSITION -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_subtitle_position_short),
+            choices = (listOf(SubtitleStyle.Position.DEFAULT) + SubtitleStyle.Position.ANCHORS).map {
+                SettingsChoice(
+                    it,
+                    stringResource(it.labelRes()),
+                    if (it == SubtitleStyle.Position.DEFAULT) {
+                        stringResource(R.string.settings_subtitle_position_default_description)
+                    } else {
+                        null
+                    },
+                )
+            },
+            selected = subPosition,
+            onSelect = { picked -> vm.edit { setSubtitlePosition(picked) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.SUB_BACKGROUND -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_subtitle_background_transparency),
+            choices = SUB_BACKGROUND_CHOICES.map { SettingsChoice(it, subBackgroundLabel(it)) },
+            selected = subBackground,
+            onSelect = { pct -> vm.edit { setSubtitleBgOpacity(pct) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.RESUME -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_resume_playback),
+            choices = SettingsRepository.ResumeMode.entries.map {
+                SettingsChoice(it, stringResource(it.labelRes()))
+            },
+            selected = resume,
+            onSelect = { picked -> vm.edit { setResumeMode(picked) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.LATENCY -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_latency),
+            choices = LiveLatency.entries.map { SettingsChoice(it, stringResource(it.labelRes())) },
+            selected = latency,
+            onSelect = { picked ->
+                // Low latency is the one choice that can make a working stream stutter, so it is
+                // acknowledged before it is applied; Cancel leaves the current setting untouched.
+                if (picked == LiveLatency.LOW) {
+                    lowWarning = Pair({ vm.edit { setLiveLatencyMode(picked.name) } }, {})
+                } else {
+                    vm.edit { setLiveLatencyMode(picked.name) }
+                }
+            },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.SEEK_STEP -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_seek_step),
+            choices = SeekSteps.SEEK_CHOICES.map {
+                SettingsChoice(it, stringResource(R.string.settings_live_buffer_seconds, it))
+            },
+            selected = seekStep,
+            onSelect = { secs -> vm.edit { setSeekStepSec(secs) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.REWIND_STEP -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_rewind_step),
+            choices = SeekSteps.LIVE_REWIND_CHOICES.map {
+                SettingsChoice(it, stringResource(R.string.settings_live_buffer_seconds, it))
+            },
+            selected = rewindStep,
+            onSelect = { secs -> vm.edit { setLiveRewindStepSec(secs) } },
+            onDismiss = dismiss,
+        )
+        // --- Per-playlist Live TV engine: pick the playlist, then its value ---
+        PlaybackSheet.ENGINE_SOURCES -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            choices = sources.map { src ->
+                SettingsChoice<SourceEntity?>(
+                    value = src,
+                    label = src.name,
+                    description = src.liveEnginePreference
+                        ?.let { name -> EnginePreference.entries.firstOrNull { it.name == name } }
+                        ?.let { engineLabel(it) }
+                        ?: stringResource(R.string.settings_live_preroll_follow),
+                )
+            },
+            selected = editing,
+            onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.ENGINE_SOURCE },
+            onDismiss = { overrideSource = null; sheet = null },
+        )
+        PlaybackSheet.ENGINE_SOURCE -> SettingsChoiceSheet(
+            title = editing?.name ?: stringResource(R.string.settings_live_tv_player),
+            choices = listOf(
+                SettingsChoice<String?>(null, stringResource(R.string.settings_live_preroll_follow)),
+            ) + EnginePreference.entries.map { SettingsChoice<String?>(it.name, engineLabel(it)) },
+            selected = editing?.liveEnginePreference,
+            onSelect = { name -> editing?.let { vm.setSourceLiveEngine(it.id, name) } },
+            // Back goes back one level, to the playlist list, because setting a second playlist is
+            // the normal next move — not a fresh trip from the row two steps above.
+            onDismiss = { sheet = PlaybackSheet.ENGINE_SOURCES },
+        )
+
+        // --- Per-playlist Live latency; Custom opens a third level for the seconds ---
+        PlaybackSheet.LATENCY_SOURCES -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            choices = sources.map { src ->
+                SettingsChoice<SourceEntity?>(
+                    value = src,
+                    label = src.name,
+                    description = sourceLatencyLabel(src),
+                )
+            },
+            selected = editing,
+            onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.LATENCY_SOURCE },
+            onDismiss = { overrideSource = null; sheet = null },
+        )
+        PlaybackSheet.LATENCY_SOURCE -> SettingsChoiceSheet(
+            title = editing?.name ?: stringResource(R.string.settings_live_latency),
+            choices = listOf(
+                SettingsChoice<String?>(null, stringResource(R.string.settings_live_preroll_follow)),
+            ) + LiveLatency.entries.map {
+                SettingsChoice<String?>(it.name, stringResource(it.labelRes()))
+            },
+            selected = editing?.liveLatencyMode,
+            onSelect = { name ->
+                val src = editing ?: return@SettingsChoiceSheet
+                val secs = sourceCustomSecs(src)
+                when (LiveLatency.fromName(name ?: "")) {
+                    LiveLatency.LOW -> lowWarning = Pair(
+                        { vm.setSourceLiveLatency(src.id, name, secs) },
+                        {},
+                    )
+                    // The seconds are chosen next, and Custom is committed with them — switching on
+                    // open would leave a playlist on Custom with a value nobody picked.
+                    LiveLatency.CUSTOM -> sheet = PlaybackSheet.LATENCY_SOURCE_CUSTOM
+                    else -> vm.setSourceLiveLatency(src.id, name, FOLLOW_GLOBAL_LATENCY_SECS)
+                }
+            },
+            onDismiss = { sheet = PlaybackSheet.LATENCY_SOURCES },
+        )
+        PlaybackSheet.LATENCY_SOURCE_CUSTOM -> MobileBottomSheet(
+            onDismissRequest = { sheet = PlaybackSheet.LATENCY_SOURCES },
+            title = editing?.name ?: stringResource(R.string.settings_live_latency_custom),
+        ) {
+            val src = editing
+            val secs = src?.let { sourceCustomSecs(it) } ?: LiveBuffer.CUSTOM_DEFAULT
+            SettingsSlider(
+                title = stringResource(R.string.settings_live_latency_custom),
+                value = secs,
+                range = LiveBuffer.CUSTOM_MIN..LiveBuffer.CUSTOM_MAX,
+                valueLabel = stringResource(R.string.settings_live_buffer_seconds, secs),
+                onValueChange = { picked ->
+                    if (src == null) return@SettingsSlider
+                    vm.setSourceLiveLatency(src.id, LiveLatency.CUSTOM.name, picked)
+                    if (LiveBuffer.isLowLatency(picked) && !LiveBuffer.isLowLatency(secs)) {
+                        lowWarning = Pair(
+                            {},
+                            { vm.setSourceLiveLatency(src.id, null, FOLLOW_GLOBAL_LATENCY_SECS) },
+                        )
+                    }
+                },
+            )
+        }
+
+        // --- Per-playlist pre-buffer ---
+        PlaybackSheet.PREROLL_SOURCES -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            choices = sources.map { src ->
+                SettingsChoice<SourceEntity?>(
+                    value = src,
+                    label = src.name,
+                    description = when {
+                        src.livePrerollSecs == FOLLOW_GLOBAL_PREROLL ->
+                            stringResource(R.string.settings_live_preroll_follow)
+                        src.livePrerollSecs <= 0 -> stringResource(R.string.common_off)
+                        else -> stringResource(R.string.settings_video_seconds, src.livePrerollSecs)
+                    },
+                )
+            },
+            selected = editing,
+            onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.PREROLL_SOURCE },
+            onDismiss = { overrideSource = null; sheet = null },
+        )
+        PlaybackSheet.PREROLL_SOURCE -> SettingsChoiceSheet(
+            title = editing?.name ?: stringResource(R.string.settings_live_preroll),
+            choices = listOf(
+                SettingsChoice(
+                    FOLLOW_GLOBAL_PREROLL,
+                    stringResource(R.string.settings_live_preroll_follow),
+                ),
+            ) + LiveBuffer.PREROLL_CHOICES.map { secs ->
+                SettingsChoice(
+                    secs,
+                    if (secs <= 0) {
+                        stringResource(R.string.common_off)
+                    } else {
+                        stringResource(R.string.settings_video_seconds, secs)
+                    },
+                )
+            },
+            selected = editing?.livePrerollSecs ?: FOLLOW_GLOBAL_PREROLL,
+            onSelect = { secs -> editing?.let { vm.setSourcePreroll(it.id, secs) } },
+            onDismiss = { sheet = PlaybackSheet.PREROLL_SOURCES },
+        )
+        null -> Unit
+    }
+
+    resetting?.let { target ->
+        AlertDialog(
+            onDismissRequest = { resetting = null },
+            title = { Text(stringResource(target.titleRes)) },
+            text = { Text(stringResource(target.descriptionRes)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        when (target) {
+                            ResetTarget.ENGINE_PINS -> vm.clearVodEnginePins()
+                            ResetTarget.ZOOM -> vm.clearSavedZoom()
+                            ResetTarget.VOLUME -> vm.clearSavedVolume()
+                            ResetTarget.AUDIO_DELAY -> vm.clearSavedAudioDelay()
+                        }
+                        resetting = null
+                    },
+                ) { Text(stringResource(R.string.common_reset)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { resetting = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+
+    lowWarning?.let { (onConfirm, onCancel) ->
+        AlertDialog(
+            onDismissRequest = { lowWarning = null; onCancel() },
+            title = { Text(stringResource(R.string.settings_low_latency_warning)) },
+            text = { Text(stringResource(R.string.settings_low_latency_warning_description)) },
+            confirmButton = {
+                TextButton(onClick = { lowWarning = null; onConfirm() }) {
+                    Text(stringResource(R.string.settings_low_latency_understand))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { lowWarning = null; onCancel() }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+}
+
+/** "3 playlists" for the per-playlist override rows, or Off when every playlist follows the global. */
+@Composable
+private fun overrideCountLabel(count: Int): String = if (count == 0) {
+    stringResource(R.string.common_off)
+} else {
+    pluralStringResource(R.plurals.settings_live_preroll_overrides, count, count)
+}
+
+/** "12 items" for the reset rows, or the "nothing to forget" label when the count is zero. */
+@Composable
+private fun rememberedCountLabel(count: Int): String = if (count == 0) {
+    stringResource(R.string.settings_reset_player_choices_none)
+} else {
+    pluralStringResource(R.plurals.settings_reset_player_choices_count, count, count)
+}
+
+/** A playlist's own custom latency, or the global default when it has never been given one. */
+private fun sourceCustomSecs(source: SourceEntity): Int =
+    source.liveLatencyCustomSecs.takeIf { it >= LiveBuffer.CUSTOM_MIN } ?: LiveBuffer.CUSTOM_DEFAULT
+
+@Composable
+private fun sourceLatencyLabel(source: SourceEntity): String {
+    val mode = source.liveLatencyMode?.let { LiveLatency.fromName(it) }
+    return when {
+        mode == null -> stringResource(R.string.settings_live_preroll_follow)
+        mode == LiveLatency.CUSTOM ->
+            stringResource(R.string.settings_live_buffer_seconds, sourceCustomSecs(source))
+        else -> stringResource(mode.labelRes())
+    }
+}
+
+/** The stored zoom is a [ZoomMode] name; anything unrecognised falls back to the default. */
+private fun zoomModeOf(name: String): ZoomMode =
+    runCatching { ZoomMode.valueOf(name) }.getOrDefault(ZoomMode.FIT)
+
+/** "ExoPlayer, then mpv" — the brand names are never translated, the joining phrase is. */
+@Composable
+private fun engineLabel(preference: EnginePreference): String {
+    val exo = stringResource(R.string.settings_player_exoplayer)
+    val mpv = stringResource(R.string.settings_player_mpv)
+    return when (preference) {
+        EnginePreference.EXO_FIRST -> stringResource(R.string.settings_engine_order, exo, mpv)
+        EnginePreference.MPV_FIRST -> stringResource(R.string.settings_engine_order, mpv, exo)
+        EnginePreference.EXO_ONLY -> stringResource(R.string.settings_engine_only, exo)
+        EnginePreference.MPV_ONLY -> stringResource(R.string.settings_engine_only, mpv)
+    }
+}
+
+/** The ISO-639-2 codes a stream's tracks are tagged with. Blank means "whatever the stream opens on". */
+private val TRACK_LANGUAGE_CODES = listOf(
+    "", "eng", "spa", "fra", "deu", "ita", "por", "nld", "rus", "ara", "hin", "zho", "jpn", "kor", "tur",
+)
+
+@Composable
+private fun trackLanguageName(code: String): String = stringResource(
+    when (code) {
+        "eng" -> R.string.settings_language_english
+        "spa" -> R.string.settings_language_spanish
+        "fra" -> R.string.settings_language_french
+        "deu" -> R.string.settings_language_german
+        "ita" -> R.string.settings_language_italian
+        "por" -> R.string.settings_language_portuguese
+        "nld" -> R.string.settings_language_dutch
+        "rus" -> R.string.settings_language_russian
+        "ara" -> R.string.settings_language_arabic
+        "hin" -> R.string.settings_language_hindi
+        "zho" -> R.string.settings_language_chinese
+        "jpn" -> R.string.settings_language_japanese
+        "kor" -> R.string.settings_language_korean
+        "tur" -> R.string.settings_language_turkish
+        else -> R.string.settings_none_auto
+    },
+)
+
+private val SUB_SIZES = listOf(
+    0.8f to R.string.settings_subtitle_small,
+    1.0f to R.string.settings_subtitle_normal,
+    1.3f to R.string.settings_subtitle_large,
+    1.6f to R.string.settings_subtitle_extra_large,
+)
+
+private fun nearestSubSize(scale: Float): Float =
+    SUB_SIZES.minByOrNull { kotlin.math.abs(it.first - scale) }?.first ?: SubtitleStyle.SCALE_DEFAULT
+
+private fun subSizeLabelRes(scale: Float): Int =
+    SUB_SIZES.minByOrNull { kotlin.math.abs(it.first - scale) }?.second
+        ?: R.string.settings_subtitle_normal
+
+/** The text-colour presets, as "#RRGGBB". A phone has no room for a hue wheel worth using. */
+private val SUB_COLOR_PRESETS = listOf(
+    R.string.settings_subtitle_color_white to "#FFFFFF",
+    R.string.settings_subtitle_color_yellow to "#FFEB3B",
+    R.string.settings_subtitle_color_cyan to "#4FC3F7",
+    R.string.settings_subtitle_color_green to "#8BC34A",
+    R.string.settings_subtitle_color_grey to "#BDBDBD",
+)
+
+@Composable
+private fun subColorLabel(hex: String): String = if (SubtitleStyle.hasColor(hex)) {
+    SUB_COLOR_PRESETS.firstOrNull { it.second.equals(hex, ignoreCase = true) }
+        ?.let { stringResource(it.first) }
+        ?: hex.uppercase()
+} else {
+    stringResource(R.string.settings_subtitle_default)
+}
+
+private val SUB_BACKGROUND_CHOICES = listOf(SubtitleStyle.OPACITY_DEFAULT, 0, 30, 50, 70, 100)
+
+@Composable
+private fun subBackgroundLabel(pct: Int): String = when {
+    !SubtitleStyle.hasOpacity(pct) -> stringResource(R.string.settings_subtitle_default)
+    pct == SubtitleStyle.OPACITY_MIN -> stringResource(R.string.settings_subtitle_background_none)
+    pct == SubtitleStyle.OPACITY_MAX -> stringResource(R.string.settings_subtitle_background_solid)
+    else -> stringResource(R.string.common_percent, pct)
+}
+
+private fun SubtitleStyle.Position.labelRes() = when (this) {
+    SubtitleStyle.Position.DEFAULT -> R.string.settings_subtitle_default
+    SubtitleStyle.Position.TOP_LEFT -> R.string.player_mini_top_left
+    SubtitleStyle.Position.TOP_CENTER -> R.string.player_mini_top_center
+    SubtitleStyle.Position.TOP_RIGHT -> R.string.player_mini_top_right
+    SubtitleStyle.Position.BOTTOM_LEFT -> R.string.player_mini_bottom_left
+    SubtitleStyle.Position.BOTTOM_CENTER -> R.string.player_mini_bottom_center
+    SubtitleStyle.Position.BOTTOM_RIGHT -> R.string.player_mini_bottom_right
+}
+
+private fun SurroundMode.labelRes() = when (this) {
+    SurroundMode.AUTO -> R.string.settings_auto
+    SurroundMode.STEREO -> R.string.settings_surround_stereo
+    SurroundMode.SURROUND -> R.string.settings_surround_sound
+}
+
+private fun SurroundMode.descriptionRes() = when (this) {
+    SurroundMode.AUTO -> R.string.settings_surround_auto_description
+    SurroundMode.STEREO -> R.string.settings_surround_stereo_description
+    SurroundMode.SURROUND -> R.string.settings_surround_forced_description
+}
+
+private fun SettingsRepository.ResumeMode.labelRes() = when (this) {
+    SettingsRepository.ResumeMode.AUTO -> R.string.settings_resume_always
+    SettingsRepository.ResumeMode.ASK -> R.string.settings_resume_ask
+    SettingsRepository.ResumeMode.NEVER -> R.string.settings_resume_never
+}
+
+private fun LiveLatency.labelRes() = when (this) {
+    LiveLatency.LOW -> R.string.settings_live_latency_low
+    LiveLatency.BALANCED -> R.string.settings_live_latency_balanced
+    LiveLatency.STABLE -> R.string.settings_live_latency_stable
+    LiveLatency.CUSTOM -> R.string.settings_live_latency_custom
+}

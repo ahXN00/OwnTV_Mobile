@@ -15,6 +15,7 @@ import tv.own.owntv.mobile.ui.screens.DevRoute
 import tv.own.owntv.mobile.ui.screens.MoreScreen
 import tv.own.owntv.mobile.ui.screens.PlaceholderScreen
 import tv.own.owntv.mobile.ui.player.PlayerScreen
+import tv.own.owntv.mobile.ui.screens.downloads.DownloadsScreen
 import tv.own.owntv.mobile.ui.screens.guide.GuideScreen
 import tv.own.owntv.mobile.ui.screens.home.HomeScreen
 import tv.own.owntv.mobile.ui.screens.library.DetailScreen
@@ -22,6 +23,22 @@ import tv.own.owntv.mobile.ui.screens.library.LibraryScreen
 import tv.own.owntv.mobile.ui.screens.library.LibraryTab
 import tv.own.owntv.mobile.ui.screens.live.ChannelDetailScreen
 import tv.own.owntv.mobile.ui.screens.live.LiveScreen
+import tv.own.owntv.mobile.ui.screens.search.SearchScreen
+import tv.own.owntv.mobile.ui.screens.settings.SettingsAppPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsAppearancePage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsContentPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsCustomizePage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsDataPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsErrorLogPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsGroup
+import tv.own.owntv.mobile.ui.screens.settings.SettingsLayoutPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsNetworkPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsPlaybackPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsProfilePage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsScreen
+import tv.own.owntv.mobile.ui.screens.settings.SETTINGS_CUSTOMIZE_ROUTE
+import tv.own.owntv.mobile.ui.screens.settings.SETTINGS_ERROR_LOG_ROUTE
+import tv.own.owntv.mobile.ui.screens.settings.SettingsSourcesPage
 import tv.own.owntv.mobile.ui.setup.SetupFlow
 
 /**
@@ -78,6 +95,9 @@ fun MobileNavHost(
                             navController.navigate(channelRoute(destination, channelId, openCatchup))
                         },
                     )
+                    MobileDestination.DOWNLOADS -> DownloadsScreen(
+                        onPlayerOpened = { navController.navigate(PLAYER_ROUTE) },
+                    )
                     MobileDestination.LIBRARY, MobileDestination.MOVIES, MobileDestination.SERIES ->
                         LibraryScreen(
                             scrollToTop = scrollToTop,
@@ -87,6 +107,9 @@ fun MobileNavHost(
                                 navController.navigate(detailRoute(destination.route, tab, id))
                             },
                         )
+                    MobileDestination.SETTINGS -> SettingsScreen(
+                        onOpenGroup = { navController.navigate(it.route) },
+                    )
                     else -> PlaceholderScreen(destination = destination, scrollToTop = scrollToTop)
                 }
             }
@@ -125,6 +148,48 @@ fun MobileNavHost(
                 )
             }
         }
+        composable(SEARCH_ROUTE) {
+            SearchScreen(
+                onOpenChannel = { channelId ->
+                    navController.navigate(channelRoute(MobileDestination.LIVE, channelId, false))
+                },
+                onOpenMovie = { id ->
+                    navController.navigate(
+                        detailRoute(MobileDestination.LIBRARY.route, LibraryTab.MOVIES, id),
+                    )
+                },
+                onOpenSeries = { id ->
+                    navController.navigate(
+                        detailRoute(MobileDestination.LIBRARY.route, LibraryTab.SERIES, id),
+                    )
+                },
+            )
+        }
+        // The nine group pages, plus the two screens reached from inside one. Each is a route rather
+        // than an expanding block, so the system back gesture is what closes it.
+        SettingsGroup.entries.forEach { group ->
+            composable(group.route) {
+                when (group) {
+                    SettingsGroup.PROFILE -> SettingsProfilePage()
+                    SettingsGroup.SOURCES -> SettingsSourcesPage(
+                        onAddSource = { navController.navigate(SETUP_ROUTE) },
+                    )
+                    SettingsGroup.APPEARANCE -> SettingsAppearancePage()
+                    SettingsGroup.LAYOUT -> SettingsLayoutPage()
+                    SettingsGroup.CONTENT -> SettingsContentPage(
+                        onOpenCustomize = { navController.navigate(SETTINGS_CUSTOMIZE_ROUTE) },
+                    )
+                    SettingsGroup.PLAYBACK -> SettingsPlaybackPage()
+                    SettingsGroup.NETWORK -> SettingsNetworkPage()
+                    SettingsGroup.DATA -> SettingsDataPage()
+                    SettingsGroup.APP -> SettingsAppPage(
+                        onOpenErrorLog = { navController.navigate(SETTINGS_ERROR_LOG_ROUTE) },
+                    )
+                }
+            }
+        }
+        composable(SETTINGS_CUSTOMIZE_ROUTE) { SettingsCustomizePage() }
+        composable(SETTINGS_ERROR_LOG_ROUTE) { SettingsErrorLogPage() }
         composable(PLAYER_ROUTE) {
             PlayerScreen(onExit = { navController.popBackStack() })
         }
@@ -191,3 +256,9 @@ const val PLAYER_ROUTE = "player"
  * tabs that lead to empty screens, and on a first run there is nothing behind it to go back to.
  */
 const val SETUP_ROUTE = "setup"
+
+/**
+ * One field over everything. A route rather than a tab, because search is reached from the top bar of
+ * whichever screen the user is on, and back should return them to exactly that screen.
+ */
+const val SEARCH_ROUTE = "search"

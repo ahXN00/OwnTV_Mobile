@@ -37,6 +37,7 @@ import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.PipController
+import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.PlaybackFailure
@@ -64,6 +65,7 @@ fun PlayerScreen(
     tuner: LiveTuner = koinInject(),
     vodTuner: VodTuner = koinInject(),
     pip: PipController = koinInject(),
+    settings: SettingsRepository = koinInject(),
 ) {
     val player = tuner.player
     val activity = LocalActivity.current
@@ -80,6 +82,8 @@ fun PlayerScreen(
     val error by player.error.collectAsStateWithLifecycle()
     val errorInfo by player.errorInfo.collectAsStateWithLifecycle()
     val isPlaying by player.isPlaying.collectAsStateWithLifecycle()
+    // How far a value moves per centimetre of finger. 100 is the untouched behaviour.
+    val gestureSensitivity by settings.gestureSensitivityPct.collectAsStateWithLifecycle(100)
 
     // A replay has an end and therefore a seek bar; the live edge and a rewind into the archive have
     // neither, and get the red bar instead.
@@ -193,6 +197,7 @@ fun PlayerScreen(
                     }
                 },
                 onTwoFingerTap = { player.toggleMute() },
+                sensitivity = gestureSensitivity / 100f,
             ),
     ) {
         VideoStage(player = player, modifier = Modifier.fillMaxSize())

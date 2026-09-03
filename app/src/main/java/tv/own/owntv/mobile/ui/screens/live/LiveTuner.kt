@@ -36,6 +36,7 @@ import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.StreamUrlResolver
+import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
 import tv.own.owntv.player.MpvPlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
@@ -66,6 +67,7 @@ class LiveTuner(
     private val epgReader: LiveEpgReader,
     private val archiveUrls: LiveArchiveUrls,
     private val session: PlaybackSession,
+    private val dataSaver: DataSaverGate,
     val player: OwnTVPlayer,
 ) {
 
@@ -162,6 +164,12 @@ class LiveTuner(
     }
 
     private suspend fun start(channel: ChannelEntity) {
+        // Before anything is claimed to be tuned: refusing has to leave the screen as it was, and the
+        // channel forgotten, so tapping the same row again on Wi-Fi opens it.
+        if (!dataSaver.allowsStreaming()) {
+            loadedId = null
+            return
+        }
         timeshift.clear() // a new channel is never still rewound into the old one's archive
         // A renamed channel keeps its new name on this screen too — the row the user tapped had it.
         val named = custom.value.itemNames[CustomizeKeys.channel(channel)]?.let { channel.copy(name = it) } ?: channel
@@ -240,6 +248,7 @@ class LiveTuner(
             _nowNext.value = null
         }
         scope.launch {
+            if (!dataSaver.allowsStreaming()) return@launch
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
             if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao)) return@launch
             val url = archiveUrls.forProgramme(channel, programme) ?: return@launch

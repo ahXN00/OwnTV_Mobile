@@ -2,6 +2,7 @@ package tv.own.owntv.mobile.di
 
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
+import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
@@ -25,6 +26,8 @@ val playerModule = module {
     // Shared between the activity (which enters PiP) and the player screen (which knows whether the
     // picture is on screen at all).
     single { PipController() }
+    // Asked by both tuners before a stream opens, so Data saver refuses in one place rather than two.
+    single { DataSaverGate(context = androidContext(), settings = get(), localeStore = get()) }
     // Audio focus and the system media session. Both arguments differ from the television's defaults
     // for the same reason: this is a phone. A call PAUSES the film rather than playing it quietly
     // under the caller, and unplugging headphones stops it instead of switching to the loudspeaker.

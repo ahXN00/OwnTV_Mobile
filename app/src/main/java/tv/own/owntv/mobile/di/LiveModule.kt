@@ -34,6 +34,7 @@ val liveModule = module {
             epgReader = get(),
             archiveUrls = get(),
             session = get(),
+            dataSaver = get(),
             player = get(),
         )
     }

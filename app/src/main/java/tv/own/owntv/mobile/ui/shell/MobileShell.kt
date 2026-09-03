@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -43,12 +44,14 @@ import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
 import tv.own.owntv.mobile.ui.nav.MobileNavHost
 import tv.own.owntv.mobile.ui.nav.PLAYER_ROUTE
+import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE
 import tv.own.owntv.mobile.ui.nav.SETUP_ROUTE
 import tv.own.owntv.mobile.ui.setup.SetupFlow
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.mobile.ui.player.MiniPlayer
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
+import tv.own.owntv.mobile.ui.screens.settings.settingsPageTitleRes
 
 /**
  * The frame every screen sits in: a top app bar that collapses as you scroll, the navigation itself,
@@ -103,6 +106,8 @@ fun MobileShell(
     val showingStream = fullscreen || currentRoute?.startsWith("${MobileDestination.LIVE.route}/") == true
     val showMini = (channel != null || film != null) && !showingStream
 
+    val settingsTitle = settingsPageTitleRes(currentRoute)
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
@@ -113,13 +118,35 @@ fun MobileShell(
             if (!fullscreen) TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(current?.labelRes ?: MobileDestination.HOME.labelRes),
+                        // Search belongs to no tab, so it names itself rather than inheriting Home's.
+                        // A settings page names itself too, and that name is what "back" leaves.
+                        text = stringResource(
+                            settingsTitle
+                                ?: if (currentRoute == SEARCH_ROUTE) tv.own.owntv.mobile.R.string.search_title
+                                else current?.labelRes ?: MobileDestination.HOME.labelRes,
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
+                navigationIcon = {
+                    // A settings page is reached from a list, not from a tab, so the bar carries the
+                    // way out. Every other screen has its tab still selected underneath it.
+                    if (settingsTitle != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_back),
+                            )
+                        }
+                    }
+                },
                 actions = {
-                    IconButton(onClick = { navController.navigateToTab(MobileDestination.MORE) }) {
+                    IconButton(
+                        onClick = {
+                            navController.navigate(SEARCH_ROUTE) { launchSingleTop = true }
+                        },
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Search,
                             contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_nav_search),

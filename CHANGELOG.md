@@ -127,6 +127,60 @@ release automation.
 - **When playback fails, it says why** — in your language, with the same wording the TV app uses, and
   a retry button.
 
+### 🔍 Search
+
+- **One field searches everything.** Channels, films and shows at the same time, from the magnifying
+  glass in the top bar of whichever screen you are on — and back returns you to exactly that screen.
+  Results are grouped by kind, each group saying how many it found.
+- **It searches as you type**, waiting a moment for you to stop rather than firing on every letter,
+  and it is the same search the TV app runs, so the same word finds the same things on both.
+- **The provider is on every row** when you have more than one playlist loaded, so two channels with
+  the same name are told apart.
+- **Press and hold a result** for its full menu — favourite, download, hide and the rest — without
+  opening it first.
+- **It remembers what you searched**, and offers those terms again the moment you open the field.
+- **When the field is empty it offers somewhere to start**: what you were watching, favourites you
+  have not watched yet, and your channels.
+
+### ⬇️ Downloads
+
+- **A downloads screen with Active, Completed and Failed**, a progress bar on every item, and pause,
+  resume, retry and delete on each one.
+- **How much room is left and how fast the queue is moving**, at the top, so a long download over a
+  slow connection is not a mystery.
+- **Download to the SD card.** You pick the storage, not a folder, so the app needs no file
+  permission at all — nothing to grant, and nothing left behind on the card if you uninstall.
+- **Watch a finished download with the network off**, in the same player everything else uses, from
+  where you stopped.
+- **Save a copy anywhere** through the phone's own save dialog, once a download has finished — into
+  Downloads, onto a memory card, or into cloud storage.
+
+### ⚙️ Settings
+
+- **Every setting the TV app has, in ten groups**, each its own page rather than one endless list:
+  Profile, Sources & guide, Appearance, Layout, Content & metadata, Playback, Network, Data and App.
+- **A search box at the top of Settings.** Type "subtitle", "buffer" or "backup" and the matching
+  settings appear with the page they live on, so nothing is lost behind two taps of drill-down.
+- **Quick toggles at the top**, for the handful of switches worth reaching in one tap.
+- **Choices open as a sheet from the bottom of the screen**, not as a dialog in the middle — the
+  theme, the accent colour, the text size, the player for live television, and every other
+  "one of these" setting.
+- **The appearance page shows what it will look like while you choose**, so a theme, an accent and a
+  text size are picked by looking rather than by guessing and going back.
+- **Settings for a phone, that the television has no use for**: keep playing in the background,
+  Picture-in-Picture, how far a swipe travels, and a data saver that stops streaming on mobile data
+  until you say otherwise.
+- **Downloads over Wi-Fi only**, on by default, so a queue left running cannot spend a data
+  allowance while you are out.
+- **Per-playlist playback overrides.** One provider that only works on the other player, or needs a
+  bigger buffer, can have its own setting without changing the rest.
+- **Forget what the player remembered**, in one place: pinned players, saved zoom, saved volume and
+  saved audio delay, each with a count of how many titles it applies to and a confirmation.
+- **Check that your film details are actually working**, by looking a title up from the settings
+  page and seeing what comes back; the shared service also shows how much of its allowance is left.
+- **Everything is stored where the TV app stores it**, so a setting changed on the phone and backed
+  up arrives on the television when you restore it there.
+
 ### 📱 It behaves like a phone, not a television
 
 - **A call pauses the film and hanging up resumes it.** Anything that takes the sound away for a

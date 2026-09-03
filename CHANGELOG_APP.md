@@ -46,6 +46,25 @@
 - **Rewind live TV into the archive, and Go live**
 - **Mini player above the tabs**
 - **Volume boost, picture size, playback speed and stream information**
+- **One search field over channels, films and shows**
+- **Grouped search results with a count for each kind**
+- **Press and hold a search result for its full menu**
+- **Recent searches, and shortcuts when the field is empty**
+- **Downloads with Active, Completed and Failed**
+- **Pause, resume, retry and delete a download**
+- **Free space and download speed at a glance**
+- **Download to the SD card, with no file permission**
+- **Watch a finished download offline**
+- **Save a copy of a download anywhere**
+- **Settings in ten pages, with a search box**
+- **Quick toggles at the top of Settings**
+- **Pickers open as bottom sheets**
+- **Live preview while you choose a theme, accent and text size**
+- **Phone-only settings: background playback, Picture-in-Picture, gestures and a data saver**
+- **Downloads over Wi-Fi only**
+- **Per-playlist player, buffer and pre-buffer overrides**
+- **Forget pinned players, saved zoom, volume and audio delay**
+- **Test your film-details connection and see the shared allowance**
 - **Calls pause playback and hanging up resumes it**
 - **Unplugging headphones stops the sound**
 - **Lock screen and notification playback controls**

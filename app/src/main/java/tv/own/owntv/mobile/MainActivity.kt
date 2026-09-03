@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import tv.own.owntv.core.i18n.AppLocale
 import tv.own.owntv.core.i18n.LocaleStore
+import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.shell.MobileShell
@@ -40,8 +41,14 @@ class MainActivity : ComponentActivity() {
     private val tuner: LiveTuner by inject()
     private val pip: PipController by inject()
     private val localeStore: LocaleStore by inject()
+    private val settings: SettingsRepository by inject()
 
     private val player get() = tuner.player
+
+    /** Both read on a lifecycle callback, where there is no time to suspend on a preference. */
+    private var pipEnabled = true
+    private var backgroundPlayback = true
+    private var pausedForBackground = false
 
     /** The result is deliberately ignored: refusing only costs the user the lockscreen controls, and
      *  playback must not depend on it. */
@@ -68,6 +75,8 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             player.isPlaying.collectLatest { if (pip.inPip.value) applyPipParams() }
         }
+        lifecycleScope.launch { settings.pipEnabled.collect { pipEnabled = it } }
+        lifecycleScope.launch { settings.backgroundPlayback.collect { backgroundPlayback = it } }
         keepScreenOnWhileThereIsAPicture()
         setContent {
             MobileTheme {
@@ -85,6 +94,7 @@ class MainActivity : ComponentActivity() {
      */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        if (!pipEnabled) return
         if (!pip.playerOnScreen.value) return
         if (!player.isPlaying.value || player.audioOnly.value || player.audioOnlyMedia.value) return
         runCatching { enterPictureInPictureMode(pipParams()) }
@@ -115,17 +125,33 @@ class MainActivity : ComponentActivity() {
      *
      * Not on a rotation (the activity is only being rebuilt) and not in Picture-in-Picture, where the
      * window is still on screen.
+     *
+     * With background playback turned off the sound stops too — the stream is only paused, so coming
+     * back resumes it where it was rather than reconnecting from the start.
      */
     override fun onStop() {
         super.onStop()
         if (isChangingConfigurations) return
         if (pip.inPip.value) return
-        if (player.hasActiveStream) player.enterAudioOnly()
+        if (!player.hasActiveStream) return
+        if (!backgroundPlayback) {
+            // Remembered, so a stream the user paused themselves is not resumed for them on return.
+            if (player.isPlaying.value) {
+                pausedForBackground = true
+                player.togglePlayPause()
+            }
+            return
+        }
+        player.enterAudioOnly()
     }
 
     override fun onStart() {
         super.onStart()
         player.exitAudioOnly()
+        if (pausedForBackground) {
+            pausedForBackground = false
+            if (player.hasActiveStream && !player.isPlaying.value) player.togglePlayPause()
+        }
     }
 
     /**
