@@ -62,6 +62,7 @@ import tv.own.owntv.mobile.ui.setup.SourceFormValues
 import tv.own.owntv.mobile.ui.setup.SourceKind
 import tv.own.owntv.mobile.ui.setup.labelRes
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /**
  * The playlists, one row each, with everything the television's Manage sources screen can do: which
@@ -215,6 +216,7 @@ fun SettingsPlaylistsPage(
 
     confirmDelete?.let { source ->
         AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { confirmDelete = null },
             title = { Text(stringResource(R.string.settings_sources_delete_title, source.name)) },
             text = { Text(stringResource(R.string.settings_sources_delete_message)) },

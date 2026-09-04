@@ -1,6 +1,6 @@
 package tv.own.owntv.mobile.ui.components
 
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,10 +13,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
+import tv.own.owntv.core.theme.GlassSurface
+import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassClickable
+import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /**
  * One tappable line in a list — a channel, a profile, a download.
@@ -36,11 +42,16 @@ fun MobileListRow(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
+    val press = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = MobileDimens.ListRowHeight)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            // Inline glass: a row is darker than the panel holding it, which is what groups a list
+            // into rows instead of leaving text floating on a page.
+            .glassSurface(GlassSurface.CARDS, MobileCardShape, interactionSource = press)
+            .clip(MobileCardShape)
+            .glassClickable(press, onClick = onClick, onLongClick = onLongClick)
             .padding(
                 horizontal = MobileDimens.ScreenPaddingH,
                 vertical = MobileDimens.GapSmall,

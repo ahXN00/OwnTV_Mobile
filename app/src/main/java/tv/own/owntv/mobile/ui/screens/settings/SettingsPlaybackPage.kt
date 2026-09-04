@@ -31,6 +31,7 @@ import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.player.ZoomMode
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** Which picker is open. One at a time, so one nullable holds them all. */
 private enum class PlaybackSheet {
@@ -699,6 +700,7 @@ fun SettingsVideoPlayerPage(
 
     resetting?.let { target ->
         AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { resetting = null },
             title = { Text(stringResource(target.titleRes)) },
             text = { Text(stringResource(target.descriptionRes)) },
@@ -725,6 +727,7 @@ fun SettingsVideoPlayerPage(
 
     lowWarning?.let { (onConfirm, onCancel) ->
         AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { lowWarning = null; onCancel() },
             title = { Text(stringResource(R.string.settings_low_latency_warning)) },
             text = { Text(stringResource(R.string.settings_low_latency_warning_description)) },
@@ -743,6 +746,7 @@ fun SettingsVideoPlayerPage(
 
     if (afrWarning) {
         AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { afrWarning = false },
             title = { Text(stringResource(R.string.settings_auto_frame_rate_warning_title)) },
             text = { Text(stringResource(R.string.settings_auto_frame_rate_warning_description)) },

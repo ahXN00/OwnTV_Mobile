@@ -15,9 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AspectRatio
@@ -33,7 +31,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Icon
@@ -52,16 +49,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.SquircleShape
 import tv.own.owntv.player.OwnTVPlayer
+import java.text.NumberFormat
 
 /** The pickers the tool bar opens. Each one is a sheet; each one also has a gesture. */
 enum class PlayerSheet { VOLUME, BRIGHTNESS, SUBTITLES, AUDIO, ASPECT, SPEED, INFO, CHANNELS }
@@ -69,7 +70,8 @@ enum class PlayerSheet { VOLUME, BRIGHTNESS, SUBTITLES, AUDIO, ASPECT, SPEED, IN
 private val LiveRed = Color(0xFFE53935)
 
 /**
- * Everything drawn over the picture: the title bar, the transport, the seek bar and the tool bar.
+ * Everything drawn over the picture: the title dock, the transport capsule, the instrument and the
+ * tools.
  *
  * It is one block that fades in and out together, so the picture is never half-covered, and every
  * control here is the visible twin of a gesture — the rule from the design is that no function is
@@ -80,6 +82,7 @@ fun PlayerControls(
     player: OwnTVPlayer,
     title: String,
     subtitle: String?,
+    logoUrl: String?,
     visible: Boolean,
     isLive: Boolean,
     offsetSec: Int?,
@@ -98,11 +101,19 @@ fun PlayerControls(
                 Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
+                    .background(TopScrim)
                     .systemBarsPadding()
                     .padding(horizontal = MobileDimens.GapSmall, vertical = MobileDimens.GapTiny),
             ) {
-                TopRow(player = player, title = title, subtitle = subtitle, onBack = onBack)
+                PlayerDock {
+                    TopRow(
+                        player = player,
+                        title = title,
+                        subtitle = subtitle,
+                        logoUrl = logoUrl,
+                        onBack = onBack,
+                    )
+                }
             }
 
             TransportRow(player = player, isLive = isLive, modifier = Modifier.align(Alignment.Center))
@@ -111,41 +122,50 @@ fun PlayerControls(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))))
+                    .background(BottomScrim)
                     .systemBarsPadding()
-                    .padding(horizontal = MobileDimens.GapSmall),
+                    .padding(horizontal = MobileDimens.GapSmall, vertical = MobileDimens.GapTiny),
             ) {
-                if (isLive) {
-                    LiveBar(
-                        offsetSec = offsetSec,
-                        archiveWindowSec = archiveWindowSec,
-                        onGoLive = onGoLive,
-                        onScrubLive = onScrubLive,
+                PlayerDock {
+                    if (isLive) {
+                        LiveBar(
+                            offsetSec = offsetSec,
+                            archiveWindowSec = archiveWindowSec,
+                            onGoLive = onGoLive,
+                            onScrubLive = onScrubLive,
+                        )
+                    } else {
+                        SeekBar(player)
+                    }
+                    ToolBar(
+                        player = player,
+                        isLive = isLive,
+                        onOpenSheet = onOpenSheet,
+                        onDock = onDock,
+                        onAudioOnly = onAudioOnly,
                     )
-                } else {
-                    SeekBar(player)
                 }
-                ToolBar(
-                    player = player,
-                    isLive = isLive,
-                    onOpenSheet = onOpenSheet,
-                    onDock = onDock,
-                    onAudioOnly = onAudioOnly,
-                )
             }
         }
     }
 }
 
 @Composable
-private fun TopRow(player: OwnTVPlayer, title: String, subtitle: String?, onBack: () -> Unit) {
+private fun TopRow(
+    player: OwnTVPlayer,
+    title: String,
+    subtitle: String?,
+    logoUrl: String?,
+    onBack: () -> Unit,
+) {
     val engine by player.engineChip.collectAsStateWithLifecycle()
     val resolution by player.videoRes.collectAsStateWithLifecycle()
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) {
             Icon(Icons.Filled.ArrowBack, stringResource(R.string.common_back), tint = Color.White)
         }
-        Column(Modifier.weight(1f)) {
+        ChannelLogo(logoUrl = logoUrl, title = title)
+        Column(Modifier.weight(1f).padding(start = MobileDimens.GapSmall)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
@@ -159,7 +179,7 @@ private fun TopRow(player: OwnTVPlayer, title: String, subtitle: String?, onBack
                 Text(
                     text = detail,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = OnVideo,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -177,18 +197,14 @@ private fun TopRow(player: OwnTVPlayer, title: String, subtitle: String?, onBack
 private fun TransportRow(player: OwnTVPlayer, isLive: Boolean, modifier: Modifier = Modifier) {
     val playing by player.isPlaying.collectAsStateWithLifecycle()
     val step by player.seekStepMs.collectAsStateWithLifecycle()
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapLarge),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    TransportCapsule(modifier) {
         if (!isLive) {
             RoundControl(Icons.Filled.FastRewind, R.string.player_skip_back) { player.seekBy(-step) }
         }
         RoundControl(
             icon = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
             labelRes = R.string.settings_remote_action_play_pause,
-            size = 64.dp,
+            size = 68.dp,
             onClick = { player.togglePlayPause() },
         )
         if (!isLive) {
@@ -201,15 +217,13 @@ private fun TransportRow(player: OwnTVPlayer, isLive: Boolean, modifier: Modifie
 private fun RoundControl(
     icon: ImageVector,
     labelRes: Int,
-    size: androidx.compose.ui.unit.Dp = 52.dp,
+    // 48 dp, not the television's 44: this one is hit with a thumb.
+    size: Dp = 48.dp,
     onClick: () -> Unit,
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(percent = 50))
-            .background(Color.Black.copy(alpha = 0.45f)),
+        modifier = Modifier.size(size).clip(SquircleShape(size / 2)),
     ) {
         Icon(icon, stringResource(labelRes), tint = Color.White, modifier = Modifier.size(size / 2))
     }
@@ -224,6 +238,8 @@ private fun SeekBar(player: OwnTVPlayer) {
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
     val fraction = if (dragging) dragValue else (position.toFloat() / duration).coerceIn(0f, 1f)
+    // Never the theme accent: over a picture the light theme's accent is a dark tone on a dark scene.
+    val accent = LocalAccentOnVideo.current
 
     Column {
         Slider(
@@ -234,8 +250,8 @@ private fun SeekBar(player: OwnTVPlayer) {
                 player.seekBy((dragValue * duration).toLong() - player.position.value)
             },
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
+                thumbColor = accent,
+                activeTrackColor = accent,
                 inactiveTrackColor = Color.White.copy(alpha = 0.3f),
             ),
         )
@@ -252,7 +268,7 @@ private fun SeekBar(player: OwnTVPlayer) {
             Text(
                 text = stringResource(R.string.player_time_remaining, formatTimestamp(duration - (fraction * duration).toLong())),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.75f),
+                color = OnVideo,
             )
         }
     }
@@ -317,7 +333,13 @@ private fun LiveBar(
     }
 }
 
-/** The tool bar: one button per picker, scrollable because a phone in portrait is narrow. */
+/**
+ * The tools: one button per picker, scrollable because a phone in portrait is narrow.
+ *
+ * Each is a 48 dp square that grows into its name when held. The three with no gesture twin —
+ * subtitles, aspect and dropping the picture — are pinned open instead, because a control nobody can
+ * find is not a control. Volume, brightness and speed all have a finger gesture already.
+ */
 @Composable
 private fun ToolBar(
     player: OwnTVPlayer,
@@ -327,57 +349,92 @@ private fun ToolBar(
     onAudioOnly: () -> Unit,
 ) {
     val audioCount by player.audioCount.collectAsStateWithLifecycle()
+    val speed by player.speed.collectAsStateWithLifecycle()
+    val engine by player.engineChip.collectAsStateWithLifecycle()
     Row(
         Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
     ) {
-        Tool(Icons.Filled.VolumeUp, R.string.player_tool_volume) { onOpenSheet(PlayerSheet.VOLUME) }
-        Tool(Icons.Filled.BrightnessMedium, R.string.player_tool_brightness) { onOpenSheet(PlayerSheet.BRIGHTNESS) }
-        Tool(Icons.Filled.ClosedCaption, R.string.player_tool_subtitles) { onOpenSheet(PlayerSheet.SUBTITLES) }
+        CtrlButton(Icons.Filled.VolumeUp, stringResource(R.string.player_tool_volume), {
+            onOpenSheet(PlayerSheet.VOLUME)
+        })
+        CtrlButton(Icons.Filled.BrightnessMedium, stringResource(R.string.player_tool_brightness), {
+            onOpenSheet(PlayerSheet.BRIGHTNESS)
+        })
+        CtrlButton(
+            icon = Icons.Filled.ClosedCaption,
+            label = stringResource(R.string.player_tool_subtitles),
+            onClick = { onOpenSheet(PlayerSheet.SUBTITLES) },
+            pinned = true,
+        )
         if (audioCount > 1) {
-            Tool(Icons.Filled.Audiotrack, R.string.player_tool_audio) { onOpenSheet(PlayerSheet.AUDIO) }
+            CtrlButton(Icons.Filled.Audiotrack, stringResource(R.string.player_tool_audio), {
+                onOpenSheet(PlayerSheet.AUDIO)
+            })
         }
-        Tool(Icons.Filled.AspectRatio, R.string.player_tool_aspect) { onOpenSheet(PlayerSheet.ASPECT) }
+        CtrlButton(
+            icon = Icons.Filled.AspectRatio,
+            label = stringResource(R.string.player_tool_aspect),
+            onClick = { onOpenSheet(PlayerSheet.ASPECT) },
+            pinned = true,
+        )
         if (!isLive) {
-            Tool(Icons.Filled.Speed, R.string.player_tool_speed) { onOpenSheet(PlayerSheet.SPEED) }
+            SpeedButton(
+                rate = formatSpeed(speed),
+                label = stringResource(R.string.player_tool_speed),
+                active = speed != 1.0,
+                onClick = { onOpenSheet(PlayerSheet.SPEED) },
+            )
             // Live is already on the engine the television's compatibility mode switches TO, so the
             // toggle would have nothing to swap; for a film, an episode or a replay it is real.
-            Tool(Icons.Filled.SwapHoriz, R.string.player_tool_engine) { player.toggleVodEngine() }
+            EngineToggle(
+                engine = engine.orEmpty(),
+                label = stringResource(R.string.player_tool_engine),
+                // ExoPlayer is not this app's default for a film, so being on it is a state worth
+                // colouring — it is what the user switched to.
+                active = engine == EXO,
+                icon = Icons.Filled.SwapHoriz,
+                onClick = { player.toggleVodEngine() },
+            )
         }
         if (isLive) {
-            Tool(Icons.Filled.FormatListBulleted, R.string.content_channel_overlay_title) {
+            CtrlButton(Icons.Filled.FormatListBulleted, stringResource(R.string.content_channel_overlay_title), {
                 onOpenSheet(PlayerSheet.CHANNELS)
-            }
+            })
         }
-        Tool(Icons.Filled.Info, R.string.player_tool_info) { onOpenSheet(PlayerSheet.INFO) }
+        CtrlButton(Icons.Filled.Info, stringResource(R.string.player_tool_info), {
+            onOpenSheet(PlayerSheet.INFO)
+        })
         // Dropping the picture is the phone's biggest battery and data saving, so it is a button on
         // the bar rather than something only the notification offers.
-        Tool(Icons.Filled.MusicNote, R.string.player_tool_audio_only, onClick = onAudioOnly)
-        Tool(Icons.Filled.PictureInPictureAlt, R.string.player_tool_mini, onClick = onDock)
+        CtrlButton(
+            icon = Icons.Filled.MusicNote,
+            label = stringResource(R.string.player_tool_audio_only),
+            onClick = onAudioOnly,
+            pinned = true,
+        )
+        CtrlButton(Icons.Filled.PictureInPictureAlt, stringResource(R.string.player_tool_mini), onDock)
     }
 }
 
+/** The engine chip's own name for ExoPlayer, as the player publishes it. */
+private const val EXO = "EXO"
+
+/** "Normal" at 1x, "1.5x" otherwise — the same wording the television uses. */
 @Composable
-private fun Tool(icon: ImageVector, labelRes: Int, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .width(72.dp)
-            .padding(vertical = MobileDimens.GapTiny),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = null, tint = Color.White)
-        }
-        Text(
-            text = stringResource(labelRes),
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.85f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+private fun formatSpeed(speed: Double): String {
+    if (speed == 1.0) return stringResource(R.string.player_speed_normal_short)
+    val locale = LocalConfiguration.current.locales[0]
+    val number = remember(speed, locale) {
+        NumberFormat.getNumberInstance(locale).apply {
+            minimumFractionDigits = 1
+            maximumFractionDigits = 2
+        }.format(speed)
     }
+    return stringResource(R.string.player_speed, number)
 }
 
 /** 0:42 / 23:45 / 1:23:45 — the app's one duration format, the same one the television uses. */

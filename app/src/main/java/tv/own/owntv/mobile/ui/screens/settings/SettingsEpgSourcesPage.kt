@@ -46,6 +46,7 @@ import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /**
  * The XMLTV feeds that fill the guide, each with what it actually holds: how many channels, how many
@@ -140,6 +141,7 @@ fun SettingsEpgSourcesPage(
 
     confirmDelete?.let { source ->
         AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { confirmDelete = null },
             title = { Text(stringResource(R.string.settings_epg_sources_delete_title, source.name)) },
             text = { Text(stringResource(R.string.settings_epg_sources_delete_message)) },

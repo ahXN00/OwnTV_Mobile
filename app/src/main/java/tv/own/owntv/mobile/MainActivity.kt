@@ -32,6 +32,7 @@ import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
+import tv.own.owntv.mobile.ui.components.MobileSheetHost
 import tv.own.owntv.mobile.ui.shell.MobileShell
 import tv.own.owntv.mobile.ui.theme.GlassBackdropRoot
 import tv.own.owntv.mobile.ui.theme.MobileTheme
@@ -92,10 +93,14 @@ class MainActivity : ComponentActivity() {
                 // The wallpaper and its blurred copy sit outside the shell, so the frost every glass
                 // panel samples is one image for the whole app rather than one per panel.
                 GlassBackdropRoot {
-                    // Width, not device type: a phone in landscape and a tablet in split-screen are
-                    // the same problem, and the configuration re-reads itself on every rotation and
-                    // resize.
-                    MobileShell(windowWidthDp = LocalConfiguration.current.screenWidthDp)
+                    // Inside the backdrop, because a sheet's whole reason for living in this window
+                    // is that it can frost the same wallpaper everything else frosts.
+                    MobileSheetHost {
+                        // Width, not device type: a phone in landscape and a tablet in split-screen
+                        // are the same problem, and the configuration re-reads itself on every
+                        // rotation and resize.
+                        MobileShell(windowWidthDp = LocalConfiguration.current.screenWidthDp)
+                    }
                 }
             }
         }

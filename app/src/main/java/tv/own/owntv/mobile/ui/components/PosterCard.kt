@@ -1,7 +1,7 @@
 package tv.own.owntv.mobile.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import tv.own.owntv.core.theme.GlassSurface
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassClickable
 import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /**
@@ -44,12 +46,15 @@ fun PosterCard(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
+    // The card draws its own press: it sinks and its rim lights, where a ripple would spread a
+    // smear across the frost.
+    val press = remember { MutableInteractionSource() }
     Column(
         modifier = modifier
             .width(width)
-            .glassSurface(GlassSurface.CARDS, MobileCardShape)
+            .glassSurface(GlassSurface.CARDS, MobileCardShape, interactionSource = press)
             .clip(MobileCardShape)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .glassClickable(press, onClick = onClick, onLongClick = onLongClick)
             .padding(bottom = MobileDimens.GapTiny),
     ) {
         Box(

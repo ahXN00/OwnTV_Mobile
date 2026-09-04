@@ -159,6 +159,17 @@ release automation.
   swipe it down to close it. A radio station shows its logo instead of a black rectangle.
 - **When playback fails, it says why** — in your language, with the same wording the TV app uses, and
   a retry button.
+- **The controls are their own piece of glass.** The buttons sit on two soft-cornered panes over the
+  picture instead of loose on a flat gradient, the play, skip and seek buttons share a capsule, the
+  shading behind them is dark where the text is and fades out over the film rather than dimming the
+  whole frame, and the channel's logo sits on a small plate at the top. Scope *Player controls* and
+  *On-screen messages* into the Glass Effect and both panes gain the lit edge, the highlight and the
+  shadow the rest of the app has.
+- **Hold a control to be told what it is.** The tool buttons are square and unlabelled so more of the
+  film shows; press and hold one and it grows sideways into its name, tap it to use it. Subtitles,
+  picture size and sound-only stay labelled, because those three have no gesture of their own.
+- **The seek bar is readable in the light theme too.** Anything drawn over the picture now uses the
+  accent as it looks on black, so a light theme no longer put a dark seek bar on a dark scene.
 
 ### 🔍 Search
 
@@ -268,8 +279,25 @@ release automation.
   see-through and edge-lit without the frost.
 - **Glass Effect has a page of its own**, with a live sample at the top that changes as you drag.
   Six looks to pick from, a switch for each part of the app you want it on — bars, panels, cards,
-  sheets, the mini player — sliders for see-through, blur and edge light, shadows on or off, a
-  background picture you choose with the phone's own picker, and one press back to Balanced.
+  sheets, the mini player, the player controls and the messages that flash over the picture —
+  sliders for see-through, blur and edge light, shadows on or off, a background picture you choose
+  with the phone's own picker, and one press back to Balanced.
+- **The glass has depth now, not one recipe everywhere.** Things that float above the app — dialogs
+  and the messages that flash over the picture — are the lightest and cast the deepest shadow; the
+  bars, the mini player and the player controls are a firmer, quieter pane; panels and the preview
+  sit further back; and a poster or a row inside a panel is only a whisper of glass, because glass
+  inside glass on top of glass is mud. Layers nested inside each other lighten as they go in, so a
+  sheet on a panel on a background is still three readable steps and not one grey block.
+- **Glass reacts to your finger.** Press a card, a row or a chip and its pane brightens and settles
+  under the touch instead of only changing colour, and lets go when you do. With **Reduce
+  animations** on, the change is instant rather than removed, so nothing becomes invisible.
+- **Menus and pickers are real frosted glass at last.** Every press-and-hold menu and every picker
+  now opens inside the app's own window, so it blurs the same background picture the rest of the app
+  blurs — before, they were a separate window and could only be flat. They can be dragged to half
+  height or full height, they settle where you throw them, the back gesture shrinks and fades the
+  sheet under your finger, and the keyboard no longer covers a rename field. The dialogs that are
+  still true dialogs blur what is behind them on Android 12 and newer, and stop doing it while
+  battery saver is on.
 - **Fonts have a page of their own.** The interface font and size, and — new on the phone — the font
   and size used inside menus and sheets, with a sample that changes as you choose.
 - **Weather has a page of its own, and can use where the phone actually is.** Turn it on and the

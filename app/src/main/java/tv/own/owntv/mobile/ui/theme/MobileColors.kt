@@ -30,6 +30,21 @@ val AccentColor.labelRes: Int
         AccentColor.AMBER -> R.string.settings_accent_amber
     }
 
+/**
+ * The accent as it must look over a picture.
+ *
+ * The player draws on video, never on a themed surface, so the light theme's accent — chosen to
+ * carry against a near-white page — is the wrong colour there: it is dark, and a dark seek bar on a
+ * dark scene is invisible. The dark theme's accent is derived to sit on black, which is exactly what
+ * is behind the player in both themes, so the player asks for that one regardless of the theme.
+ */
+fun accentOnVideo(accent: AccentColor, customAccent: String = ""): Color {
+    val roles = parseAccentHex(customAccent)
+        ?.let { accentRolesFromSeed(it, isDark = true) }
+        ?: accent.roles(isDark = true)
+    return Color(roles.primary)
+}
+
 fun mobileColorScheme(
     isDark: Boolean,
     accent: AccentColor,

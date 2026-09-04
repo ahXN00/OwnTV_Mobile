@@ -225,6 +225,7 @@ fun PlayerScreen(
             // Whichever tuner has the surface. Only one of them ever does.
             title = channel?.name ?: film?.title.orEmpty(),
             subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
+            logoUrl = channel?.logoUrl ?: film?.posterUrl,
             // Nothing is drawn over the picture in the little window: it is a thumbnail, and the
             // system draws its own buttons on top of it.
             visible = controlsVisible && !inPip,
@@ -240,15 +241,13 @@ fun PlayerScreen(
         )
 
         hud.takeIf { !inPip }?.let { text ->
-            Text(
-                text = text,
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
-            )
+            PlayerToast(Modifier.align(Alignment.Center)) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                )
+            }
         }
     }
 
@@ -295,12 +294,7 @@ private fun skip(tuner: LiveTuner, isLive: Boolean, forward: Boolean) {
 private fun ErrorPanel(failure: PlaybackFailure, detailRes: Int?, onRetry: () -> Unit) {
     val res = LocalResources.current
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .background(Color.Black.copy(alpha = 0.75f))
-                .padding(24.dp),
-        ) {
+        PlayerToast {
             Text(
                 // Core owns the wording, so the phone and the television explain a failure alike.
                 text = failure.describe { id, args -> res.getString(id, *args.toTypedArray()) },

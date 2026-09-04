@@ -59,6 +59,7 @@ import tv.own.owntv.mobile.ui.components.TmdbDetailsSheet
 import tv.own.owntv.mobile.ui.components.movieDetails
 import tv.own.owntv.mobile.ui.components.seriesDetails
 import tv.own.owntv.mobile.ui.components.sheetListHeight
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** Which follow-up the sheet handed off to. Only ever one at a time. */
 private enum class VodDialog { MOVE, MOVE_TO_CATEGORY, NEW_CATEGORY, DETAILS, TMDB_NAME, SUBTITLES }
@@ -349,6 +350,7 @@ private fun SetTmdbNameDialog(
         }
     }
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.setup_tmdb_name)) },
         text = {
