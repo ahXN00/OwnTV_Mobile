@@ -12,10 +12,10 @@ import tv.own.owntv.mobile.R
  * title and the keywords search matches on. Route, breadcrumb, page title and the search index all
  * read this list, so a leaf can never be reachable by one and invisible to another.
  *
- * A leaf is registered when its screen exists. The remaining television screens — Glass Effect,
- * Weather, Fonts, the navigation bar, Home, the long-press menus, DNS, Language and About — are still
- * rows on their group pages, and each moves here in the phase that builds it out; registering an
- * empty one now would put a dead row above content that already works.
+ * A leaf is registered when its screen exists. The remaining television screens — the navigation bar,
+ * Home, the long-press menus, DNS, Language and About — are still rows on their group pages, and each
+ * moves here in the phase that builds it out; registering an empty one now would put a dead row above
+ * content that already works.
  */
 enum class SettingsLeaf(
     val group: SettingsGroup,
@@ -33,6 +33,22 @@ enum class SettingsLeaf(
         SettingsGroup.SOURCES, "epg",
         R.string.settings_epg_sources, R.string.settings_search_keywords_epg,
         R.string.settings_epg_sources_description,
+    ),
+
+    GLASS_EFFECT(
+        SettingsGroup.APPEARANCE, "glass",
+        R.string.settings_glass_effect, R.string.settings_search_keywords_glass,
+        R.string.settings_glass_description,
+    ),
+    FONTS(
+        SettingsGroup.APPEARANCE, "fonts",
+        R.string.settings_font_customization, R.string.settings_search_keywords_fonts,
+        R.string.settings_font_customization_description,
+    ),
+    WEATHER(
+        SettingsGroup.APPEARANCE, "weather",
+        R.string.settings_weather, R.string.settings_search_keywords_weather,
+        R.string.settings_weather_description_root,
     ),
 
     CUSTOMIZE(

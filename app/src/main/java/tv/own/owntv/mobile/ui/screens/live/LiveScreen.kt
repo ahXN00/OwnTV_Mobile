@@ -13,10 +13,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -45,8 +47,9 @@ import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.mobile.R
-import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
+import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
@@ -78,6 +81,7 @@ fun LiveScreen(
     listState.ObeyScrollToTop(route = "live", scrollToTop = scrollToTop)
 
     var menuFor by remember { mutableStateOf<ChannelEntity?>(null) }
+    var categoryPicker by remember { mutableStateOf(false) }
 
     // The guide is read for what is actually on screen. Watching the visible range rather than each
     // row means one batched query per scroll settle instead of one per row appearing.
@@ -93,11 +97,28 @@ fun LiveScreen(
     LaunchedEffect(selected) { listState.scrollToItem(0) }
 
     Column(modifier.fillMaxSize()) {
-        FilterChipRow(
-            labels = categories.map { it.label() },
-            selectedIndex = categories.indexOfFirst { it.key == selected },
-            onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
-        )
+        Box(Modifier.fillMaxWidth()) {
+            FilterChipRow(
+                labels = categories.map { it.label() },
+                selectedIndex = categories.indexOfFirst { it.key == selected },
+                onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
+                modifier = Modifier.padding(end = MobileDimens.TouchTarget),
+            )
+            IconButton(
+                onClick = { categoryPicker = true },
+                modifier = Modifier.align(Alignment.CenterEnd),
+            ) {
+                Icon(Icons.Filled.Search, stringResource(R.string.content_search_categories))
+            }
+        }
+        if (categoryPicker) {
+            CategoryPickerSheet(
+                labels = categories.map { it.label() },
+                selectedIndex = categories.indexOfFirst { it.key == selected },
+                onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
+                onDismiss = { categoryPicker = false },
+            )
+        }
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = vm::refresh,

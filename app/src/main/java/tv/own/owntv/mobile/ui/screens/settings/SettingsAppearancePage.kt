@@ -28,14 +28,10 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.theme.AccentColor
 import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.core.theme.AppFontFamily
-import tv.own.owntv.core.theme.FontCustomization
 import tv.own.owntv.core.theme.GlassConfig
 import tv.own.owntv.core.theme.GlassPreset
 import tv.own.owntv.core.theme.GlassSurface
-import tv.own.owntv.core.theme.PopupFontScale
-import tv.own.owntv.core.theme.PopupSizeScale
 import tv.own.owntv.core.theme.ThemeMode
-import tv.own.owntv.core.theme.UiFontScale
 import tv.own.owntv.core.theme.UiZoom
 import tv.own.owntv.core.theme.roles
 import tv.own.owntv.mobile.R
@@ -51,16 +47,15 @@ import tv.own.owntv.mobile.ui.theme.labelRes
  */
 @Composable
 fun SettingsAppearancePage(
+    onOpenLeaf: (SettingsLeaf) -> Unit,
     modifier: Modifier = Modifier,
     vm: SettingsViewModel = koinViewModel(),
 ) {
     val themeMode = vm.settings.themeMode.pref(ThemeMode.DARK)
     val accent = vm.settings.accent.pref(AccentColor.TEAL)
     val glass = vm.settings.glassConfig.pref(GlassConfig())
-    val fonts = vm.settings.fontCustomization.pref(FontCustomization())
     val zoom = vm.settings.uiZoomPercent.pref(UiZoom.DEFAULT)
     val animations = vm.settings.animationLevel.pref(AnimationLevel.FULL)
-    val weather = vm.settings.weatherEnabled.pref(false)
     val highlightWidth = vm.settings.focusHighlightWidth.pref(2)
 
     var sheet by remember { mutableStateOf<AppearanceSheet?>(null) }
@@ -70,6 +65,7 @@ fun SettingsAppearancePage(
 
     SettingsPage(modifier) {
         item(key = "preview") { AppearancePreview() }
+        settingsLeafRows(SettingsGroup.APPEARANCE, onOpenLeaf)
 
         item(key = "theme") {
             SettingRow(
@@ -87,22 +83,13 @@ fun SettingsAppearancePage(
                 onClick = { sheet = AppearanceSheet.ACCENT },
             )
         }
+        item(key = "accent-hex") { AccentHexField(vm) }
         item(key = "highlight") {
             SettingRow(
                 title = stringResource(R.string.settings_selection_highlight),
                 subtitle = stringResource(R.string.settings_selection_highlight_description),
                 value = focusWidthLabel(highlightWidth),
                 onClick = { sheet = AppearanceSheet.HIGHLIGHT },
-            )
-        }
-        item(key = "glass") {
-            SettingRow(
-                title = stringResource(R.string.settings_glass_effect),
-                subtitle = stringResource(R.string.settings_glass_description),
-                value = stringResource(
-                    if (glass.enabled) R.string.common_on else R.string.common_off,
-                ),
-                onClick = { sheet = AppearanceSheet.GLASS },
             )
         }
         // The glow is a light behind solid panels, so it only means anything on a dark theme that is
@@ -123,26 +110,6 @@ fun SettingsAppearancePage(
                     onCheckedChange = { vm.edit { setAmbientGlowPulse(it) } },
                 )
             }
-        }
-        item(key = "fonts") {
-            SettingRow(
-                title = stringResource(R.string.settings_font_customization),
-                subtitle = stringResource(R.string.settings_font_customization_description),
-                value = stringResource(R.string.common_percent, fonts.sizePercent),
-                onClick = { sheet = AppearanceSheet.FONTS },
-            )
-        }
-        item(key = "popup-size") {
-            SettingsSlider(
-                title = stringResource(R.string.settings_popup_size),
-                subtitle = stringResource(R.string.settings_popup_size_description),
-                value = fonts.popupSizePercent,
-                range = PopupSizeScale.MIN..PopupSizeScale.MAX,
-                steps = stepsFor(PopupSizeScale.MIN, PopupSizeScale.MAX, PopupSizeScale.STEP),
-                onValueChange = { pct ->
-                    vm.edit { setFontCustomization(fonts.copy(popupSizePercent = PopupSizeScale.clamp(pct))) }
-                },
-            )
         }
         item(key = "zoom") {
             SettingsSlider(
@@ -175,31 +142,6 @@ fun SettingsAppearancePage(
             )
         }
 
-        settingsSection(R.string.settings_weather)
-        settingsNote(R.string.settings_weather_description_root)
-        item(key = "weather") {
-            SettingRow(
-                title = stringResource(R.string.settings_show_weather),
-                subtitle = stringResource(R.string.settings_show_weather_description),
-                checked = weather,
-                onCheckedChange = { vm.edit { setWeatherEnabled(it) } },
-            )
-        }
-        if (weather) {
-            item(key = "weather-location") { WeatherLocationField(vm) }
-            item(key = "weather-unit") {
-                val fahrenheit = vm.settings.weatherFahrenheit.pref(false)
-                SettingRow(
-                    title = stringResource(R.string.settings_temperature_unit),
-                    subtitle = stringResource(R.string.settings_temperature_description),
-                    value = stringResource(
-                        if (fahrenheit) R.string.settings_degree_fahrenheit
-                        else R.string.settings_degree_celsius,
-                    ),
-                    onClick = { vm.edit { setWeatherFahrenheit(!fahrenheit) } },
-                )
-            }
-        }
     }
 
     when (sheet) {
@@ -220,8 +162,6 @@ fun SettingsAppearancePage(
             onDismiss = { sheet = null },
         )
         AppearanceSheet.HIGHLIGHT -> HighlightSheet(vm, onDismiss = { sheet = null })
-        AppearanceSheet.GLASS -> GlassSheet(vm, glass, onDismiss = { sheet = null })
-        AppearanceSheet.FONTS -> FontsSheet(vm, fonts, onDismiss = { sheet = null })
         null -> Unit
     }
 
@@ -256,10 +196,10 @@ fun SettingsAppearancePage(
     }
 }
 
-private enum class AppearanceSheet { THEME, ACCENT, HIGHLIGHT, GLASS, FONTS }
+private enum class AppearanceSheet { THEME, ACCENT, HIGHLIGHT }
 
 /** A slider's stops, so it lands on core's step size instead of anywhere between two of them. */
-private fun stepsFor(min: Int, max: Int, step: Int): Int = ((max - min) / step) - 1
+internal fun stepsFor(min: Int, max: Int, step: Int): Int = ((max - min) / step) - 1
 
 /** The ring's width as a word, the way the TV app names it: Thin, Normal, Thick, Extra thick. */
 @Composable
@@ -280,7 +220,7 @@ private fun ThemeMode.labelRes(): Int = when (this) {
 }
 
 @Composable
-private fun AppFontFamily.labelRes(): Int = when (this) {
+internal fun AppFontFamily.labelRes(): Int = when (this) {
     AppFontFamily.LORA -> R.string.settings_font_lora
     AppFontFamily.SYSTEM_SANS -> R.string.settings_font_system_sans
     AppFontFamily.MONOSPACE -> R.string.settings_font_monospace
@@ -290,7 +230,7 @@ private fun AppFontFamily.labelRes(): Int = when (this) {
 }
 
 @Composable
-private fun GlassSurface.labelRes(): Int = when (this) {
+internal fun GlassSurface.labelRes(): Int = when (this) {
     GlassSurface.PANELS -> R.string.settings_glass_surface_panels
     GlassSurface.SIDEBAR -> R.string.settings_glass_surface_sidebar
     GlassSurface.PREVIEW -> R.string.settings_glass_surface_preview
@@ -301,13 +241,25 @@ private fun GlassSurface.labelRes(): Int = when (this) {
 }
 
 @Composable
-private fun GlassPreset.labelRes(): Int = when (this) {
+internal fun GlassPreset.labelRes(): Int = when (this) {
     GlassPreset.ULTRA_CLEAR -> R.string.settings_glass_preset_ultra_clear
     GlassPreset.CLEAR -> R.string.settings_glass_preset_clear
     GlassPreset.BALANCED -> R.string.settings_glass_preset_balanced
     GlassPreset.TINTED -> R.string.settings_glass_preset_tinted
     GlassPreset.OPAQUE -> R.string.settings_glass_preset_opaque
+    GlassPreset.AURORA -> R.string.settings_glass_preset_aurora
     GlassPreset.CUSTOM -> R.string.settings_glass_preset_custom
+}
+
+@Composable
+internal fun GlassPreset.descriptionRes(): Int = when (this) {
+    GlassPreset.ULTRA_CLEAR -> R.string.settings_glass_preset_ultra_clear_description
+    GlassPreset.CLEAR -> R.string.settings_glass_preset_clear_description
+    GlassPreset.BALANCED -> R.string.settings_glass_preset_balanced_description
+    GlassPreset.TINTED -> R.string.settings_glass_preset_tinted_description
+    GlassPreset.OPAQUE -> R.string.settings_glass_preset_opaque_description
+    GlassPreset.AURORA -> R.string.settings_glass_preset_aurora_description
+    GlassPreset.CUSTOM -> R.string.settings_glass_preset_custom_description
 }
 
 /** A card, a line of text and the accent — the three things every setting on this page changes. */
@@ -357,25 +309,6 @@ private fun AppearancePreview() {
     }
 }
 
-@Composable
-private fun WeatherLocationField(vm: SettingsViewModel) {
-    val stored = vm.settings.weatherLocation.pref("")
-    var text by remember(stored) { mutableStateOf(stored) }
-    OutlinedTextField(
-        value = text,
-        onValueChange = {
-            text = it
-            vm.edit { setWeatherLocation(it) }
-        },
-        singleLine = true,
-        label = { Text(stringResource(R.string.settings_custom_location)) },
-        placeholder = { Text(stringResource(R.string.settings_location_hint)) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall),
-    )
-}
-
 /** The ring's colour and thickness. Blank colour means "follow the accent", which is the default. */
 @Composable
 private fun HighlightSheet(vm: SettingsViewModel, onDismiss: () -> Unit) {
@@ -410,85 +343,41 @@ private fun HighlightSheet(vm: SettingsViewModel, onDismiss: () -> Unit) {
     }
 }
 
+/**
+ * A colour typed in rather than chosen: six hex digits, applied only once they are all there.
+ *
+ * It is validated as you type rather than on a button, because a half-typed colour is not an error
+ * the user has made yet — the message only appears once six characters are in and wrong.
+ */
 @Composable
-private fun GlassSheet(vm: SettingsViewModel, glass: GlassConfig, onDismiss: () -> Unit) {
-    MobileBottomSheet(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_glass_effect),
-    ) {
-        SettingRow(
-            title = stringResource(R.string.settings_glass_effect_title),
-            subtitle = stringResource(R.string.settings_glass_master_description),
-            checked = glass.enabled,
-            // Off is an empty scope, so turning it back on has to put something in it: everything,
-            // which is what the surface switches below then narrow down.
-            onCheckedChange = { on ->
-                val bits = if (on) GlassConfig(scope = GlassSurface.entries.toSet()).toBitmask() else 0
-                vm.edit { setGlassScopeBitmask(bits) }
-            },
-        )
-        if (glass.enabled) {
-            GlassPreset.entries.filter { it != GlassPreset.CUSTOM }.forEach { preset ->
-                SettingRow(
-                    title = stringResource(preset.labelRes()),
-                    checked = glass.preset == preset,
-                    onCheckedChange = { vm.edit { setGlassPreset(preset) } },
-                )
+private fun AccentHexField(vm: SettingsViewModel) {
+    val stored = vm.settings.customAccent.pref("")
+    var text by remember(stored) { mutableStateOf(stored.removePrefix("#")) }
+    val complete = text.length == 6
+    val valid = complete && text.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { raw ->
+            text = raw.trimStart('#').take(6)
+            when {
+                text.isEmpty() -> vm.edit { setCustomAccent("") }
+                text.length == 6 && text.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' } ->
+                    vm.edit { setCustomAccent("#" + text.uppercase()) }
             }
-            GlassSurface.entries.forEach { surface ->
-                SettingRow(
-                    title = stringResource(surface.labelRes()),
-                    checked = surface in glass.scope,
-                    onCheckedChange = { on ->
-                        val scope =
-                            if (on) glass.scope + surface else glass.scope - surface
-                        vm.edit { setGlassScopeBitmask(GlassConfig(scope = scope).toBitmask()) }
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun FontsSheet(vm: SettingsViewModel, fonts: FontCustomization, onDismiss: () -> Unit) {
-    MobileBottomSheet(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_font_customization),
-    ) {
-        Text(
-            text = stringResource(R.string.settings_font_preview),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
-        )
-        SettingsSlider(
-            title = stringResource(R.string.settings_font_size),
-            value = fonts.sizePercent,
-            range = UiFontScale.MIN..UiFontScale.MAX,
-            steps = stepsFor(UiFontScale.MIN, UiFontScale.MAX, UiFontScale.STEP),
-            onValueChange = { pct ->
-                vm.edit { setFontCustomization(fonts.copy(sizePercent = UiFontScale.clamp(pct))) }
-            },
-        )
-        SettingsSlider(
-            title = stringResource(R.string.settings_popup_font_size),
-            subtitle = stringResource(R.string.settings_popup_font_size_description),
-            value = fonts.popupFontSizePercent,
-            range = PopupFontScale.MIN..PopupFontScale.MAX,
-            steps = stepsFor(PopupFontScale.MIN, PopupFontScale.MAX, PopupFontScale.STEP),
-            onValueChange = { pct ->
-                vm.edit {
-                    setFontCustomization(fonts.copy(popupFontSizePercent = PopupFontScale.clamp(pct)))
-                }
-            },
-        )
-        AppFontFamily.entries.forEach { family ->
-            SettingRow(
-                title = stringResource(family.labelRes()),
-                checked = fonts.mainFamily == family,
-                onCheckedChange = { vm.edit { setFontCustomization(fonts.copy(mainFamily = family)) } },
+        },
+        singleLine = true,
+        isError = complete && !valid,
+        label = { Text(stringResource(R.string.settings_hex_code)) },
+        prefix = { Text("#") },
+        supportingText = {
+            Text(
+                stringResource(
+                    if (complete && !valid) R.string.settings_hex_error else R.string.settings_presets,
+                ),
             )
-        }
-    }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall),
+    )
 }

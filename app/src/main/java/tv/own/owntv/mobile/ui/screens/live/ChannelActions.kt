@@ -10,12 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Star
@@ -24,18 +21,13 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.debounce
@@ -61,7 +52,11 @@ import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
+import tv.own.owntv.mobile.ui.components.MoveToCategorySheet
+import tv.own.owntv.mobile.ui.components.NewCategoryDialog
+import tv.own.owntv.mobile.ui.components.ReorderSheet
 import tv.own.owntv.mobile.ui.components.SheetAction
+import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /** Which follow-up the sheet handed off to. Only ever one at a time. */
@@ -223,10 +218,11 @@ fun ChannelMenu(
             onSet = { vm.setEpgShift(channel, it) },
             onDismiss = { dialog = null },
         )
-        ChannelDialog.MOVE -> MoveChannelSheet(
-            channel = channel,
-            selected = selected,
-            vm = vm,
+        ChannelDialog.MOVE -> ReorderSheet(
+            title = stringResource(R.string.content_reorder_channel),
+            openAt = channel.id,
+            load = { vm.moveList(selected) },
+            onSave = { ids -> vm.contextKeyOf(selected)?.let { vm.commitMove(it, ids) } },
             onDismiss = { dialog = null },
         )
         ChannelDialog.MOVE_TO_CATEGORY -> MoveToCategorySheet(
@@ -467,192 +463,6 @@ internal fun epgShiftLabel(minutes: Int): String {
         )
     }
 }
-
-/**
- * Reorder the list the channel sits in.
- *
- * The TV app does this by picking a channel up with OK and walking it with the D-pad. There is no
- * D-pad here, so each row carries its own two arrows — and the order is written only on Save, so
- * shuffling five channels is one edit rather than five.
- */
-@Composable
-private fun MoveChannelSheet(
-    channel: ChannelEntity,
-    selected: LiveKey,
-    vm: LiveViewModel,
-    onDismiss: () -> Unit,
-) {
-    val items = remember { mutableStateListOf<ChannelEntity>() }
-    var contextKey by remember { mutableStateOf<String?>(null) }
-    val listState = rememberLazyListState()
-
-    LaunchedEffect(selected) {
-        val move = vm.moveList(selected) ?: return@LaunchedEffect
-        items.addAll(move.items)
-        contextKey = move.contextKey
-        // Open on the channel the user long-pressed; it is rarely near the top of a long folder.
-        items.indexOfFirst { it.id == channel.id }.takeIf { it >= 0 }?.let { listState.scrollToItem(it) }
-    }
-
-    MobileBottomSheet(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.content_reorder_channel),
-    ) {
-        LazyColumn(state = listState, modifier = Modifier.heightIn(max = sheetListHeight())) {
-            items(items, key = { it.id }) { item ->
-                val index = items.indexOf(item)
-                MobileListRow(
-                    title = item.name,
-                    trailing = {
-                        Row {
-                            IconButton(
-                                onClick = { if (index > 0) items.add(index - 1, items.removeAt(index)) },
-                                enabled = index > 0,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowUp,
-                                    contentDescription = stringResource(R.string.settings_row_menu_move_up),
-                                )
-                            }
-                            IconButton(
-                                onClick = { if (index < items.lastIndex) items.add(index + 1, items.removeAt(index)) },
-                                enabled = index < items.lastIndex,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = stringResource(R.string.settings_row_menu_move_down),
-                                )
-                            }
-                        }
-                    },
-                )
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = MobileDimens.ScreenPaddingH),
-            horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall, Alignment.End),
-        ) {
-            MobileButton(
-                text = stringResource(R.string.common_cancel),
-                onClick = onDismiss,
-                style = MobileButtonStyle.TEXT,
-            )
-            MobileButton(
-                text = stringResource(R.string.common_save),
-                onClick = {
-                    contextKey?.let { vm.commitMove(ChannelMove(items.toList(), it)) }
-                    onDismiss()
-                },
-                enabled = contextKey != null,
-            )
-        }
-    }
-}
-
-/**
- * Put the channel into one of the user's own combined categories.
- *
- * Unchecked, it leaves where it came from — which for a provider folder means the folder stops
- * showing it while All still does, so nothing is ever actually lost.
- */
-@Composable
-private fun MoveToCategorySheet(
-    originName: String,
-    targets: List<Pair<String, String>>,
-    onNewCategory: () -> Unit,
-    onMove: (targetId: String, keepInOrigin: Boolean) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var selectedTarget by remember { mutableStateOf<String?>(null) }
-    var keepInOrigin by remember { mutableStateOf(false) }
-
-    MobileBottomSheet(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_move_category_title),
-    ) {
-        Text(
-            text = stringResource(R.string.settings_move_category_description, originName),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
-        )
-        MobileListRow(
-            title = stringResource(R.string.settings_move_category_new),
-            onClick = onNewCategory,
-        )
-        LazyColumn(Modifier.heightIn(max = sheetListHeight())) {
-            items(targets, key = { it.first }) { (id, name) ->
-                MobileListRow(
-                    title = name,
-                    leading = {
-                        RadioButton(selected = selectedTarget == id, onClick = { selectedTarget = id })
-                    },
-                    onClick = { selectedTarget = id },
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MobileDimens.ScreenPaddingH),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(checked = keepInOrigin, onCheckedChange = { keepInOrigin = it })
-            Text(
-                text = stringResource(R.string.settings_move_category_keep, originName),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = MobileDimens.ScreenPaddingH),
-            horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall, Alignment.End),
-        ) {
-            MobileButton(
-                text = stringResource(R.string.common_cancel),
-                onClick = onDismiss,
-                style = MobileButtonStyle.TEXT,
-            )
-            MobileButton(
-                text = stringResource(R.string.settings_move_category_action),
-                onClick = { selectedTarget?.let { onMove(it, keepInOrigin); onDismiss() } },
-                enabled = selectedTarget != null,
-            )
-        }
-    }
-}
-
-/** Name prompt for a brand-new combined category. */
-@Composable
-private fun NewCategoryDialog(onCreate: (String) -> Unit, onDismiss: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_move_category_new)) },
-        text = {
-            MobileTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = stringResource(R.string.settings_move_category_title),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onCreate(name.trim()); onDismiss() },
-                enabled = name.isNotBlank(),
-            ) { Text(stringResource(R.string.common_save)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
-        },
-    )
-}
-
-/** A sheet's list may take at most half the screen: the buttons under it have to stay reachable. */
-@Composable
-internal fun sheetListHeight() = (LocalConfiguration.current.screenHeightDp / 2).dp
 
 private const val MINUS_SIGN = "−"
 private const val PLUS_SIGN = "+"

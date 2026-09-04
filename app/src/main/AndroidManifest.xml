@@ -22,9 +22,16 @@
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA"
         tools:node="remove" />
 
-    <!-- The only permission this app adds of its own: playback has to keep running when the app is
-         off screen, and from Android 14 a foreground service must declare the type it is. -->
+    <!-- Playback has to keep running when the app is off screen, and from Android 14 a foreground
+         service must declare the type it is. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <!-- Coarse, never fine, and asked for only when the user turns on "Use this device's location"
+         for the weather. A phone moves and a television does not: without it the forecast is
+         looked up from the network address, which is whichever city the operator routes through.
+         Weather is measured over tens of kilometres, so street-level accuracy would be data
+         collected for no reason. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".OwnTVMobileApp"

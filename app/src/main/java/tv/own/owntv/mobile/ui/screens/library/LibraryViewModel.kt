@@ -34,12 +34,15 @@ import tv.own.owntv.core.database.dao.ContentOrderDao
 import tv.own.owntv.core.database.dao.CustomCategoryDao
 import tv.own.owntv.core.database.dao.FavoriteDao
 import tv.own.owntv.core.database.dao.HistoryDao
+import tv.own.owntv.core.database.dao.LinkedSubtitle
 import tv.own.owntv.core.database.dao.MovieDao
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.ProgressDao
 import tv.own.owntv.core.database.dao.SeriesDao
 import tv.own.owntv.core.database.dao.SourceDao
+import tv.own.owntv.core.database.entity.ContentOrderEntity
 import tv.own.owntv.core.database.entity.FavoriteEntity
+import tv.own.owntv.core.database.entity.MetadataCacheEntity
 import tv.own.owntv.core.database.entity.MovieEntity
 import tv.own.owntv.core.database.entity.PlaybackProgressEntity
 import tv.own.owntv.core.database.entity.SeriesEntity
@@ -47,11 +50,16 @@ import tv.own.owntv.core.download.DownloadManager
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.live.parseLiveKey
 import tv.own.owntv.core.live.serialize
+import tv.own.owntv.core.metadata.MetadataMode
+import tv.own.owntv.core.metadata.MetadataRepository
+import tv.own.owntv.core.metadata.TitleNormalizer
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.storage.StorageAccess
+import tv.own.owntv.core.subtitles.SubtitleController
+import tv.own.owntv.mobile.ui.components.ReorderItem
 
 /** Which half of the library is on screen. */
 enum class LibraryTab { MOVIES, SERIES }
@@ -96,6 +104,8 @@ class LibraryViewModel(
     private val customize: CustomizationStore,
     private val downloadManager: DownloadManager,
     private val vodTuner: VodTuner,
+    private val metadata: MetadataRepository,
+    private val subtitleController: SubtitleController,
 ) : ViewModel() {
 
     private val _tab = MutableStateFlow(LibraryTab.MOVIES)
@@ -477,8 +487,180 @@ class LibraryViewModel(
         }
     }
 
+    // --- Reordering, and moving into the user's own categories --------------------------------------
+
+    /** The stable key of the list being looked at, or null when it has no stored order to move in. */
+    fun contextKeyOf(key: LiveKey): String? = when (key) {
+        is LiveKey.Folder -> folderContextKeys.value[key.id]
+        is LiveKey.Custom -> key.id
+        LiveKey.Favorites -> ContentOrderEntity.FAV_CONTEXT
+        // History and All are computed views: there is no order of their own to change.
+        LiveKey.History, LiveKey.All, LiveKey.Catchup -> null
+    }
+
+    /** The items of [key] in their current order — what the Move sheet shuffles. */
+    suspend fun moveList(key: LiveKey): List<ReorderItem> {
+        val c = ctx.value
+        if (c.profileId < 0) return emptyList()
+        val contextKey = contextKeyOf(key) ?: return emptyList()
+        val type = mediaType.value
+        val ids = c.sourceIdsFor(type).ifEmpty { listOf(-1L) }
+        val items = if (type == MediaType.MOVIE) {
+            when (key) {
+                is LiveKey.Folder -> movieDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, MOVE_LIST_LIMIT)
+                is LiveKey.Custom -> customCategoryDao.snapshotMovies(c.profileId, key.id, ids, MOVE_LIST_LIMIT)
+                LiveKey.Favorites -> movieDao.snapshotFavoritesManual(c.profileId, contextKey, ids, MOVE_LIST_LIMIT)
+                else -> return emptyList()
+            }.map { ReorderItem(it.id, it.name) }
+        } else {
+            when (key) {
+                is LiveKey.Folder -> seriesDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, MOVE_LIST_LIMIT)
+                is LiveKey.Custom -> customCategoryDao.snapshotSeries(c.profileId, key.id, ids, MOVE_LIST_LIMIT)
+                LiveKey.Favorites -> seriesDao.snapshotFavoritesManual(c.profileId, contextKey, ids, MOVE_LIST_LIMIT)
+                else -> return emptyList()
+            }.map { ReorderItem(it.id, it.name) }
+        }
+        return items
+    }
+
+    fun commitMove(contextKey: String, itemIds: List<Long>) {
+        viewModelScope.launch {
+            val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
+            val type = mediaType.value
+            contentOrderDao.replaceContext(
+                profileId = pid,
+                type = type,
+                contextKey = contextKey,
+                rows = itemIds.mapIndexed { i, id ->
+                    ContentOrderEntity(
+                        profileId = pid,
+                        mediaType = type,
+                        contextKey = contextKey,
+                        itemId = id,
+                        position = i,
+                    )
+                },
+            )
+        }
+    }
+
+    /** The user's own combined categories — the Move-to-category sheet's targets. */
+    val customCategories: StateFlow<List<Pair<String, String>>> = custom
+        .map { c -> c.customCategories.map { it.id to it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun createCustomCategory(name: String) {
+        viewModelScope.launch {
+            val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
+            customize.createCustomCategory(pid, mediaType.value, name)
+        }
+    }
+
+    /**
+     * Move (or copy, [keepInOrigin]) an item into a custom category. Without [keepInOrigin] it leaves
+     * where it came from: a favourite row is deleted, a custom-category membership is deleted, and a
+     * provider folder is marked — the folder then stops showing it while All still does.
+     */
+    fun moveToCategory(itemId: Long, originKey: String, targetId: String, keepInOrigin: Boolean) {
+        if (targetId == originKey) return
+        viewModelScope.launch {
+            val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
+            val type = mediaType.value
+            val itemKey = if (type == MediaType.MOVIE) {
+                movieDao.getById(itemId)?.let { CustomizeKeys.movie(it) }
+            } else {
+                seriesDao.getSeriesById(itemId)?.let { CustomizeKeys.series(it) }
+            } ?: return@launch
+            customCategoryDao.appendItem(pid, type, targetId, itemId)
+            if (!keepInOrigin) {
+                when {
+                    originKey == ContentOrderEntity.FAV_CONTEXT -> favoriteDao.remove(pid, type, itemId)
+                    CustomizeKeys.isCustom(originKey) -> customCategoryDao.deleteItem(pid, type, originKey, itemId)
+                    else -> customize.setItemMovedFromOrigin(pid, type, itemKey, originKey, moved = true)
+                }
+            }
+        }
+    }
+
+    // --- TMDB, and the subtitles that were downloaded for an item -----------------------------------
+
+    /** Whether TMDB is enriching at all, and which side wins a field. Gates half of the menu. */
+    val metadataMode: StateFlow<MetadataMode> = settings.metadataMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MetadataMode.PROVIDER_PLUS_TMDB)
+
+    /**
+     * The TMDB record for one item, resolved on demand.
+     *
+     * The TV app resolves on focus and debounces it, because a D-pad sweeps over a hundred cards. A
+     * long-press is deliberate and hits exactly one item, so there is nothing here to debounce.
+     */
+    suspend fun metaFor(tab: LibraryTab, itemId: Long): MetadataCacheEntity? = runCatching {
+        if (tab == LibraryTab.MOVIES) movieDao.getById(itemId)?.let { metadata.resolveMovie(it) }
+        else seriesDao.getSeriesById(itemId)?.let { metadata.resolveSeries(it) }
+    }.getOrNull()
+
+    /** Forget this item's match and cached details, so the next [metaFor] asks TMDB again. */
+    suspend fun clearMeta(tab: LibraryTab, itemId: Long) {
+        runCatching {
+            if (tab == LibraryTab.MOVIES) movieDao.getById(itemId)?.let { metadata.clearMovie(it) }
+            else seriesDao.getSeriesById(itemId)?.let { metadata.clearSeries(it) }
+        }
+    }
+
+    /** What the Set-TMDB-name dialog opens with: the saved override, else the cleaned provider title. */
+    data class TmdbNamePrefill(val title: String, val year: Int?, val hasOverride: Boolean)
+
+    suspend fun tmdbNamePrefill(tab: LibraryTab, itemId: Long): TmdbNamePrefill? {
+        val name: String
+        val year: Int?
+        if (tab == LibraryTab.MOVIES) {
+            val movie = movieDao.getById(itemId) ?: return null
+            metadata.movieOverride(movie)?.let { return TmdbNamePrefill(it.title, it.year, hasOverride = true) }
+            name = movie.name
+            year = movie.year
+        } else {
+            val show = seriesDao.getSeriesById(itemId) ?: return null
+            metadata.seriesOverride(show)?.let { return TmdbNamePrefill(it.title, it.year, hasOverride = true) }
+            name = show.name
+            year = show.year
+        }
+        val norm = TitleNormalizer.normalize(name)
+        return TmdbNamePrefill(norm.query, year ?: norm.year, hasOverride = false)
+    }
+
+    /** Save the hand-typed title, or clear it with a blank one, and re-resolve under it. */
+    suspend fun setTmdbName(tab: LibraryTab, itemId: Long, title: String, year: Int?) {
+        runCatching {
+            if (tab == LibraryTab.MOVIES) {
+                val movie = movieDao.getById(itemId) ?: return
+                if (title.isBlank()) metadata.clearMovieOverride(movie)
+                else metadata.setMovieOverride(movie, title, year)
+            } else {
+                val show = seriesDao.getSeriesById(itemId) ?: return
+                if (title.isBlank()) metadata.clearSeriesOverride(show)
+                else metadata.setSeriesOverride(show, title, year)
+            }
+        }
+    }
+
+    /** The row itself, for the details sheet — the poster grid carries only what it draws. */
+    suspend fun movieById(itemId: Long): MovieEntity? = movieDao.getById(itemId)
+
+    suspend fun seriesById(itemId: Long): SeriesEntity? = seriesDao.getSeriesById(itemId)
+
+    /** Subtitles downloaded for this film, for the Delete-subtitles sheet. Films only, as on the TV. */
+    suspend fun downloadedSubtitles(itemId: Long): List<LinkedSubtitle> =
+        movieDao.getById(itemId)?.let { subtitleController.downloadsForMovie(it) }.orEmpty()
+
+    fun deleteSubtitle(cacheId: Long) {
+        viewModelScope.launch { subtitleController.deleteCached(cacheId) }
+    }
+
     private companion object {
         const val WATCHED_FRACTION = 0.95f
+
+        /** The Move sheet holds its list in memory, so a huge folder is cut off — the live list's limit. */
+        const val MOVE_LIST_LIMIT = 5_000
 
         fun pagingConfig() = PagingConfig(
             pageSize = 60,

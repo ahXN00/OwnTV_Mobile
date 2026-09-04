@@ -55,15 +55,13 @@ import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.core.sync.work.CatalogSyncScheduler
+import tv.own.owntv.mobile.ui.components.ReorderItem
 
 /** One chip in the strip above the channel list. [builtIn] labels are translated; the rest are the
  *  user's or the provider's own names, so they are carried as text. */
 data class LiveCategory(val key: LiveKey, val title: String? = null, val builtIn: BuiltIn? = null) {
     enum class BuiltIn { ALL, FAVORITES, HISTORY, CATCHUP }
 }
-
-/** A move session: the folder's channels, held in memory while the user reorders them. */
-data class ChannelMove(val items: List<ChannelEntity>, val contextKey: String)
 
 /**
  * Live TV for the phone.
@@ -380,34 +378,34 @@ class LiveViewModel(
         LiveKey.History, LiveKey.All, LiveKey.Catchup -> null
     }
 
-    /** The channels of [key] in their current order — what the Move sheet drags around. */
-    suspend fun moveList(key: LiveKey): ChannelMove? {
+    /** The channels of [key] in their current order — what the Move sheet shuffles. */
+    suspend fun moveList(key: LiveKey): List<ReorderItem> {
         val c = ctx.value
-        if (c.profileId < 0) return null
-        val contextKey = contextKeyOf(key) ?: return null
+        if (c.profileId < 0) return emptyList()
+        val contextKey = contextKeyOf(key) ?: return emptyList()
         val ids = c.liveSourceIds.ifEmpty { listOf(-1L) }
         val items = when (key) {
             is LiveKey.Folder -> channelDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, MOVE_LIST_LIMIT)
             is LiveKey.Custom -> customCategoryDao.snapshotChannels(c.profileId, key.id, ids, MOVE_LIST_LIMIT)
             LiveKey.Favorites -> channelDao.snapshotFavoritesManual(c.profileId, contextKey, ids, MOVE_LIST_LIMIT)
-            else -> return null
+            else -> return emptyList()
         }
-        return ChannelMove(items, contextKey)
+        return items.map { ReorderItem(it.id, it.name) }
     }
 
-    fun commitMove(move: ChannelMove) {
+    fun commitMove(contextKey: String, itemIds: List<Long>) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
             contentOrderDao.replaceContext(
                 profileId = pid,
                 type = MediaType.LIVE,
-                contextKey = move.contextKey,
-                rows = move.items.mapIndexed { i, ch ->
+                contextKey = contextKey,
+                rows = itemIds.mapIndexed { i, id ->
                     ContentOrderEntity(
                         profileId = pid,
                         mediaType = MediaType.LIVE,
-                        contextKey = move.contextKey,
-                        itemId = ch.id,
+                        contextKey = contextKey,
+                        itemId = id,
                         position = i,
                     )
                 },

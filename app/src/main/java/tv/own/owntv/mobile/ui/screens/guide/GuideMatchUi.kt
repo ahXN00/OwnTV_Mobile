@@ -25,9 +25,9 @@ import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.screens.live.EpgMatchSheet
 import tv.own.owntv.mobile.ui.screens.live.EpgOffsetDialog
-import tv.own.owntv.mobile.ui.screens.live.sheetListHeight
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import kotlin.math.roundToInt
 

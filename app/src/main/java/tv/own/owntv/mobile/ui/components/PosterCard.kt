@@ -16,13 +16,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import tv.own.owntv.core.theme.GlassSurface
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
+import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /**
  * A poster tile for a movie, a series or an episode. 100 dp wide fits three columns on a 360 dp
@@ -44,7 +47,8 @@ fun PosterCard(
     Column(
         modifier = modifier
             .width(width)
-            .clip(RoundedCornerShape(MobileDimens.CardCorner))
+            .glassSurface(GlassSurface.CARDS, MobileCardShape)
+            .clip(MobileCardShape)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(bottom = MobileDimens.GapTiny),
     ) {

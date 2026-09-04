@@ -68,6 +68,7 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.PosterCard
 import tv.own.owntv.mobile.ui.components.SectionHeader
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
+import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
@@ -230,7 +231,7 @@ private fun HeroCard(item: HeroItem, onPlay: () -> Unit, modifier: Modifier = Mo
     Box(
         modifier = modifier
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(MobileDimens.CardCorner))
+            .clip(MobileCardShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onPlay),
     ) {
@@ -426,7 +427,7 @@ private fun ChannelCard(channel: ChannelEntity, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(ChannelCardWidth)
-            .clip(RoundedCornerShape(MobileDimens.CardCorner))
+            .clip(MobileCardShape)
             .clickable(onClick = onClick)
             .padding(MobileDimens.GapSmall),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -450,7 +451,7 @@ private fun OnNowCard(channel: ChannelEntity, guide: GuideSliceState, onClick: (
     Row(
         modifier = Modifier
             .width(OnNowCardWidth)
-            .clip(RoundedCornerShape(MobileDimens.CardCorner))
+            .clip(MobileCardShape)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable(onClick = onClick)
             .padding(MobileDimens.GapSmall),
