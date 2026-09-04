@@ -106,6 +106,13 @@
 - **Frosted glass over your own background picture**
 - **New Aurora look**
 - **Glass Effect page: six looks, per-part switches, blur, edge light and shadows**
+- **Glass with depth: floating, bar, panel and inline panes**
+- **Glass reacts to your finger**
+- **Menus and pickers are real frosted glass, dragged to half or full height**
+- **Blur behind dialogs on Android 12 and newer**
+- **Player controls on their own glass panes, with the channel logo**
+- **Hold a player tool to see its name**
+- **Glass Effect switches for the player controls and on-screen messages**
 - **Fonts page, including the font used in menus and sheets**
 - **Weather page, with approximate device location**
 - **Any accent colour by hex code**

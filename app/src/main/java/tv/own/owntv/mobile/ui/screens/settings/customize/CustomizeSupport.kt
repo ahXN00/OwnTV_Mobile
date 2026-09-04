@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /**
  * One destination row in the "Move to…" dialog: a user-created custom category plus how many items
@@ -56,6 +57,7 @@ fun TextPromptDialog(
 ) {
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -96,6 +98,7 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(message) },
@@ -116,6 +119,7 @@ fun <T> OptionsDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -154,6 +158,7 @@ fun MoveToCategoryDialog(
     var selectedTarget by remember { mutableStateOf<String?>(null) }
     var keepInOrigin by remember { mutableStateOf(false) }
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_move_category_title)) },
         text = {

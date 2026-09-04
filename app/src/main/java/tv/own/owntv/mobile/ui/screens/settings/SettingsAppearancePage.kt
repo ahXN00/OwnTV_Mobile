@@ -39,6 +39,7 @@ import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.labelRes
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /**
  * How the app looks. Everything on this page is applied by the theme the moment it is set, and the
@@ -167,6 +168,7 @@ fun SettingsAppearancePage(
 
     pendingLowZoom?.let { target ->
         AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { pendingLowZoom = null },
             title = { Text(stringResource(R.string.settings_low_zoom_warning_title)) },
             text = {
@@ -238,6 +240,8 @@ internal fun GlassSurface.labelRes(): Int = when (this) {
     GlassSurface.TOPBAR -> R.string.settings_glass_surface_topbar
     GlassSurface.CARDS -> R.string.settings_glass_surface_cards
     GlassSurface.MINI_PLAYER -> R.string.settings_glass_surface_miniplayer
+    GlassSurface.PLAYER_CONTROLS -> R.string.settings_glass_surface_player_controls
+    GlassSurface.TOASTS -> R.string.settings_glass_surface_toasts
 }
 
 @Composable

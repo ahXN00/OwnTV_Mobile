@@ -66,6 +66,7 @@ import tv.own.owntv.mobile.ui.player.SleepTimerSheet
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.screens.settings.settingsPageTitleRes
+import tv.own.owntv.mobile.ui.theme.GlassNest
 import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /**
@@ -274,11 +275,15 @@ fun MobileShell(
                 }
             }
             Box(Modifier.fillMaxSize().glassSurface(GlassSurface.PANELS, RectangleShape)) {
-                MobileNavHost(
-                    navController = navController,
-                    scrollToTop = shellViewModel.scrollToTop,
-                    onNavigate = { navController.navigateToTab(it) },
-                )
+                // Every screen in the app is standing on this page panel, so a panel of its own
+                // draws as the layer behind one instead of frosting what is already frosted.
+                GlassNest(GlassSurface.PANELS) {
+                    MobileNavHost(
+                        navController = navController,
+                        scrollToTop = shellViewModel.scrollToTop,
+                        onNavigate = { navController.navigateToTab(it) },
+                    )
+                }
                 // Over the content rather than beside it, because that is what a floating window is.
                 if (showMini && miniStyle == SettingsRepository.MiniPlayerStyle.FLOATING) {
                     val live = channel

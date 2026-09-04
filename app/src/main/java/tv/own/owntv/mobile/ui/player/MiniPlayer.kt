@@ -70,11 +70,7 @@ fun MiniPlayer(
     Column(
         modifier
             .fillMaxWidth()
-            .glassSurface(
-                GlassSurface.MINI_PLAYER,
-                RectangleShape,
-                MaterialTheme.colorScheme.surfaceContainerHigh,
-            )
+            .glassSurface(GlassSurface.MINI_PLAYER, RectangleShape)
             .clickable(onClick = onExpand)
             .pointerInput(Unit) {
                 var travel = 0f

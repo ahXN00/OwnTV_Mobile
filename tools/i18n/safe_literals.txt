@@ -32,6 +32,7 @@
 1	protocol	app/src/main/java/tv/own/owntv/mobile/playback/PlaybackService.kt	tv.own.owntv.mobile.STOP
 1	protocol	app/src/main/java/tv/own/owntv/mobile/playback/PlaybackService.kt	tv.own.owntv.mobile.TOGGLE
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/components/CategoryPickerSheet.kt	\0
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/components/MobileBottomSheet.kt	MobileBottomSheet needs a MobileSheetHost above it
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/components/MoveSheets.kt	\0
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/components/TmdbDetailsSheet.kt	\0
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileDestination.kt	downloads
@@ -57,6 +58,8 @@
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileNavHost.kt	tab
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/player/AudioOnlyStage.kt	bar$index
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/player/AudioOnlyStage.kt	waveform
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerChrome.kt	toolPadding
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerControls.kt	EXO
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Dev harness
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Theme gallery
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	dev_gallery
@@ -495,6 +498,7 @@
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/setup/SetupFlow.kt	\0
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt	${MobileDestination.LIVE.route}/
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt	${it.route}/
-1	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileColors.kt	\0
+2	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileColors.kt	\0
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileGlass.kt	\0
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileGlass.kt	glassPress
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileTheme.kt	\0

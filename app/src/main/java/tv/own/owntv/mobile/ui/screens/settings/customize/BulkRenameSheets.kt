@@ -37,6 +37,7 @@ import tv.own.owntv.core.customize.RenameRules
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** Which field of a rule row a nested picker is editing. */
 private enum class RuleField { TYPE, PLACEMENT, VALUE }
@@ -62,6 +63,7 @@ fun BulkRenameFlow(session: BulkRenameSession) {
             onDismiss = { session.backToChoice() },
         )
         BulkRenameSession.Screen.REFUSED -> AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { session.dismissRefused() },
             title = { Text(stringResource(R.string.settings_bulk_rename_too_many_title)) },
             text = { Text(stringResource(R.string.settings_bulk_rename_too_many_description)) },
@@ -139,6 +141,7 @@ private fun BulkRuleBuilderDialog(session: BulkRenameSession) {
     }
 
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = { session.backToChoice() },
         title = { Text(stringResource(R.string.settings_bulk_rename_rules_title)) },
         text = {
@@ -302,6 +305,7 @@ private fun BulkRuleBuilderDialog(session: BulkRenameSession) {
 private fun BulkReviewDialog(session: BulkRenameSession) {
     val rows by session.preview.collectAsStateWithLifecycle()
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = { session.done() },
         title = { Text(stringResource(R.string.settings_bulk_rename_review)) },
         text = {

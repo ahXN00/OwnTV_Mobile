@@ -27,6 +27,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.Locale
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /**
  * The account subtitles are downloaded through, what is left of today's allowance, and the files
@@ -285,6 +286,7 @@ private fun SignInDialog(
     var pass by remember { mutableStateOf("") }
     var stay by remember { mutableStateOf(true) }
     androidx.compose.material3.AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.player_subtitles_sign_in_title)) },
         text = {

@@ -5,15 +5,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.koinInject
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.theme.AccentColor
+import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.core.theme.FontCustomization
 import tv.own.owntv.core.theme.GlassConfig
 import tv.own.owntv.core.theme.ThemeMode
+import tv.own.owntv.core.theme.roles
 import tv.own.owntv.core.theme.UiFontScale
 import tv.own.owntv.core.theme.UiZoom
 
@@ -32,6 +36,7 @@ fun MobileTheme(content: @Composable () -> Unit) {
     val uiZoomPercent by settings.uiZoomPercent.collectAsStateWithLifecycle(UiZoom.DEFAULT)
     val fonts by settings.fontCustomization.collectAsStateWithLifecycle(FontCustomization())
     val glass by settings.glassConfig.collectAsStateWithLifecycle(GlassConfig())
+    val animations by settings.animationLevel.collectAsStateWithLifecycle(AnimationLevel.FULL)
 
     MobileTheme(
         themeMode = themeMode,
@@ -40,6 +45,7 @@ fun MobileTheme(content: @Composable () -> Unit) {
         uiZoomPercent = uiZoomPercent,
         fonts = fonts,
         glass = glass,
+        animations = animations,
         content = content,
     )
 }
@@ -53,6 +59,7 @@ fun MobileTheme(
     uiZoomPercent: Int = UiZoom.DEFAULT,
     fonts: FontCustomization = FontCustomization(),
     glass: GlassConfig = GlassConfig(),
+    animations: AnimationLevel = AnimationLevel.FULL,
     content: @Composable () -> Unit,
 ) {
     val isDark = when (themeMode) {
@@ -70,6 +77,8 @@ fun MobileTheme(
             fontScale = base.fontScale * UiFontScale.factor(fonts.sizePercent),
         ),
         LocalGlass provides glass,
+        LocalAnimations provides animations,
+        LocalAccentOnVideo provides accentOnVideo(accent, customAccent),
     ) {
         MaterialTheme(
             colorScheme = mobileColorScheme(isDark, accent, customAccent),
@@ -78,3 +87,18 @@ fun MobileTheme(
         )
     }
 }
+
+/**
+ * The user's reduce-motion setting, read once here rather than by every control that animates.
+ *
+ * Off means off in this app, not softened: [AnimationLevel.scale] collapses a duration to zero.
+ */
+val LocalAnimations = staticCompositionLocalOf { AnimationLevel.FULL }
+
+/**
+ * The accent to use on top of the picture — see [accentOnVideo].
+ *
+ * Nothing drawn over video reads `colorScheme.primary`: in the light theme that is a dark accent on
+ * a dark scene.
+ */
+val LocalAccentOnVideo = staticCompositionLocalOf { Color(AccentColor.TEAL.roles(isDark = true).primary) }

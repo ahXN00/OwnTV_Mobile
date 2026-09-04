@@ -23,6 +23,7 @@ import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import java.io.File
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** The history scopes the clear-history sheet offers, "All history" first. */
 private val HISTORY_SCOPES: List<MediaType?> =
@@ -118,6 +119,7 @@ fun SettingsDataPage(
     if (confirming >= 0) {
         val scope = HISTORY_SCOPES[confirming]
         AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { confirming = -1 },
             title = {
                 Text(

@@ -58,6 +58,7 @@ import tv.own.owntv.mobile.ui.components.ReorderSheet
 import tv.own.owntv.mobile.ui.components.SheetAction
 import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** Which follow-up the sheet handed off to. Only ever one at a time. */
 private enum class ChannelDialog { RENAME, MATCH_EPG, EPG_OFFSET, MOVE, MOVE_TO_CATEGORY, NEW_CATEGORY }
@@ -252,6 +253,7 @@ private fun RenameChannelDialog(
 ) {
     var text by remember { mutableStateOf(channel.name) }
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.content_rename_channel)) },
         text = {
@@ -380,6 +382,7 @@ internal fun EpgOffsetDialog(
 ) {
     var minutes by remember { mutableStateOf(currentMinutes ?: globalMinutes) }
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.content_epg_time_offset)) },
         text = {

@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** One row of a list being reordered: what to write back, and what to show. */
 data class ReorderItem(val id: Long, val label: String)
@@ -176,6 +177,7 @@ fun MoveToCategorySheet(
 fun NewCategoryDialog(onCreate: (String) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_move_category_new)) },
         text = {

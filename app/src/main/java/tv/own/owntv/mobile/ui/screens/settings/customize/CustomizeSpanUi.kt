@@ -38,6 +38,7 @@ import tv.own.owntv.core.util.Pin
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /** The tick that marks a row as part of the span being selected. */
 internal fun spanTick(selected: Boolean): (@Composable () -> Unit)? =
@@ -119,6 +120,7 @@ internal fun SpanHideDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
+        modifier = Modifier.glassDialogWindow(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
