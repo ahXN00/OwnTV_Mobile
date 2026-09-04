@@ -295,10 +295,23 @@ release automation.
 - **It keeps playing when you leave the app.** The picture is dropped and the sound carries on, so a
   radio station or a match you are only listening to costs almost no battery; coming back to the app
   brings the picture straight back without restarting the stream. The same thing happens when the
-  screen turns off.
+  screen turns off, and both are settings you can turn off.
 - **Press home while watching and the video shrinks into a floating window**, with buttons for pause
-  and for the previous and next channel. Tapping the window brings the app back; closing it stops
-  playback.
+  and for jumping ten seconds back or forward. Tapping the window brings the app back; closing it
+  stops playback. **Back can do the same thing** if you turn it on — otherwise Back leaves the player
+  and drops what you were watching into the app's own little window instead.
+- **A little window you drag around the app.** What is playing follows you while you browse, in a
+  window you put wherever it suits you: drag it and it settles against the nearest edge, tap it for
+  pause and close, double-tap to go full screen, pinch to make it small, medium or large, swipe it
+  down to stop, and hold it for favourite, sound only, a sleep timer, full screen and close. If you
+  prefer the old bar above the tabs, or nothing at all, both are settings.
+- **A screen for listening without watching.** Turning the picture off leaves the artwork, what is
+  playing, the volume up to 150 % and a sleep timer that stops the stream in fifteen minutes to an
+  an hour and a half — or at the end of the programme. One button brings the picture back. Channels you
+  listen to rather than watch are remembered, and there is a setting that turns the picture off by
+  itself on mobile data.
+- **Ten seconds back and forward from the notification**, and a ♪ button there that drops the picture
+  without opening the app.
 - **The screen stays awake while there is a picture**, and is allowed to sleep when there is not.
 
 ### 🌍 It speaks 26 languages on day one

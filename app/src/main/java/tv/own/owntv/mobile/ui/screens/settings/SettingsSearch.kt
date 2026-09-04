@@ -56,6 +56,16 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_preroll, R.string.settings_search_keywords_live_preroll),
         SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_background_playback, R.string.settings_search_keywords_background_playback),
         SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_pip, R.string.settings_search_keywords_pip),
+        // The mobility layer. All seven reuse the three keyword sets they belong to rather than
+        // adding their own: a user searching "floating window" or "battery" is asking about picture
+        // in picture and background playback, which is exactly what those two lists already carry.
+        SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_mini_player_style, R.string.settings_search_keywords_pip),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_pip_on_back, R.string.settings_search_keywords_pip),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_pip_size, R.string.settings_search_keywords_pip),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_pip_snap, R.string.settings_search_keywords_pip),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_audio_on_screen_off, R.string.settings_search_keywords_background_playback),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_audio_on_mobile_data, R.string.settings_search_keywords_data_saver),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_audio_per_channel, R.string.settings_search_keywords_background_playback),
         SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_data_saver, R.string.settings_search_keywords_data_saver),
         SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_gesture_sensitivity, R.string.settings_search_keywords_gestures),
 

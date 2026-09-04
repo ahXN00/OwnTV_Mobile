@@ -55,6 +55,13 @@
 - **Touch gestures: skip, scrub, volume, brightness, zoom, speed and mute**
 - **Rewind live TV into the archive, and Go live**
 - **Mini player above the tabs**
+- **A little window you drag around the app, with drag, pinch, double-tap and swipe to close**
+- **Choose your mini player: floating window, docked bar or off**
+- **Picture-in-Picture on Back, with a window size and edge snapping of your own**
+- **Ten seconds back and forward in the Picture-in-Picture window and the notification**
+- **A sound-only screen with artwork, volume to 150 % and a sleep timer**
+- **Drop the picture from the player, the notification or the little window's menu**
+- **Turn the picture off by itself on screen-off or on mobile data, and remember it per channel**
 - **Volume boost, picture size, playback speed and stream information**
 - **One search field over channels, films and shows**
 - **Grouped search results with a count for each kind**

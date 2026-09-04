@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.PlayArrow
@@ -88,6 +89,7 @@ fun PlayerControls(
     onScrubLive: (deltaSec: Int) -> Unit,
     onOpenSheet: (PlayerSheet) -> Unit,
     onDock: () -> Unit,
+    onAudioOnly: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
@@ -123,7 +125,13 @@ fun PlayerControls(
                 } else {
                     SeekBar(player)
                 }
-                ToolBar(player = player, isLive = isLive, onOpenSheet = onOpenSheet, onDock = onDock)
+                ToolBar(
+                    player = player,
+                    isLive = isLive,
+                    onOpenSheet = onOpenSheet,
+                    onDock = onDock,
+                    onAudioOnly = onAudioOnly,
+                )
             }
         }
     }
@@ -316,6 +324,7 @@ private fun ToolBar(
     isLive: Boolean,
     onOpenSheet: (PlayerSheet) -> Unit,
     onDock: () -> Unit,
+    onAudioOnly: () -> Unit,
 ) {
     val audioCount by player.audioCount.collectAsStateWithLifecycle()
     Row(
@@ -343,6 +352,9 @@ private fun ToolBar(
             }
         }
         Tool(Icons.Filled.Info, R.string.player_tool_info) { onOpenSheet(PlayerSheet.INFO) }
+        // Dropping the picture is the phone's biggest battery and data saving, so it is a button on
+        // the bar rather than something only the notification offers.
+        Tool(Icons.Filled.MusicNote, R.string.player_tool_audio_only, onClick = onAudioOnly)
         Tool(Icons.Filled.PictureInPictureAlt, R.string.player_tool_mini, onClick = onDock)
     }
 }

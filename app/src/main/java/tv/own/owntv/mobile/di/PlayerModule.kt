@@ -5,6 +5,9 @@ import org.koin.dsl.module
 import tv.own.owntv.core.subtitles.SubtitleController
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PipController
+import tv.own.owntv.mobile.playback.SleepTimer
+import tv.own.owntv.mobile.ui.screens.library.VodTuner
+import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
 import tv.own.owntv.player.PlayerDiagnostics
@@ -56,4 +59,13 @@ val playerModule = module {
     // the settings page deletes from. Bound here rather than with the rest of the subtitle stack
     // because it takes the player, which is this module's.
     single { SubtitleController(get(), get(), get(), get()) }
+    // The sleep timer stops whichever tuner is playing. Both are resolved when it fires rather than
+    // when it is built, so a timer nobody set never creates them.
+    single {
+        SleepTimer(
+            stopPlayback = {
+                if (get<LiveTuner>().channel.value != null) get<LiveTuner>().stop() else get<VodTuner>().stop()
+            },
+        )
+    }
 }

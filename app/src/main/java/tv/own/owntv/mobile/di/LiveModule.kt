@@ -27,6 +27,7 @@ val liveModule = module {
             categoryDao = get(),
             historyDao = get(),
             profileDao = get(),
+            favoriteDao = get(),
             sourceDao = get(),
             settings = get(),
             customize = get(),
@@ -35,6 +36,7 @@ val liveModule = module {
             archiveUrls = get(),
             session = get(),
             dataSaver = get(),
+            audioOnlyStore = get(),
             player = get(),
         )
     }

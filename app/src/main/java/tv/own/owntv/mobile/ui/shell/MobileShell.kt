@@ -49,6 +49,7 @@ import androidx.navigation.compose.rememberNavController
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import tv.own.owntv.core.metadata.MetadataBudget
+import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
@@ -58,7 +59,10 @@ import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE
 import tv.own.owntv.mobile.ui.nav.SETUP_ROUTE
 import tv.own.owntv.mobile.ui.setup.SetupFlow
 import tv.own.owntv.core.epg.displayLogoUrl
+import tv.own.owntv.mobile.ui.player.FloatingMiniPlayer
+import tv.own.owntv.mobile.ui.player.FloatingWindowMenu
 import tv.own.owntv.mobile.ui.player.MiniPlayer
+import tv.own.owntv.mobile.ui.player.SleepTimerSheet
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.screens.settings.settingsPageTitleRes
@@ -116,6 +120,14 @@ fun MobileShell(
     // already showing the stream.
     val showingStream = fullscreen || currentRoute?.startsWith("${MobileDestination.LIVE.route}/") == true
     val showMini = (channel != null || film != null) && !showingStream
+    // Floating window, bar above the tabs, or neither — the user's choice, and the only thing that
+    // changes is where the same stream is drawn.
+    val settings: SettingsRepository = koinInject()
+    val miniStyle by settings.miniPlayerStyle
+        .collectAsStateWithLifecycle(SettingsRepository.MiniPlayerStyle.FLOATING)
+    val favorite by tuner.isFavorite.collectAsStateWithLifecycle()
+    var windowMenu by remember { mutableStateOf(false) }
+    var sleepSheet by remember { mutableStateOf(false) }
 
     val settingsTitle = settingsPageTitleRes(currentRoute)
 
@@ -211,7 +223,7 @@ fun MobileShell(
                 // The mini player shares the bottom bar slot, above the tabs, so it is docked in both
                 // layouts — a rail screen has no bottom bar of its own and would otherwise lose it.
                 Column {
-                    if (showMini) {
+                    if (showMini && miniStyle == SettingsRepository.MiniPlayerStyle.DOCKED) {
                         // A channel wins when there is one, because the two tuners cannot both be
                         // playing and the live one is what the other stops before it starts.
                         val live = channel
@@ -267,8 +279,38 @@ fun MobileShell(
                     scrollToTop = shellViewModel.scrollToTop,
                     onNavigate = { navController.navigateToTab(it) },
                 )
+                // Over the content rather than beside it, because that is what a floating window is.
+                if (showMini && miniStyle == SettingsRepository.MiniPlayerStyle.FLOATING) {
+                    val live = channel
+                    FloatingMiniPlayer(
+                        player = tuner.player,
+                        title = live?.name ?: film?.title.orEmpty(),
+                        artworkUrl = live?.displayLogoUrl ?: film?.posterUrl,
+                        onExpand = { navController.navigate(PLAYER_ROUTE) },
+                        onStop = { if (live != null) tuner.stop() else vodTuner.stop() },
+                        onMenu = { windowMenu = true },
+                    )
+                }
             }
         }
+    }
+
+    if (windowMenu) {
+        FloatingWindowMenu(
+            isFavorite = favorite,
+            onToggleFavorite = tuner::toggleFavorite,
+            onAudioOnly = { tuner.setAudioOnly(true) },
+            onSleepTimer = { sleepSheet = true },
+            onExpand = { navController.navigate(PLAYER_ROUTE) },
+            onStop = { if (channel != null) tuner.stop() else vodTuner.stop() },
+            onDismiss = { windowMenu = false },
+        )
+    }
+    if (sleepSheet) {
+        SleepTimerSheet(
+            programmeEndMs = nowNext?.now?.stopMs,
+            onDismiss = { sleepSheet = false },
+        )
     }
 }
 

@@ -110,6 +110,30 @@ val QUICK_TOGGLES: List<QuickToggle> = listOf(
         { it.downloadsWifiOnly },
         { setDownloadsWifiOnly(it) },
     ),
+    // The mobility layer. Same shape as the three above: touch-host only, and a television that
+    // restores a pinned list containing them simply has no row to draw.
+    QuickToggle("pip_on_back", R.string.settings_pip_on_back, { it.pipOnBack }, { setPipOnBack(it) }),
+    QuickToggle("pip_snap", R.string.settings_pip_snap, { it.pipSnap }, { setPipSnap(it) }, default = true),
+    QuickToggle(
+        "audio_on_screen_off",
+        R.string.settings_audio_on_screen_off,
+        { it.audioOnScreenOff },
+        { setAudioOnScreenOff(it) },
+        default = true,
+    ),
+    QuickToggle(
+        "audio_on_mobile_data",
+        R.string.settings_audio_on_mobile_data,
+        { it.audioOnMobileData },
+        { setAudioOnMobileData(it) },
+    ),
+    QuickToggle(
+        "audio_per_channel",
+        R.string.settings_audio_per_channel,
+        { it.audioPerChannel },
+        { setAudioPerChannel(it) },
+        default = true,
+    ),
     QuickToggle(
         "detailed_diagnostics",
         R.string.settings_diagnostics,

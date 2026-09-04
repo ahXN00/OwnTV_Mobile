@@ -35,6 +35,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
+import tv.own.owntv.mobile.MainActivity
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.core.settings.SettingsRepository
@@ -82,6 +83,9 @@ fun PlayerScreen(
     val error by player.error.collectAsStateWithLifecycle()
     val errorInfo by player.errorInfo.collectAsStateWithLifecycle()
     val isPlaying by player.isPlaying.collectAsStateWithLifecycle()
+    // Either the user turned the picture off, or the stream never had one (a radio channel).
+    val audioOnly by player.audioOnly.collectAsStateWithLifecycle()
+    val audioOnlyMedia by player.audioOnlyMedia.collectAsStateWithLifecycle()
     // How far a value moves per centimetre of finger. 100 is the untouched behaviour.
     val gestureSensitivity by settings.gestureSensitivityPct.collectAsStateWithLifecycle(100)
 
@@ -149,7 +153,11 @@ fun PlayerScreen(
         }
     }
 
-    BackHandler { onExit() }
+    // Back leaves the player playing — into the little window over whatever the user goes to next if
+    // they asked for that, into the mini player otherwise.
+    BackHandler {
+        if ((activity as? MainActivity)?.enterPipNow(fromBack = true) != true) onExit()
+    }
 
     Box(
         modifier
@@ -228,6 +236,7 @@ fun PlayerScreen(
             onScrubLive = tuner::scrubLive,
             onOpenSheet = { sheet = it },
             onDock = onExit,
+            onAudioOnly = { tuner.setAudioOnly(true) },
         )
 
         hud.takeIf { !inPip }?.let { text ->
@@ -241,6 +250,21 @@ fun PlayerScreen(
                     .padding(horizontal = 20.dp, vertical = 10.dp),
             )
         }
+    }
+
+    // No picture, no player screen: the artwork, the volume and the sleep timer take the whole
+    // screen instead of being drawn over a black rectangle.
+    if ((audioOnly || audioOnlyMedia) && !inPip) {
+        AudioOnlyStage(
+            player = player,
+            title = channel?.name ?: film?.title.orEmpty(),
+            subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
+            artworkUrl = channel?.logoUrl ?: film?.posterUrl,
+            programmeEndMs = nowNext?.now?.stopMs,
+            onBack = onExit,
+            // A radio channel has no video track to come back to, so it gets no button offering one.
+            onShowVideo = { tuner.setAudioOnly(false) }.takeIf { !audioOnlyMedia },
+        )
     }
 
     sheet.takeIf { !inPip }?.let { open ->

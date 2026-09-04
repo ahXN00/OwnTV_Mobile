@@ -19,12 +19,14 @@ import tv.own.owntv.core.customize.CustomizationStore
 import tv.own.owntv.core.customize.CustomizeKeys
 import tv.own.owntv.core.customize.SectionCustomizations
 import tv.own.owntv.core.database.dao.CategoryDao
+import tv.own.owntv.core.database.dao.FavoriteDao
 import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.HistoryDao
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
+import tv.own.owntv.core.database.entity.FavoriteEntity
 import tv.own.owntv.core.database.entity.WatchHistoryEntity
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.live.EpgNowNext
@@ -32,6 +34,8 @@ import tv.own.owntv.core.live.LiveArchiveUrls
 import tv.own.owntv.core.live.LiveEpgReader
 import tv.own.owntv.core.live.LiveTimeshift
 import tv.own.owntv.core.model.MediaType
+import tv.own.owntv.core.player.AudioOnlyStore
+import tv.own.owntv.core.player.enginePinKey
 import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
@@ -60,6 +64,7 @@ class LiveTuner(
     private val categoryDao: CategoryDao,
     private val historyDao: HistoryDao,
     private val profileDao: ProfileDao,
+    private val favoriteDao: FavoriteDao,
     private val sourceDao: SourceDao,
     private val settings: SettingsRepository,
     private val customize: CustomizationStore,
@@ -68,6 +73,7 @@ class LiveTuner(
     private val archiveUrls: LiveArchiveUrls,
     private val session: PlaybackSession,
     private val dataSaver: DataSaverGate,
+    private val audioOnlyStore: AudioOnlyStore,
     val player: OwnTVPlayer,
 ) {
 
@@ -108,6 +114,25 @@ class LiveTuner(
 
     private val _nowNext = MutableStateFlow<EpgNowNext?>(null)
     val nowNext: StateFlow<EpgNowNext?> = _nowNext
+
+    /** Whether the channel playing is a favourite — the floating window's menu, which has no list
+     *  row behind it to ask. */
+    val isFavorite: StateFlow<Boolean> = _channel
+        .flatMapLatest { channel ->
+            val pid = ctx.value.profileId
+            if (channel == null || pid < 0) flowOf(false)
+            else favoriteDao.isFavorite(pid, MediaType.LIVE, channel.id)
+        }
+        .stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun toggleFavorite() {
+        val channel = _channel.value ?: return
+        val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return
+        scope.launch {
+            if (isFavorite.value) favoriteDao.remove(pid, MediaType.LIVE, channel.id)
+            else favoriteDao.add(FavoriteEntity(profileId = pid, mediaType = MediaType.LIVE, itemId = channel.id))
+        }
+    }
 
     private val _siblings = MutableStateFlow<List<ChannelEntity>>(emptyList())
 
@@ -195,9 +220,39 @@ class LiveTuner(
             httpHeaders = channel.httpHeaders,
         )
         publishToSystem()
+        applyAudioOnlyDefault(channel)
         recordHistory(pid, channel.id)
         _nowNext.value = epgReader.nowNext(channel, custom.value, settings.epgOffsetMinutes.first())
     }
+
+    /**
+     * Start this channel without a picture when the user has already said so — either for this
+     * channel in particular, or for mobile data in general.
+     *
+     * Read once, after the stream opens: dropping the video track is something the engine does to a
+     * stream it already has, and asking before there is one would have nothing to act on.
+     */
+    private suspend fun applyAudioOnlyDefault(channel: ChannelEntity) {
+        val remembered = settings.audioPerChannelNow() && audioOnlyStore.isAudioOnly(audioOnlyKey(channel))
+        val onData = settings.audioOnMobileDataNow() && dataSaver.isMetered()
+        if (remembered || onData) player.enterAudioOnly()
+    }
+
+    /**
+     * Turn the picture off or back on, and remember the choice for this channel when the user asked
+     * for it to be remembered. The player alone would forget it the moment the channel changed.
+     */
+    fun setAudioOnly(audioOnly: Boolean) {
+        if (audioOnly) player.enterAudioOnly() else player.exitAudioOnly()
+        val channel = _channel.value ?: return
+        scope.launch {
+            if (settings.audioPerChannelNow()) audioOnlyStore.set(audioOnlyKey(channel), audioOnly)
+        }
+    }
+
+    /** The stable per-item key, with the stream URL as the fallback the engine stores also use. */
+    private fun audioOnlyKey(channel: ChannelEntity): String =
+        enginePinKey(channel.sourceId, MediaType.LIVE.name, channel.remoteId) ?: channel.streamUrl
 
     private suspend fun loadSiblings(channel: ChannelEntity) {
         val c = ctx.value

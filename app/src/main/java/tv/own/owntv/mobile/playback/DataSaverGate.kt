@@ -40,7 +40,7 @@ class DataSaverGate(
     }
 
     /** Mobile data, a metered hotspot, or a Wi-Fi the user has marked as metered — all the same thing. */
-    private fun isMetered(): Boolean {
+    fun isMetered(): Boolean {
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
         val caps = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
         return !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)

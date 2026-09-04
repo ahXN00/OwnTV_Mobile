@@ -48,8 +48,14 @@ class MainActivity : ComponentActivity() {
 
     /** Both read on a lifecycle callback, where there is no time to suspend on a preference. */
     private var pipEnabled = true
+    private var pipOnBack = false
     private var backgroundPlayback = true
+    private var audioOnScreenOff = true
     private var pausedForBackground = false
+
+    /** Set when *this* class dropped the picture on the way off screen, so returning restores it —
+     *  and a sound-only mode the user chose themselves is left exactly as they left it. */
+    private var droppedVideoForBackground = false
 
     /** The result is deliberately ignored: refusing only costs the user the lockscreen controls, and
      *  playback must not depend on it. */
@@ -61,8 +67,8 @@ class MainActivity : ComponentActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.getStringExtra(EXTRA_PIP_ACTION)) {
                 PIP_TOGGLE -> player.togglePlayPause()
-                PIP_UP -> tuner.step(1)
-                PIP_DOWN -> tuner.step(-1)
+                PIP_BACK -> player.seekBy(-PIP_SEEK_MS)
+                PIP_FORWARD -> player.seekBy(PIP_SEEK_MS)
             }
         }
     }
@@ -77,7 +83,9 @@ class MainActivity : ComponentActivity() {
             player.isPlaying.collectLatest { if (pip.inPip.value) applyPipParams() }
         }
         lifecycleScope.launch { settings.pipEnabled.collect { pipEnabled = it } }
+        lifecycleScope.launch { settings.pipOnBack.collect { pipOnBack = it } }
         lifecycleScope.launch { settings.backgroundPlayback.collect { backgroundPlayback = it } }
+        lifecycleScope.launch { settings.audioOnScreenOff.collect { audioOnScreenOff = it } }
         keepScreenOnWhileThereIsAPicture()
         setContent {
             MobileTheme {
@@ -100,10 +108,21 @@ class MainActivity : ComponentActivity() {
      */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (!pipEnabled) return
-        if (!pip.playerOnScreen.value) return
-        if (!player.isPlaying.value || player.audioOnly.value || player.audioOnlyMedia.value) return
-        runCatching { enterPictureInPictureMode(pipParams()) }
+        enterPipNow()
+    }
+
+    /**
+     * Shrink into the little window if there is a picture worth keeping, and say whether it happened.
+     *
+     * Home asks unconditionally; Back asks only when the user turned "Picture-in-Picture on Back" on,
+     * and uses the answer to decide whether it still has to close the player itself.
+     */
+    fun enterPipNow(fromBack: Boolean = false): Boolean {
+        if (!pipEnabled) return false
+        if (fromBack && !pipOnBack) return false
+        if (!pip.playerOnScreen.value) return false
+        if (!player.isPlaying.value || player.audioOnly.value || player.audioOnlyMedia.value) return false
+        return runCatching { enterPictureInPictureMode(pipParams()) }.getOrDefault(false)
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
@@ -148,12 +167,22 @@ class MainActivity : ComponentActivity() {
             }
             return
         }
+        // Only when the user wants the picture dropped. With that switch off the stream keeps
+        // decoding video nobody is looking at, which is their choice to make and costs battery.
+        if (!audioOnScreenOff) return
+        // Not if they are already in sound-only mode on purpose — coming back must not hand them a
+        // picture they switched off themselves.
+        if (player.audioOnly.value) return
+        droppedVideoForBackground = true
         player.enterAudioOnly()
     }
 
     override fun onStart() {
         super.onStart()
-        player.exitAudioOnly()
+        if (droppedVideoForBackground) {
+            droppedVideoForBackground = false
+            player.exitAudioOnly()
+        }
         if (pausedForBackground) {
             pausedForBackground = false
             if (player.hasActiveStream && !player.isPlaying.value) player.togglePlayPause()
@@ -192,9 +221,9 @@ class MainActivity : ComponentActivity() {
             .setActions(
                 listOf(
                     pipAction(
-                        android.R.drawable.ic_media_previous,
-                        ctx.getString(R.string.settings_remote_button_channel_down),
-                        PIP_DOWN,
+                        android.R.drawable.ic_media_rew,
+                        ctx.getString(R.string.player_skip_back),
+                        PIP_BACK,
                     ),
                     pipAction(
                         if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
@@ -202,9 +231,9 @@ class MainActivity : ComponentActivity() {
                         PIP_TOGGLE,
                     ),
                     pipAction(
-                        android.R.drawable.ic_media_next,
-                        ctx.getString(R.string.settings_remote_button_channel_up),
-                        PIP_UP,
+                        android.R.drawable.ic_media_ff,
+                        ctx.getString(R.string.player_skip_forward),
+                        PIP_FORWARD,
                     ),
                 ),
             )
@@ -235,7 +264,11 @@ class MainActivity : ComponentActivity() {
         const val ACTION_PIP = "tv.own.owntv.mobile.PIP"
         const val EXTRA_PIP_ACTION = "pip_action"
         const val PIP_TOGGLE = "toggle"
-        const val PIP_UP = "up"
-        const val PIP_DOWN = "down"
+        const val PIP_BACK = "back"
+        const val PIP_FORWARD = "forward"
+
+        /** Fixed, not the user's seek step: three buttons is all a PiP window has room for, and a
+         *  window is not where anyone sets up a 90-second jump. */
+        const val PIP_SEEK_MS = 10_000L
     }
 }

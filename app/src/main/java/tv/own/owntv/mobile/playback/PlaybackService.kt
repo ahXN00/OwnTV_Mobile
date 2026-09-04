@@ -70,12 +70,14 @@ class PlaybackService : Service() {
         super.onCreate()
         // Post once, synchronously, before anything can await a network image: a service that has not
         // called startForeground() within a few seconds of being started is killed outright.
-        startForeground(build(player.currentMeta.value, player.isPlaying.value))
-        combine(player.currentMeta, player.isPlaying) { meta, playing -> meta to playing }
+        startForeground(build(player.currentMeta.value, player.isPlaying.value, player.audioOnly.value))
+        combine(player.currentMeta, player.isPlaying, player.audioOnly) { meta, playing, audioOnly ->
+            Triple(meta, playing, audioOnly)
+        }
             .distinctUntilChanged()
-            .onEach { (meta, playing) ->
+            .onEach { (meta, playing, audioOnly) ->
                 loadArt(meta.logoUrl)
-                notify(build(meta, playing))
+                notify(build(meta, playing, audioOnly))
             }
             .launchIn(scope)
     }
@@ -83,6 +85,9 @@ class PlaybackService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_TOGGLE -> player.togglePlayPause()
+            ACTION_BACK -> player.seekBy(-SEEK_MS)
+            ACTION_FORWARD -> player.seekBy(SEEK_MS)
+            ACTION_AUDIO_ONLY -> player.enterAudioOnly()
             ACTION_STOP -> tuner.stop() // which stops this service in turn
         }
         // Not sticky: a service the system restarts with no stream behind it would post a notification
@@ -105,7 +110,7 @@ class PlaybackService : Service() {
      *  notification follows. */
     private fun localized(): Context = AppLocale.wrap(this, localeStore.currentTag.value)
 
-    private fun build(meta: MediaMeta, playing: Boolean): Notification {
+    private fun build(meta: MediaMeta, playing: Boolean, audioOnly: Boolean): Notification {
         val ctx = localized()
         ensureChannel(ctx)
         val builder = Notification.Builder(this, CHANNEL_ID)
@@ -125,6 +130,13 @@ class PlaybackService : Service() {
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .addAction(
                 action(
+                    android.R.drawable.ic_media_rew,
+                    ctx.getString(R.string.player_skip_back),
+                    ACTION_BACK,
+                ),
+            )
+            .addAction(
+                action(
                     if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
                     ctx.getString(R.string.settings_remote_action_play_pause),
                     ACTION_TOGGLE,
@@ -132,15 +144,34 @@ class PlaybackService : Service() {
             )
             .addAction(
                 action(
-                    android.R.drawable.ic_menu_close_clear_cancel,
-                    ctx.getString(R.string.content_close),
-                    ACTION_STOP,
+                    android.R.drawable.ic_media_ff,
+                    ctx.getString(R.string.player_skip_forward),
+                    ACTION_FORWARD,
                 ),
             )
+        // Nothing to offer once the picture is already off, and a chip that does nothing is worse
+        // than one fewer chip.
+        if (!audioOnly) {
+            builder.addAction(
+                action(
+                    R.drawable.ic_audio_only,
+                    ctx.getString(R.string.player_tool_audio_only),
+                    ACTION_AUDIO_ONLY,
+                ),
+            )
+        }
+        builder.addAction(
+            action(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                ctx.getString(R.string.content_close),
+                ACTION_STOP,
+            ),
+        )
         art?.let { builder.setLargeIcon(it) }
         // The token is what the lock screen reads: title, position and the seek bar all come from the
         // session, so they cannot drift from what the player is actually doing.
-        val style = Notification.MediaStyle().setShowActionsInCompactView(0)
+        // The collapsed row holds three: skip back, play/pause, skip forward.
+        val style = Notification.MediaStyle().setShowActionsInCompactView(0, 1, 2)
         session.token?.let { style.setMediaSession(it) }
         return builder.setStyle(style).build()
     }
@@ -204,7 +235,14 @@ class PlaybackService : Service() {
         private const val CHANNEL_ID = "owntv_playback"
         private const val NOTIFICATION_ID = 4301
         private const val ACTION_TOGGLE = "tv.own.owntv.mobile.TOGGLE"
+        private const val ACTION_BACK = "tv.own.owntv.mobile.SKIP_BACK"
+        private const val ACTION_FORWARD = "tv.own.owntv.mobile.SKIP_FORWARD"
+        private const val ACTION_AUDIO_ONLY = "tv.own.owntv.mobile.AUDIO_ONLY"
         private const val ACTION_STOP = "tv.own.owntv.mobile.STOP"
+
+        /** Fixed, for the same reason the Picture-in-Picture window's is: a notification chip is not
+         *  where anyone configures a jump length. */
+        private const val SEEK_MS = 10_000L
 
         /** Called when a stream starts. Safe to call again for a stream already playing. */
         fun start(context: Context) {
