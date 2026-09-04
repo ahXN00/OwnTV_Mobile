@@ -1,7 +1,9 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,12 +29,13 @@ import tv.own.owntv.core.settings.SubtitleStyle
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.SettingRow
+import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.player.ZoomMode
 
 /** Which picker is open. One at a time, so one nullable holds them all. */
 private enum class PlaybackSheet {
     LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
-    SUB_SIZE, SUB_COLOR, SUB_POSITION, SUB_BACKGROUND, RESUME, LATENCY, SEEK_STEP, REWIND_STEP,
+    RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER,
 
     /**
      * The per-playlist overrides, two levels each: pick the playlist, then pick its value. The second
@@ -67,21 +70,25 @@ private enum class ResetTarget(
 }
 
 /**
- * Everything about the video player, plus the four settings that only exist on a phone.
+ * The video player, in the television's own six sections: Engine & picture, Live TV, Sound,
+ * Subtitles, Episodes, Diagnostics.
  *
- * The engine, subtitle and live-latency settings are core's and shared with the TV app — the same
- * stored values, so a backup taken here restores onto a television and means the same thing. What is
- * new below the "Mobile" heading is the set a television has no use for: a screen that gets locked, a
- * window that can float over another app, and a data plan that gets billed.
+ * These settings are core's and shared with the TV app — the same stored values under the same keys,
+ * so a backup taken here restores onto a television and means the same thing, and a row pinned to
+ * Quick on one app is the same row on the other. The settings a television has no use for are on the
+ * Playback group page instead, under "Mobile".
  */
 @Composable
-fun SettingsPlaybackPage(
+fun SettingsVideoPlayerPage(
+    onOpenLeaf: (SettingsLeaf) -> Unit,
     modifier: Modifier = Modifier,
     vm: SettingsViewModel = koinViewModel(),
 ) {
     val s = vm.settings
     var sheet by remember { mutableStateOf<PlaybackSheet?>(null) }
     var resetting by remember { mutableStateOf<ResetTarget?>(null) }
+    // Set while auto frame rate is waiting to be turned on against the warning below Android 12.
+    var afrWarning by remember { mutableStateOf(false) }
     // Which playlist the second level of a per-playlist picker is editing.
     var overrideSource by remember { mutableStateOf<SourceEntity?>(null) }
     // What to run if the user accepts the low-latency warning, and what to run if they back out.
@@ -95,20 +102,12 @@ fun SettingsPlaybackPage(
 
     val liveEngine = s.liveEnginePreference.pref(EnginePreference.EXO_FIRST)
     val vodEngine = s.vodEnginePreference.pref(EnginePreference.MPV_FIRST)
-    val hwDecoding = s.hwDecoding.pref(true)
-    val deinterlace = s.deinterlace.pref(false)
-    val hdr = s.hdrEnabled.pref(true)
     val autoFrameRate = s.autoFrameRate.pref(false)
     val zoom = s.defaultZoom.pref(ZoomMode.FIT.name)
     val volume = s.defaultVolume.pref(100)
     val surround = s.surroundMode.pref(SurroundMode.AUTO)
     val audioLang = s.preferredAudioLang.pref("")
     val audioDelay = s.audioDelayMs.pref(0)
-    val subStyle = s.subtitleStyleEnabled.pref(false)
-    val subScale = s.subtitleScaleExo.pref(SubtitleStyle.SCALE_DEFAULT)
-    val subColor = s.subtitleColor.pref(SubtitleStyle.COLOR_DEFAULT)
-    val subPosition = s.subtitlePosition.pref(SubtitleStyle.Position.DEFAULT)
-    val subBackground = s.subtitleBgOpacity.pref(SubtitleStyle.OPACITY_DEFAULT)
     val subLang = s.preferredSubLang.pref("")
     val latency = LiveLatency.fromName(s.liveLatencyMode.pref(LiveLatency.BALANCED.name))
     val latencySecs = s.liveLatencyCustomSecs.pref(LiveBuffer.CUSTOM_DEFAULT)
@@ -117,19 +116,15 @@ fun SettingsPlaybackPage(
     val seekStep = s.seekStepSec.pref(SeekSteps.DEFAULT_SEEK_STEP_SEC)
     val rewindStep = s.liveRewindStepSec.pref(SeekSteps.DEFAULT_LIVE_REWIND_STEP_SEC)
     val resume = s.resumeMode.pref(SettingsRepository.ResumeMode.AUTO)
-    val autoPlayNext = s.autoPlayNext.pref(true)
+    val subStyleOn = s.subtitleStyleEnabled.pref(false)
     val externalLive = s.externalPlayerLive.pref(false)
     val externalMovies = s.externalPlayerMovies.pref(false)
     val externalSeries = s.externalPlayerSeries.pref(false)
-    val backgroundPlayback = s.backgroundPlayback.pref(true)
-    val pip = s.pipEnabled.pref(true)
-    val dataSaver = s.dataSaver.pref(false)
-    val gesture = s.gestureSensitivityPct.pref(100)
-    val measuredStats = s.measuredStreamStats.pref(true)
-    val detailedLogging = s.detailedDiagnostics.pref(false)
+    val externalOn = externalLive || externalMovies || externalSeries
 
     SettingsPage(modifier) {
         settingsSection(R.string.settings_vp_section_engine)
+        settingsNote(R.string.settings_vp_section_engine_summary)
         item(key = "live-engine") {
             SettingRow(
                 title = stringResource(R.string.settings_live_tv_player),
@@ -166,27 +161,24 @@ fun SettingsPlaybackPage(
             )
         }
         item(key = "hw-decoding") {
-            SettingRow(
-                title = stringResource(R.string.settings_hardware_decoding),
+            QuickSwitchRow(
+                vm = vm,
+                toggle = quickToggle("vp_hw"),
                 subtitle = stringResource(R.string.settings_hardware_decoding_description),
-                checked = hwDecoding,
-                onCheckedChange = { on -> vm.edit { setHwDecoding(on) } },
             )
         }
         item(key = "deinterlace") {
-            SettingRow(
-                title = stringResource(R.string.settings_deinterlace),
+            QuickSwitchRow(
+                vm = vm,
+                toggle = quickToggle("vp_deinterlace"),
                 subtitle = stringResource(R.string.settings_deinterlace_description),
-                checked = deinterlace,
-                onCheckedChange = { on -> vm.edit { setDeinterlace(on) } },
             )
         }
         item(key = "hdr") {
-            SettingRow(
-                title = stringResource(R.string.settings_quick_hdr),
+            QuickSwitchRow(
+                vm = vm,
+                toggle = quickToggle("vp_hdr"),
                 subtitle = stringResource(R.string.settings_hdr_description),
-                checked = hdr,
-                onCheckedChange = { on -> vm.edit { setHdrEnabled(on) } },
             )
         }
         item(key = "auto-frame-rate") {
@@ -194,7 +186,20 @@ fun SettingsPlaybackPage(
                 title = stringResource(R.string.settings_auto_frame_rate),
                 subtitle = stringResource(R.string.settings_auto_frame_rate_description),
                 checked = autoFrameRate,
-                onCheckedChange = { on -> vm.edit { setAutoFrameRate(on) } },
+                // Below Android 12 there is no way to ask the display which refresh rates it can
+                // reach without blanking it, so turning this ON asks first. Turning it off is
+                // immediate — the same rule the television follows.
+                onCheckedChange = { on ->
+                    if (on && !afrSafe) afrWarning = true else vm.edit { setAutoFrameRate(on) }
+                },
+            )
+        }
+        item(key = "external-player") {
+            SettingRow(
+                title = stringResource(R.string.settings_external_player),
+                subtitle = stringResource(R.string.settings_external_player_row_description),
+                value = stringResource(if (externalOn) R.string.common_on else R.string.common_off),
+                onClick = { sheet = PlaybackSheet.EXTERNAL_PLAYER },
             )
         }
         item(key = "zoom") {
@@ -214,117 +219,25 @@ fun SettingsPlaybackPage(
                 onClick = { resetting = ResetTarget.ZOOM },
             )
         }
-
-        settingsSection(R.string.settings_vp_section_sound)
-        item(key = "volume") {
-            SettingsSlider(
-                title = stringResource(R.string.settings_default_volume),
-                subtitle = stringResource(R.string.settings_default_volume_description),
-                value = volume,
-                range = 0..150,
-                onValueChange = { pct -> vm.edit { setDefaultVolume(pct) } },
-            )
-        }
-        item(key = "reset-volume") {
+        item(key = "seek-step") {
             SettingRow(
-                title = stringResource(R.string.settings_reset_saved_volume),
-                subtitle = stringResource(R.string.settings_reset_saved_volume_description),
-                value = rememberedCountLabel(savedVolume),
-                enabled = savedVolume > 0,
-                onClick = { resetting = ResetTarget.VOLUME },
+                title = stringResource(R.string.settings_seek_step),
+                subtitle = stringResource(R.string.settings_seek_step_description),
+                value = stringResource(R.string.settings_live_buffer_seconds, seekStep),
+                onClick = { sheet = PlaybackSheet.SEEK_STEP },
             )
         }
-        item(key = "surround") {
+        item(key = "rewind-step") {
             SettingRow(
-                title = stringResource(R.string.settings_surround_sound),
-                subtitle = stringResource(R.string.settings_surround_description),
-                value = stringResource(surround.labelRes()),
-                onClick = { sheet = PlaybackSheet.SURROUND },
-            )
-        }
-        item(key = "audio-lang") {
-            SettingRow(
-                title = stringResource(R.string.settings_preferred_audio_language),
-                value = trackLanguageName(audioLang),
-                onClick = { sheet = PlaybackSheet.AUDIO_LANG },
-            )
-        }
-        item(key = "audio-sync") {
-            // 25 ms steps across ±5s: the offset being corrected is a device's picture-processing
-            // delay, which lands in the tens of milliseconds — a coarser step could only bracket it.
-            SettingsSlider(
-                title = stringResource(R.string.settings_audio_sync),
-                subtitle = stringResource(R.string.settings_audio_sync_description),
-                value = audioDelay,
-                range = -5000..5000,
-                steps = 399,
-                valueLabel = stringResource(R.string.settings_audio_delay_value, audioDelay),
-                onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
-            )
-        }
-        item(key = "reset-audio-delay") {
-            SettingRow(
-                title = stringResource(R.string.settings_reset_saved_audio_delay),
-                subtitle = stringResource(R.string.settings_reset_saved_audio_delay_description),
-                value = rememberedCountLabel(savedAudioDelay),
-                enabled = savedAudioDelay > 0,
-                onClick = { resetting = ResetTarget.AUDIO_DELAY },
+                title = stringResource(R.string.settings_live_rewind_step),
+                subtitle = stringResource(R.string.settings_live_rewind_step_description),
+                value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
+                onClick = { sheet = PlaybackSheet.REWIND_STEP },
             )
         }
 
-        settingsSection(R.string.settings_subtitle_appearance)
-        item(key = "sub-style") {
-            SettingRow(
-                title = stringResource(R.string.settings_subtitle_appearance),
-                subtitle = stringResource(R.string.settings_subtitle_appearance_description),
-                checked = subStyle,
-                onCheckedChange = { on -> vm.edit { setSubtitleStyleEnabled(on) } },
-            )
-        }
-        if (subStyle) {
-            item(key = "sub-size") {
-                SettingRow(
-                    title = stringResource(R.string.settings_subtitle_size),
-                    subtitle = stringResource(R.string.settings_subtitle_size_description),
-                    value = stringResource(subSizeLabelRes(subScale)),
-                    onClick = { sheet = PlaybackSheet.SUB_SIZE },
-                )
-            }
-            item(key = "sub-color") {
-                SettingRow(
-                    title = stringResource(R.string.settings_subtitle_color_short),
-                    subtitle = stringResource(R.string.settings_subtitle_color_description),
-                    value = subColorLabel(subColor),
-                    onClick = { sheet = PlaybackSheet.SUB_COLOR },
-                )
-            }
-            item(key = "sub-position") {
-                SettingRow(
-                    title = stringResource(R.string.settings_subtitle_position_short),
-                    subtitle = stringResource(R.string.settings_subtitle_position_description),
-                    value = stringResource(subPosition.labelRes()),
-                    onClick = { sheet = PlaybackSheet.SUB_POSITION },
-                )
-            }
-            item(key = "sub-background") {
-                SettingRow(
-                    title = stringResource(R.string.settings_subtitle_background_transparency),
-                    subtitle = stringResource(R.string.settings_subtitle_background_description),
-                    value = subBackgroundLabel(subBackground),
-                    onClick = { sheet = PlaybackSheet.SUB_BACKGROUND },
-                )
-            }
-        }
-        item(key = "sub-lang") {
-            SettingRow(
-                title = stringResource(R.string.settings_preferred_subtitle_language),
-                subtitle = stringResource(R.string.settings_preferred_language_description),
-                value = trackLanguageName(subLang),
-                onClick = { sheet = PlaybackSheet.SUB_LANG },
-            )
-        }
-
-        settingsSection(R.string.common_nav_live_tv)
+        settingsSection(R.string.settings_live_tv)
+        settingsNote(R.string.settings_vp_section_live_summary)
         item(key = "latency") {
             SettingRow(
                 title = stringResource(R.string.settings_live_latency),
@@ -401,24 +314,93 @@ fun SettingsPlaybackPage(
                 onValueChange = { secs -> vm.edit { setLiveTuneTimeoutSecs(secs) } },
             )
         }
-        item(key = "rewind-step") {
+        item(key = "channel-numbers") {
+            QuickSwitchRow(
+                vm = vm,
+                toggle = quickToggle("vp_channel_numbers"),
+                subtitle = stringResource(R.string.settings_channel_numbers_description),
+            )
+        }
+
+        settingsSection(R.string.settings_vp_section_sound)
+        settingsNote(R.string.settings_vp_section_sound_summary)
+        item(key = "volume") {
+            SettingsSlider(
+                title = stringResource(R.string.settings_default_volume),
+                subtitle = stringResource(R.string.settings_default_volume_description),
+                value = volume,
+                range = 0..150,
+                onValueChange = { pct -> vm.edit { setDefaultVolume(pct) } },
+            )
+        }
+        item(key = "reset-volume") {
             SettingRow(
-                title = stringResource(R.string.settings_live_rewind_step),
-                subtitle = stringResource(R.string.settings_live_rewind_step_description),
-                value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
-                onClick = { sheet = PlaybackSheet.REWIND_STEP },
+                title = stringResource(R.string.settings_reset_saved_volume),
+                subtitle = stringResource(R.string.settings_reset_saved_volume_description),
+                value = rememberedCountLabel(savedVolume),
+                enabled = savedVolume > 0,
+                onClick = { resetting = ResetTarget.VOLUME },
+            )
+        }
+        item(key = "surround") {
+            SettingRow(
+                title = stringResource(R.string.settings_surround_sound),
+                subtitle = stringResource(R.string.settings_surround_description),
+                value = stringResource(surround.labelRes()),
+                onClick = { sheet = PlaybackSheet.SURROUND },
+            )
+        }
+        item(key = "audio-lang") {
+            SettingRow(
+                title = stringResource(R.string.settings_preferred_audio_language),
+                value = trackLanguageName(audioLang),
+                onClick = { sheet = PlaybackSheet.AUDIO_LANG },
+            )
+        }
+        item(key = "audio-sync") {
+            // 25 ms steps across ±5s: the offset being corrected is a device's picture-processing
+            // delay, which lands in the tens of milliseconds — a coarser step could only bracket it.
+            SettingsSlider(
+                title = stringResource(R.string.settings_audio_sync),
+                subtitle = stringResource(R.string.settings_audio_sync_description),
+                value = audioDelay,
+                range = -5000..5000,
+                steps = 399,
+                valueLabel = stringResource(R.string.settings_audio_delay_value, audioDelay),
+                onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
+            )
+        }
+        item(key = "reset-audio-delay") {
+            SettingRow(
+                title = stringResource(R.string.settings_reset_saved_audio_delay),
+                subtitle = stringResource(R.string.settings_reset_saved_audio_delay_description),
+                value = rememberedCountLabel(savedAudioDelay),
+                enabled = savedAudioDelay > 0,
+                onClick = { resetting = ResetTarget.AUDIO_DELAY },
+            )
+        }
+
+        settingsSection(R.string.settings_subtitles)
+        settingsNote(R.string.settings_vp_section_subtitles_summary)
+        item(key = "sub-style") {
+            SettingRow(
+                title = stringResource(R.string.settings_subtitle_appearance),
+                subtitle = stringResource(R.string.settings_subtitle_appearance_description),
+                value = stringResource(if (subStyleOn) R.string.common_on else R.string.common_off),
+                onClick = { onOpenLeaf(SettingsLeaf.SUBTITLE_APPEARANCE) },
+            )
+        }
+        item(key = "sub-lang") {
+            SettingRow(
+                title = stringResource(R.string.settings_preferred_subtitle_language),
+                subtitle = stringResource(R.string.settings_preferred_language_description),
+                value = trackLanguageName(subLang),
+                onClick = { sheet = PlaybackSheet.SUB_LANG },
             )
         }
 
         settingsSection(R.string.settings_vp_section_episodes)
-        item(key = "seek-step") {
-            SettingRow(
-                title = stringResource(R.string.settings_seek_step),
-                subtitle = stringResource(R.string.settings_seek_step_description),
-                value = stringResource(R.string.settings_live_buffer_seconds, seekStep),
-                onClick = { sheet = PlaybackSheet.SEEK_STEP },
-            )
-        }
+        settingsNote(R.string.settings_vp_section_episodes_summary)
         item(key = "resume") {
             SettingRow(
                 title = stringResource(R.string.settings_resume_playback),
@@ -428,99 +410,27 @@ fun SettingsPlaybackPage(
             )
         }
         item(key = "autoplay") {
-            SettingRow(
-                title = stringResource(R.string.settings_quick_autoplay),
-                checked = autoPlayNext,
-                onCheckedChange = { on -> vm.edit { setAutoPlayNext(on) } },
-            )
-        }
-
-        settingsSection(R.string.settings_external_player)
-        settingsNote(R.string.settings_external_player_row_description)
-        item(key = "external-live") {
-            SettingRow(
-                title = stringResource(R.string.common_nav_live_tv),
-                checked = externalLive,
-                onCheckedChange = { on ->
-                    vm.edit {
-                        setExternalPlayer(SettingsRepository.ExternalPlayerSection.LIVE_TV, on)
-                    }
-                },
-            )
-        }
-        item(key = "external-movies") {
-            SettingRow(
-                title = stringResource(R.string.common_nav_movies),
-                checked = externalMovies,
-                onCheckedChange = { on ->
-                    vm.edit {
-                        setExternalPlayer(SettingsRepository.ExternalPlayerSection.MOVIES, on)
-                    }
-                },
-            )
-        }
-        item(key = "external-series") {
-            SettingRow(
-                title = stringResource(R.string.common_nav_series),
-                checked = externalSeries,
-                onCheckedChange = { on ->
-                    vm.edit {
-                        setExternalPlayer(SettingsRepository.ExternalPlayerSection.SERIES, on)
-                    }
-                },
-            )
-        }
-
-        settingsSection(R.string.settings_playback_mobile)
-        item(key = "background-playback") {
-            SettingRow(
-                title = stringResource(R.string.settings_background_playback),
-                subtitle = stringResource(R.string.settings_background_playback_description),
-                checked = backgroundPlayback,
-                onCheckedChange = { on -> vm.edit { setBackgroundPlayback(on) } },
-            )
-        }
-        item(key = "pip") {
-            SettingRow(
-                title = stringResource(R.string.settings_pip),
-                subtitle = stringResource(R.string.settings_pip_description),
-                checked = pip,
-                onCheckedChange = { on -> vm.edit { setPipEnabled(on) } },
-            )
-        }
-        item(key = "data-saver") {
-            SettingRow(
-                title = stringResource(R.string.settings_data_saver),
-                subtitle = stringResource(R.string.settings_data_saver_description),
-                checked = dataSaver,
-                onCheckedChange = { on -> vm.edit { setDataSaver(on) } },
-            )
-        }
-        item(key = "gesture") {
-            SettingsSlider(
-                title = stringResource(R.string.settings_gesture_sensitivity),
-                subtitle = stringResource(R.string.settings_gesture_sensitivity_description),
-                value = gesture,
-                range = 50..200,
-                onValueChange = { pct -> vm.edit { setGestureSensitivityPct(pct) } },
+            QuickSwitchRow(
+                vm = vm,
+                toggle = quickToggle("vp_autoplay"),
+                subtitle = stringResource(R.string.settings_autoplay_next_description),
             )
         }
 
         settingsSection(R.string.settings_diagnostics)
+        settingsNote(R.string.settings_vp_section_diagnostics_summary)
         item(key = "measured-stats") {
-            SettingRow(
-                title = stringResource(R.string.settings_measured_stats),
+            QuickSwitchRow(
+                vm = vm,
+                toggle = quickToggle("vp_measured_stats"),
                 subtitle = stringResource(R.string.settings_measured_stats_description),
-                checked = measuredStats,
-                onCheckedChange = { on -> vm.edit { setMeasuredStreamStats(on) } },
             )
         }
         item(key = "detailed-logging") {
-            SettingRow(
-                title = stringResource(R.string.settings_detailed_playback_logging),
+            QuickSwitchRow(
+                vm = vm,
+                toggle = quickToggle("vp_logging"),
                 subtitle = stringResource(R.string.settings_detailed_playback_logging_description),
-                checked = detailedLogging,
-                onCheckedChange = { on -> vm.edit { setDetailedDiagnostics(on) } },
             )
         }
     }
@@ -572,57 +482,6 @@ fun SettingsPlaybackPage(
             choices = TRACK_LANGUAGE_CODES.map { SettingsChoice(it, trackLanguageName(it)) },
             selected = subLang,
             onSelect = { code -> vm.edit { setPreferredSubLang(code) } },
-            onDismiss = dismiss,
-        )
-        // One size for both engines: a phone has one screen, and the TV app's split exists because
-        // ExoPlayer and mpv measure text differently on a ten-foot one, not because a user wants
-        // subtitles that change size when the stream falls back to the other engine.
-        PlaybackSheet.SUB_SIZE -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_subtitle_size),
-            choices = SUB_SIZES.map { (scale, labelRes) ->
-                SettingsChoice(scale, stringResource(labelRes))
-            },
-            selected = nearestSubSize(subScale),
-            onSelect = { scale -> vm.edit { setSubtitleScaleExo(scale); setSubtitleScaleMpv(scale) } },
-            onDismiss = dismiss,
-        )
-        PlaybackSheet.SUB_COLOR -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_subtitle_color_short),
-            choices = listOf(
-                SettingsChoice(
-                    SubtitleStyle.COLOR_DEFAULT,
-                    stringResource(R.string.settings_subtitle_default),
-                    stringResource(R.string.settings_subtitle_color_default_description),
-                ),
-            ) + SUB_COLOR_PRESETS.map { (labelRes, hex) ->
-                SettingsChoice(hex, stringResource(labelRes))
-            },
-            selected = subColor,
-            onSelect = { hex -> vm.edit { setSubtitleColor(hex) } },
-            onDismiss = dismiss,
-        )
-        PlaybackSheet.SUB_POSITION -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_subtitle_position_short),
-            choices = (listOf(SubtitleStyle.Position.DEFAULT) + SubtitleStyle.Position.ANCHORS).map {
-                SettingsChoice(
-                    it,
-                    stringResource(it.labelRes()),
-                    if (it == SubtitleStyle.Position.DEFAULT) {
-                        stringResource(R.string.settings_subtitle_position_default_description)
-                    } else {
-                        null
-                    },
-                )
-            },
-            selected = subPosition,
-            onSelect = { picked -> vm.edit { setSubtitlePosition(picked) } },
-            onDismiss = dismiss,
-        )
-        PlaybackSheet.SUB_BACKGROUND -> SettingsChoiceSheet(
-            title = stringResource(R.string.settings_subtitle_background_transparency),
-            choices = SUB_BACKGROUND_CHOICES.map { SettingsChoice(it, subBackgroundLabel(it)) },
-            selected = subBackground,
-            onSelect = { pct -> vm.edit { setSubtitleBgOpacity(pct) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.RESUME -> SettingsChoiceSheet(
@@ -798,6 +657,43 @@ fun SettingsPlaybackPage(
             onSelect = { secs -> editing?.let { vm.setSourcePreroll(it.id, secs) } },
             onDismiss = { sheet = PlaybackSheet.PREROLL_SOURCES },
         )
+        // One sheet for all three sections: handing a stream to another app is a decision about
+        // which kinds of content, not about a single value, so it is one panel rather than a picker.
+        PlaybackSheet.EXTERNAL_PLAYER -> MobileBottomSheet(
+            onDismissRequest = dismiss,
+            title = stringResource(R.string.settings_external_player),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_external_player_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(
+                    horizontal = MobileDimens.ScreenPaddingH,
+                    vertical = MobileDimens.GapSmall,
+                ),
+            )
+            SettingRow(
+                title = stringResource(R.string.common_nav_live_tv),
+                checked = externalLive,
+                onCheckedChange = { on ->
+                    vm.edit { setExternalPlayer(SettingsRepository.ExternalPlayerSection.LIVE_TV, on) }
+                },
+            )
+            SettingRow(
+                title = stringResource(R.string.common_nav_movies),
+                checked = externalMovies,
+                onCheckedChange = { on ->
+                    vm.edit { setExternalPlayer(SettingsRepository.ExternalPlayerSection.MOVIES, on) }
+                },
+            )
+            SettingRow(
+                title = stringResource(R.string.common_nav_series),
+                checked = externalSeries,
+                onCheckedChange = { on ->
+                    vm.edit { setExternalPlayer(SettingsRepository.ExternalPlayerSection.SERIES, on) }
+                },
+            )
+        }
         null -> Unit
     }
 
@@ -844,7 +740,32 @@ fun SettingsPlaybackPage(
             },
         )
     }
+
+    if (afrWarning) {
+        AlertDialog(
+            onDismissRequest = { afrWarning = false },
+            title = { Text(stringResource(R.string.settings_auto_frame_rate_warning_title)) },
+            text = { Text(stringResource(R.string.settings_auto_frame_rate_warning_description)) },
+            // Keeping it off is the safe answer, so it is the one that reads as the main button.
+            confirmButton = {
+                TextButton(onClick = { afrWarning = false }) {
+                    Text(stringResource(R.string.settings_auto_frame_rate_keep_off))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { afrWarning = false; vm.edit { setAutoFrameRate(true) } },
+                ) { Text(stringResource(R.string.settings_auto_frame_rate_turn_on_anyway)) }
+            },
+        )
+    }
 }
+
+/**
+ * Android 12 is where a display can be asked which refresh rates it reaches without blanking it, so
+ * below that the switch has to warn before it is turned on.
+ */
+private val afrSafe = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
 
 /** "3 playlists" for the per-playlist override rows, or Off when every playlist follows the global. */
 @Composable
@@ -919,58 +840,6 @@ private fun trackLanguageName(code: String): String = stringResource(
         else -> R.string.settings_none_auto
     },
 )
-
-private val SUB_SIZES = listOf(
-    0.8f to R.string.settings_subtitle_small,
-    1.0f to R.string.settings_subtitle_normal,
-    1.3f to R.string.settings_subtitle_large,
-    1.6f to R.string.settings_subtitle_extra_large,
-)
-
-private fun nearestSubSize(scale: Float): Float =
-    SUB_SIZES.minByOrNull { kotlin.math.abs(it.first - scale) }?.first ?: SubtitleStyle.SCALE_DEFAULT
-
-private fun subSizeLabelRes(scale: Float): Int =
-    SUB_SIZES.minByOrNull { kotlin.math.abs(it.first - scale) }?.second
-        ?: R.string.settings_subtitle_normal
-
-/** The text-colour presets, as "#RRGGBB". A phone has no room for a hue wheel worth using. */
-private val SUB_COLOR_PRESETS = listOf(
-    R.string.settings_subtitle_color_white to "#FFFFFF",
-    R.string.settings_subtitle_color_yellow to "#FFEB3B",
-    R.string.settings_subtitle_color_cyan to "#4FC3F7",
-    R.string.settings_subtitle_color_green to "#8BC34A",
-    R.string.settings_subtitle_color_grey to "#BDBDBD",
-)
-
-@Composable
-private fun subColorLabel(hex: String): String = if (SubtitleStyle.hasColor(hex)) {
-    SUB_COLOR_PRESETS.firstOrNull { it.second.equals(hex, ignoreCase = true) }
-        ?.let { stringResource(it.first) }
-        ?: hex.uppercase()
-} else {
-    stringResource(R.string.settings_subtitle_default)
-}
-
-private val SUB_BACKGROUND_CHOICES = listOf(SubtitleStyle.OPACITY_DEFAULT, 0, 30, 50, 70, 100)
-
-@Composable
-private fun subBackgroundLabel(pct: Int): String = when {
-    !SubtitleStyle.hasOpacity(pct) -> stringResource(R.string.settings_subtitle_default)
-    pct == SubtitleStyle.OPACITY_MIN -> stringResource(R.string.settings_subtitle_background_none)
-    pct == SubtitleStyle.OPACITY_MAX -> stringResource(R.string.settings_subtitle_background_solid)
-    else -> stringResource(R.string.common_percent, pct)
-}
-
-private fun SubtitleStyle.Position.labelRes() = when (this) {
-    SubtitleStyle.Position.DEFAULT -> R.string.settings_subtitle_default
-    SubtitleStyle.Position.TOP_LEFT -> R.string.player_mini_top_left
-    SubtitleStyle.Position.TOP_CENTER -> R.string.player_mini_top_center
-    SubtitleStyle.Position.TOP_RIGHT -> R.string.player_mini_top_right
-    SubtitleStyle.Position.BOTTOM_LEFT -> R.string.player_mini_bottom_left
-    SubtitleStyle.Position.BOTTOM_CENTER -> R.string.player_mini_bottom_center
-    SubtitleStyle.Position.BOTTOM_RIGHT -> R.string.player_mini_bottom_right
-}
 
 private fun SurroundMode.labelRes() = when (this) {
     SurroundMode.AUTO -> R.string.settings_auto

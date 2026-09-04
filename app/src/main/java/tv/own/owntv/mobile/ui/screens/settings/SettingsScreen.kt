@@ -33,7 +33,7 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
  */
 @Composable
 fun SettingsScreen(
-    onOpenGroup: (SettingsGroup) -> Unit,
+    onOpenRoute: (String) -> Unit,
     modifier: Modifier = Modifier,
     vm: SettingsViewModel = koinViewModel(),
 ) {
@@ -79,28 +79,36 @@ fun SettingsScreen(
                 item(key = "results-header") {
                     SectionHeader(title = stringResource(R.string.settings_results_title))
                 }
-                items(results, key = { "${it.group.name}-${it.title}" }) { entry ->
+                items(results, key = { "${it.route}-${it.title}" }) { entry ->
                     MobileListRow(
                         title = entry.title,
                         subtitle = settingsBreadcrumb(entry),
                         leading = { Icon(entry.group.icon, contentDescription = null) },
-                        onClick = { onOpenGroup(entry.group) },
+                        onClick = { onOpenRoute(entry.route) },
                     )
                 }
             }
             return@SettingsPage
         }
 
-        // Quick disappears when the user unpins everything: a heading over nothing is worse than the
-        // section being gone, and every row is one long press away from coming back.
-        if (pinned.isNotEmpty()) {
-            item(key = "quick-header") {
-                SectionHeader(title = stringResource(R.string.settings_group_quick))
+        // Quick stays even when nothing is pinned, and says so. The section vanishing was worse: the
+        // user who unpinned their last row had no way of telling that Quick still existed.
+        item(key = "quick-header") {
+            SectionHeader(title = stringResource(R.string.settings_group_quick))
+        }
+        if (pinned.isEmpty()) {
+            item(key = "quick-empty") {
+                MobileListRow(
+                    title = stringResource(R.string.settings_quick_empty_title),
+                    // The television's own hint names the OK button. A phone has none.
+                    subtitle = stringResource(R.string.settings_quick_empty_hint_touch),
+                )
             }
+        } else {
             items(pinned, key = { it.key }) { toggle -> QuickSwitchRow(vm = vm, toggle = toggle) }
-            item(key = "quick-divider") {
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            }
+        }
+        item(key = "quick-divider") {
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
         }
 
         items(SettingsGroup.entries, key = { it.route }) { group ->
@@ -108,7 +116,7 @@ fun SettingsScreen(
                 title = stringResource(group.titleRes),
                 subtitle = stringResource(group.summaryRes),
                 showChevron = true,
-                onClick = { onOpenGroup(group) },
+                onClick = { onOpenRoute(group.route) },
             )
         }
     }

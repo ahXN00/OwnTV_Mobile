@@ -2,6 +2,7 @@ package tv.own.owntv.mobile.ui.screens.guide
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import kotlinx.coroutines.launch
@@ -71,7 +73,9 @@ internal fun GuideGrid(
     densityPct: Int,
     onOpen: (ChannelEntity, EpgProgrammeEntity) -> Unit,
     onOpenChannel: (Long) -> Unit,
+    onMenu: (ChannelEntity) -> Unit,
 ) {
+    val revision by vm.revision.collectAsStateWithLifecycle()
     val timeScroll = rememberScrollState()
     val scope = rememberCoroutineScope()
     val minuteWidth = (BASE_MINUTE_DP * densityPct / 100f).dp
@@ -119,8 +123,10 @@ internal fun GuideGrid(
                         window = window,
                         minuteWidth = minuteWidth,
                         timeScroll = timeScroll,
+                        revision = revision,
                         onOpen = onOpen,
                         onOpenChannel = onOpenChannel,
+                        onMenu = onMenu,
                     )
                     HorizontalDivider()
                 }
@@ -136,13 +142,16 @@ private fun GuideGridRow(
     window: GuideWindow,
     minuteWidth: androidx.compose.ui.unit.Dp,
     timeScroll: androidx.compose.foundation.ScrollState,
+    revision: Int,
     onOpen: (ChannelEntity, EpgProgrammeEntity) -> Unit,
     onOpenChannel: (Long) -> Unit,
+    onMenu: (ChannelEntity) -> Unit,
 ) {
-    var programmes by remember(channel.id, window.start) {
+    // A new match or a new offset invalidates what was read, so the row is asked for again.
+    var programmes by remember(channel.id, window.start, revision) {
         mutableStateOf(vm.cachedRow(channel.id))
     }
-    LaunchedEffect(channel.id, window.start) {
+    LaunchedEffect(channel.id, window.start, revision) {
         if (programmes == null) programmes = vm.row(channel)
     }
 
@@ -151,7 +160,10 @@ private fun GuideGridRow(
             modifier = Modifier
                 .width(CHANNEL_COLUMN)
                 .fillMaxHeight()
-                .clickable { onOpenChannel(channel.id) }
+                .combinedClickable(
+                    onClick = { onOpenChannel(channel.id) },
+                    onLongClick = { onMenu(channel) },
+                )
                 .padding(horizontal = MobileDimens.GapSmall),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
@@ -254,8 +266,9 @@ internal fun GuideTimeline(
         }
         HorizontalDivider()
         if (channel != null) {
-            var programmes by remember(channel.id) { mutableStateOf(vm.cachedRow(channel.id)) }
-            LaunchedEffect(channel.id) { if (programmes == null) programmes = vm.row(channel) }
+            val revision by vm.revision.collectAsStateWithLifecycle()
+            var programmes by remember(channel.id, revision) { mutableStateOf(vm.cachedRow(channel.id)) }
+            LaunchedEffect(channel.id, revision) { if (programmes == null) programmes = vm.row(channel) }
             val rows = programmes
             if (rows != null && rows.isEmpty()) {
                 Text(

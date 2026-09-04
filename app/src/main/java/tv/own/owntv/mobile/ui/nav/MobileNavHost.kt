@@ -32,13 +32,18 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsDataPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsErrorLogPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsGroup
 import tv.own.owntv.mobile.ui.screens.settings.SettingsLayoutPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsLeaf
+import tv.own.owntv.mobile.ui.screens.settings.SettingsMetadataPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsNetworkPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsOpenSubtitlesPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsPlaybackPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsProfilePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsScreen
-import tv.own.owntv.mobile.ui.screens.settings.SETTINGS_CUSTOMIZE_ROUTE
-import tv.own.owntv.mobile.ui.screens.settings.SETTINGS_ERROR_LOG_ROUTE
+import tv.own.owntv.mobile.ui.screens.settings.SettingsEpgSourcesPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsPlaylistsPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsSourcesPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsSubtitleAppearancePage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsVideoPlayerPage
 import tv.own.owntv.mobile.ui.setup.SetupFlow
 
 /**
@@ -88,6 +93,7 @@ fun MobileNavHost(
                         onOpenChannel = { channelId ->
                             navController.navigate(channelRoute(MobileDestination.LIVE, channelId, false))
                         },
+                        onAddEpg = { navController.navigate(SettingsLeaf.EPG_SOURCES.route) },
                     )
                     MobileDestination.LIVE -> LiveScreen(
                         scrollToTop = scrollToTop,
@@ -108,7 +114,7 @@ fun MobileNavHost(
                             },
                         )
                     MobileDestination.SETTINGS -> SettingsScreen(
-                        onOpenGroup = { navController.navigate(it.route) },
+                        onOpenRoute = { navController.navigate(it) },
                     )
                     else -> PlaceholderScreen(destination = destination, scrollToTop = scrollToTop)
                 }
@@ -165,31 +171,44 @@ fun MobileNavHost(
                 },
             )
         }
-        // The nine group pages, plus the two screens reached from inside one. Each is a route rather
-        // than an expanding block, so the system back gesture is what closes it.
+        // The nine group pages and every leaf under them. Each is a route rather than an expanding
+        // block, so the system back gesture is what closes it.
+        val openLeaf: (SettingsLeaf) -> Unit = { navController.navigate(it.route) }
         SettingsGroup.entries.forEach { group ->
             composable(group.route) {
                 when (group) {
                     SettingsGroup.PROFILE -> SettingsProfilePage()
-                    SettingsGroup.SOURCES -> SettingsSourcesPage(
-                        onAddSource = { navController.navigate(SETUP_ROUTE) },
-                    )
+                    SettingsGroup.SOURCES -> SettingsSourcesPage(onOpenLeaf = openLeaf)
                     SettingsGroup.APPEARANCE -> SettingsAppearancePage()
                     SettingsGroup.LAYOUT -> SettingsLayoutPage()
-                    SettingsGroup.CONTENT -> SettingsContentPage(
-                        onOpenCustomize = { navController.navigate(SETTINGS_CUSTOMIZE_ROUTE) },
-                    )
-                    SettingsGroup.PLAYBACK -> SettingsPlaybackPage()
+                    SettingsGroup.CONTENT -> SettingsContentPage(onOpenLeaf = openLeaf)
+                    SettingsGroup.PLAYBACK -> SettingsPlaybackPage(onOpenLeaf = openLeaf)
                     SettingsGroup.NETWORK -> SettingsNetworkPage()
                     SettingsGroup.DATA -> SettingsDataPage()
                     SettingsGroup.APP -> SettingsAppPage(
-                        onOpenErrorLog = { navController.navigate(SETTINGS_ERROR_LOG_ROUTE) },
+                        onOpenErrorLog = { navController.navigate(SettingsLeaf.ERROR_LOG.route) },
                     )
                 }
             }
         }
-        composable(SETTINGS_CUSTOMIZE_ROUTE) { SettingsCustomizePage() }
-        composable(SETTINGS_ERROR_LOG_ROUTE) { SettingsErrorLogPage() }
+        SettingsLeaf.entries.forEach { leaf ->
+            composable(leaf.route) {
+                when (leaf) {
+                    SettingsLeaf.PLAYLISTS -> SettingsPlaylistsPage(
+                        onAddSource = { navController.navigate(SETUP_ROUTE) },
+                    )
+                    SettingsLeaf.EPG_SOURCES -> SettingsEpgSourcesPage()
+                    SettingsLeaf.CUSTOMIZE -> SettingsCustomizePage()
+                    SettingsLeaf.METADATA -> SettingsMetadataPage()
+                    SettingsLeaf.OPEN_SUBTITLES -> SettingsOpenSubtitlesPage()
+                    SettingsLeaf.VIDEO_PLAYER -> SettingsVideoPlayerPage(
+                        onOpenLeaf = { target -> navController.navigate(target.route) },
+                    )
+                    SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
+                    SettingsLeaf.ERROR_LOG -> SettingsErrorLogPage()
+                }
+            }
+        }
         composable(PLAYER_ROUTE) {
             PlayerScreen(onExit = { navController.popBackStack() })
         }

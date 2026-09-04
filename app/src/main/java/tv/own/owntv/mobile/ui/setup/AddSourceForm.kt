@@ -45,12 +45,39 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
 enum class SourceKind { XTREAM, M3U, STALKER }
 
 /**
+ * Everything the form holds, so editing an existing playlist can fill it and take it back whole.
+ * Only the edit path uses it; adding still calls the three start callbacks, one per kind.
+ */
+data class SourceFormValues(
+    val kind: SourceKind,
+    val name: String = "",
+    val urlOrServer: String = "",
+    val username: String = "",
+    val password: String = "",
+    val mac: String = "",
+    val serialNumber: String = "",
+    val deviceId: String = "",
+    val deviceId2: String = "",
+    val signature: String = "",
+    val userAgent: String = "",
+    val autoRefresh: PlaylistRefresh = PlaylistRefresh(),
+    val live: SyncScopeChoice = SyncScopeChoice.Now,
+    val movies: SyncScopeChoice = SyncScopeChoice.Now,
+    val series: SyncScopeChoice = SyncScopeChoice.Now,
+    val preferHls: Boolean = false,
+)
+
+/**
  * One playlist's details, as one scrolling page.
  *
  * The television asks the same questions across several popups because a remote control cannot
  * scroll a long form comfortably. A phone is the opposite: a popup would put the keyboard over the
  * field being typed into, so everything — including the optional half — is on this page, and the
  * page scrolls under the keyboard.
+ *
+ * Passing [initial] and [onSave] turns the same page into the edit form for a playlist that already
+ * exists: the kind chips go away, because a playlist cannot change what kind of provider it is, and
+ * a blank password means "keep the stored one" rather than "no password".
  */
 @Composable
 fun AddSourceForm(
@@ -66,27 +93,38 @@ fun AddSourceForm(
         live: SyncScopeChoice, movies: SyncScopeChoice, series: SyncScopeChoice,
     ) -> Unit,
     modifier: Modifier = Modifier,
+    initial: SourceFormValues? = null,
+    onSave: ((SourceFormValues) -> Unit)? = null,
 ) {
-    var kind by rememberSaveable { mutableStateOf(SourceKind.XTREAM) }
-    var name by rememberSaveable { mutableStateOf("") }
-    var server by rememberSaveable { mutableStateOf("") }
-    var username by rememberSaveable { mutableStateOf("") }
+    val editing = onSave != null
+    var kind by rememberSaveable { mutableStateOf(initial?.kind ?: SourceKind.XTREAM) }
+    var name by rememberSaveable { mutableStateOf(initial?.name.orEmpty()) }
+    var server by rememberSaveable {
+        mutableStateOf(if (initial?.kind == SourceKind.XTREAM) initial.urlOrServer else "")
+    }
+    var username by rememberSaveable { mutableStateOf(initial?.username.orEmpty()) }
     var password by rememberSaveable { mutableStateOf("") }
-    var m3uUrl by rememberSaveable { mutableStateOf("") }
-    var portalUrl by rememberSaveable { mutableStateOf("") }
-    var mac by rememberSaveable { mutableStateOf("") }
-    var serialNumber by rememberSaveable { mutableStateOf("") }
-    var deviceId by rememberSaveable { mutableStateOf("") }
-    var deviceId2 by rememberSaveable { mutableStateOf("") }
-    var signature by rememberSaveable { mutableStateOf("") }
-    var userAgent by rememberSaveable { mutableStateOf("") }
-    var preferHls by rememberSaveable { mutableStateOf(false) }
-    var refreshMode by rememberSaveable { mutableStateOf(PlaylistAutoRefresh.OFF) }
-    var manualDays by rememberSaveable { mutableStateOf(PlaylistRefresh().manualDays.toString()) }
+    var m3uUrl by rememberSaveable {
+        mutableStateOf(if (initial?.kind == SourceKind.M3U) initial.urlOrServer else "")
+    }
+    var portalUrl by rememberSaveable {
+        mutableStateOf(if (initial?.kind == SourceKind.STALKER) initial.urlOrServer else "")
+    }
+    var mac by rememberSaveable { mutableStateOf(initial?.mac.orEmpty()) }
+    var serialNumber by rememberSaveable { mutableStateOf(initial?.serialNumber.orEmpty()) }
+    var deviceId by rememberSaveable { mutableStateOf(initial?.deviceId.orEmpty()) }
+    var deviceId2 by rememberSaveable { mutableStateOf(initial?.deviceId2.orEmpty()) }
+    var signature by rememberSaveable { mutableStateOf(initial?.signature.orEmpty()) }
+    var userAgent by rememberSaveable { mutableStateOf(initial?.userAgent.orEmpty()) }
+    var preferHls by rememberSaveable { mutableStateOf(initial?.preferHls ?: false) }
+    var refreshMode by rememberSaveable { mutableStateOf(initial?.autoRefresh?.mode ?: PlaylistAutoRefresh.OFF) }
+    var manualDays by rememberSaveable {
+        mutableStateOf((initial?.autoRefresh ?: PlaylistRefresh()).manualDays.toString())
+    }
     // Stalker has no bulk catalogue endpoint, so its films and series are fetched later by default.
-    var syncLive by rememberSaveable { mutableStateOf(SyncScopeChoice.Now) }
-    var syncMovies by rememberSaveable { mutableStateOf(SyncScopeChoice.Now) }
-    var syncSeries by rememberSaveable { mutableStateOf(SyncScopeChoice.Now) }
+    var syncLive by rememberSaveable { mutableStateOf(initial?.live ?: SyncScopeChoice.Now) }
+    var syncMovies by rememberSaveable { mutableStateOf(initial?.movies ?: SyncScopeChoice.Now) }
+    var syncSeries by rememberSaveable { mutableStateOf(initial?.series ?: SyncScopeChoice.Now) }
     var showRefreshSheet by remember { mutableStateOf(false) }
     var showDeviceSheet by remember { mutableStateOf(false) }
 
@@ -108,10 +146,33 @@ fun AddSourceForm(
         syncSeries != SyncScopeChoice.Off
     val canStart = when (kind) {
         SourceKind.XTREAM ->
-            server.isNotBlank() && username.isNotBlank() && password.isNotBlank() && hasAnySection
+            // On an edit the password field starts empty and left empty keeps the stored one.
+            server.isNotBlank() && username.isNotBlank() && (password.isNotBlank() || editing) && hasAnySection
         SourceKind.M3U -> m3uUrl.isNotBlank()
         SourceKind.STALKER -> StalkerClient.isValidPortalUrl(portalUrl) && macValid && hasAnySection
     }
+    fun values() = SourceFormValues(
+        kind = kind,
+        name = name,
+        urlOrServer = when (kind) {
+            SourceKind.XTREAM -> server
+            SourceKind.M3U -> m3uUrl
+            SourceKind.STALKER -> portalUrl
+        },
+        username = username,
+        password = password,
+        mac = mac,
+        serialNumber = serialNumber,
+        deviceId = deviceId,
+        deviceId2 = deviceId2,
+        signature = signature,
+        userAgent = userAgent,
+        autoRefresh = autoRefresh,
+        live = syncLive,
+        movies = syncMovies,
+        series = syncSeries,
+        preferHls = preferHls,
+    )
 
     Column(
         modifier = modifier
@@ -122,28 +183,30 @@ fun AddSourceForm(
             .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.ScreenPaddingV),
         verticalArrangement = Arrangement.spacedBy(MobileDimens.GapMedium),
     ) {
-        Text(
-            text = stringResource(R.string.setup_byo_source_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        FilterChipRow(
-            labels = listOf(
-                stringResource(R.string.setup_xtream),
-                stringResource(R.string.setup_m3u),
-                stringResource(R.string.setup_stalker_mac),
-            ),
-            selectedIndex = kind.ordinal,
-            onSelect = { index ->
-                kind = SourceKind.entries[index]
-                // Stalker portals answer one item at a time, so a full film catalogue on the spot is
-                // an hour of requests; the television makes the same choice for the same reason.
-                if (kind == SourceKind.STALKER) {
-                    syncMovies = SyncScopeChoice.Later
-                    syncSeries = SyncScopeChoice.Later
-                }
-            },
-        )
+        if (!editing) {
+            Text(
+                text = stringResource(R.string.setup_byo_source_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FilterChipRow(
+                labels = listOf(
+                    stringResource(R.string.setup_xtream),
+                    stringResource(R.string.setup_m3u),
+                    stringResource(R.string.setup_stalker_mac),
+                ),
+                selectedIndex = kind.ordinal,
+                onSelect = { index ->
+                    kind = SourceKind.entries[index]
+                    // Stalker portals answer one item at a time, so a full film catalogue on the spot
+                    // is an hour of requests; the television makes the same choice for the same reason.
+                    if (kind == SourceKind.STALKER) {
+                        syncMovies = SyncScopeChoice.Later
+                        syncSeries = SyncScopeChoice.Later
+                    }
+                },
+            )
+        }
         MobileTextField(
             value = name,
             onValueChange = { name = it },
@@ -171,7 +234,9 @@ fun AddSourceForm(
                 MobileTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = stringResource(R.string.setup_password),
+                    label = stringResource(
+                        if (editing) R.string.setup_password_keep else R.string.setup_password,
+                    ),
                     isPassword = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -311,8 +376,9 @@ fun AddSourceForm(
         }
 
         MobileButton(
-            text = stringResource(R.string.setup_start_import),
+            text = stringResource(if (editing) R.string.common_save else R.string.setup_start_import),
             onClick = {
+                onSave?.let { save -> save(values()); return@MobileButton }
                 when (kind) {
                     SourceKind.XTREAM -> onStartXtream(
                         name, server, username, password, userAgent, autoRefresh,
@@ -422,7 +488,7 @@ private fun SwitchRow(
     }
 }
 
-private fun PlaylistAutoRefresh.labelRes(): Int = when (this) {
+internal fun PlaylistAutoRefresh.labelRes(): Int = when (this) {
     PlaylistAutoRefresh.OFF -> R.string.settings_sources_refresh_off
     PlaylistAutoRefresh.STARTUP -> R.string.settings_sources_refresh_startup
     PlaylistAutoRefresh.HOURS_6 -> R.string.settings_sources_refresh_6h

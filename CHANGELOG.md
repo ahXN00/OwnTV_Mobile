@@ -106,6 +106,21 @@ release automation.
 - **A size slider** makes the grid show more of the evening at once, or less of it larger.
 - **It stays quick on a big playlist**, because the guide is read one row at a time as that row
   reaches the screen instead of loading the whole lineup.
+- **Auto-match EPG fills a guide that arrived empty.** Providers name the same channel differently in
+  the playlist and in the guide feed, so the guide comes out blank even though the data is there.
+  One press matches them by name: the certain ones are applied straight away, and the rest are
+  offered for review with the app's confidence beside each — "BBC One HD → BBC One · 88%" — to accept
+  or skip one at a time or all at once. Programmes appear as soon as a match is accepted.
+- **Order the guide the way the television does**: A–Z, by provider, live channels, catch-up channels
+  or your favourites only.
+- **The guide says what it is holding**: how many channels have programmes, how many programmes there
+  are, and how many channels offer catch-up.
+- **It tells you when the guide belongs to a different provider.** If the feed's channel ids match
+  none of yours, the guide says so instead of showing empty rows with no reason.
+- **No guide feed at all now offers to add one**, with a button that opens straight onto the EPG
+  sources page.
+- **Press and hold a channel in the guide** to match it to a guide channel yourself, or to shift that
+  one channel's programmes when a provider hangs two time zones off a single guide.
 
 ### ▶️ The player
 
@@ -178,6 +193,55 @@ release automation.
   saved audio delay, each with a count of how many titles it applies to and a confirmation.
 - **Check that your film details are actually working**, by looking a title up from the settings
   page and seeing what comes back; the shared service also shows how much of its allowance is left.
+- **The big settings open as pages of their own.** Content & metadata is three rows — Customize,
+  Metadata and OpenSubtitles — instead of one page with everything on it, and Playback splits the
+  same way, with the video player's own settings grouped the way the television groups them.
+- **Tidy up your channel and film lists, the way the television can.** Customize now opens a folder
+  to show what is inside it, and every folder and every item can be renamed, hidden, moved up, down,
+  to the top or to the bottom, or moved into another folder. Sort a section A–Z or by provider, show
+  only what is hidden, make a folder of your own, decide whether folders a new playlist brings in
+  arrive hidden or visible, and lock the whole page behind a PIN so nobody undoes it.
+- **Fix a whole block at once by pressing and holding.** Press and hold a row, choose to select a
+  span, then tap the row at the other end: everything in between is hidden, shown, moved or renamed
+  together.
+- **Rename hundreds of films in one pass.** Build rules — remove or add text, before, after or
+  anywhere — or use Auto cleanup to strip country and provider tags, quality and codec tags and
+  emoji in one press. A review list shows every old name beside its new one, and you can accept or
+  reject them one at a time or all at once; a name that would come out blank or duplicated is
+  refused, and Restore originals puts everything back.
+- **Clear the film-details key and server** in one press to go back to the shared service, and the
+  app tells you once when the day's share of that shared service has run out, instead of letting
+  posters quietly stop appearing.
+- **Sign in to OpenSubtitles from the phone**, see how many downloads are left today and when the
+  count resets, restrict searches to one language, and delete the subtitle files already on the
+  phone — one of them, all the films', all the shows', or all of them.
+- **The video player page now carries every row the television has**, in the television's own order:
+  Engine & picture, Live TV, Sound, Subtitles, Episodes, Diagnostics. Hand a stream to another app,
+  show or hide channel numbers, and jump into subtitle appearance without going back a level.
+- **The switches there can be pinned to Quick under the same names the television uses**, so a
+  pinned list taken from a television lands on the same rows on the phone.
+- **Auto frame rate asks before it is turned on** below Android 12, where the display cannot be
+  asked which refresh rates it reaches without blanking the picture — keep it off, or turn it on
+  anyway.
+- **Shrinking the interface past the safe point asks first**, because a screen holding many more
+  items at once can run a small-memory device out of memory.
+- **Any subtitle colour, not just the five presets**: type six hex digits and the app checks them
+  before using them, and one press puts size, colour, position and background back to default.
+- **Search reaches the settings inside those pages too**, and tells you the whole path to a result,
+  so "Live latency" is found as Playback › Video player › Live latency and one tap lands on it.
+- **Reorder your Quick toggles.** Press and hold one and move it up or down; the order you set on the
+  phone is the order the television shows.
+- **Your playlists have a page of their own.** Every playlist with its type, which one is the
+  default, when it expires and how often it refreshes — and on each: edit it, test that it still
+  connects, refresh it, refresh it and drop titles the provider no longer has, or delete it after a
+  warning that says what goes with it. A refresh in progress shows its counts as it runs and can be
+  stopped.
+- **Guide feeds have a page of their own too.** Add or edit an XMLTV address — or fill it in from a
+  playlist that carries one — give it a user agent if the provider needs one, choose how often it
+  refreshes, and say whether its channel logos should be used. Each feed shows how many channels,
+  programmes and catch-up channels it brought in, or what went wrong.
+- **Catch-up settings**: follow the phone's clock or set the provider's offset by hand, and choose
+  whether a catch-up programme asks, plays in OwnTV, or opens in another app.
 - **Everything is stored where the TV app stores it**, so a setting changed on the phone and backed
   up arrives on the television when you restore it there.
 

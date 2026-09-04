@@ -4,16 +4,19 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,24 +33,33 @@ import tv.own.owntv.core.database.entity.CategoryEntity
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.ProfileEntity
 import tv.own.owntv.core.database.entity.SourceEntity
-import tv.own.owntv.core.epg.EpgSource
-import tv.own.owntv.core.epg.EpgSourceStore
 import tv.own.owntv.core.metadata.MetadataBudget
 import tv.own.owntv.core.metadata.MetadataBudgetStatus
 import tv.own.owntv.core.metadata.MetadataConfig
 import tv.own.owntv.core.metadata.MetadataProvider
 import tv.own.owntv.core.metadata.profileAllowsAdultMetadata
 import tv.own.owntv.core.model.MediaType
+import tv.own.owntv.core.model.SourceType
+import tv.own.owntv.core.parser.XtreamClient
 import tv.own.owntv.core.player.PlaybackPrefsStore
 import tv.own.owntv.core.player.VodEngineStore
 import tv.own.owntv.core.repository.SourceRepository
+import tv.own.owntv.core.repository.SourceTestResult
+import tv.own.owntv.core.repository.SourceTester
+import tv.own.owntv.core.settings.PlaylistRefresh
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.settings.StartupChannelRef
 import tv.own.owntv.core.settings.StartupMode
+import tv.own.owntv.core.stalker.StalkerAuthManager
+import tv.own.owntv.core.stalker.StalkerClient
+import tv.own.owntv.core.stalker.stalkerCredentials
+import tv.own.owntv.core.stalker.stalkerExpiryOf
 import tv.own.owntv.core.storage.StorageAccess
+import tv.own.owntv.core.sync.ImportFinalizer
+import tv.own.owntv.core.sync.SyncContentTypes
+import tv.own.owntv.core.sync.SyncCounts
 import tv.own.owntv.core.sync.work.CatalogSyncScheduler
 import tv.own.owntv.core.sync.work.CatalogSyncState
-import tv.own.owntv.core.sync.work.EpgSyncScheduler
 
 /**
  * The one view model behind every settings page.
@@ -65,9 +77,7 @@ class SettingsViewModel(
     private val profileDao: ProfileDao,
     private val historyDao: HistoryDao,
     private val progressDao: ProgressDao,
-    private val epgSourceStore: EpgSourceStore,
     private val catalogSync: CatalogSyncScheduler,
-    private val epgSync: EpgSyncScheduler,
     private val categoryDao: CategoryDao,
     private val channelDao: ChannelDao,
     private val customize: CustomizationStore,
@@ -76,6 +86,11 @@ class SettingsViewModel(
     private val playbackPrefs: PlaybackPrefsStore,
     private val metadataProvider: MetadataProvider,
     private val metadataBudget: MetadataBudget,
+    private val xtreamClient: XtreamClient,
+    private val stalkerClient: StalkerClient,
+    private val stalkerAuth: StalkerAuthManager,
+    private val sourceTester: SourceTester,
+    private val importFinalizer: ImportFinalizer,
 ) : ViewModel() {
 
     /** Run a setter on a scope that survives the row being scrolled off the screen. */
@@ -93,10 +108,59 @@ class SettingsViewModel(
     val profiles: StateFlow<List<ProfileEntity>> = profileDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val epgSources: StateFlow<List<EpgSource>> = epgSourceStore.sources
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     fun syncState(sourceId: Long): Flow<CatalogSyncState> = catalogSync.observeSync(sourceId)
+
+    /** The playlist the rest of the app is filtered to, or -1 when every playlist is shown. */
+    val defaultSourceId: StateFlow<Long> = settings.defaultSourceId
+        .stateIn(viewModelScope, SharingStarted.Eagerly, -1L)
+
+    fun setDefaultSource(id: Long) {
+        viewModelScope.launch { settings.setDefaultSource(id) }
+    }
+
+    /**
+     * When each account runs out, by source id. Xtream reads the panel's `exp_date`; a MAG portal is
+     * asked for its profile. A plain M3U file has no account, so it is never listed, and any failure
+     * simply leaves the line off the row rather than showing a wrong date.
+     *
+     * Fetched once per source while the page is on screen — the answer is a date, not a live number.
+     */
+    private val expiryCache = java.util.concurrent.ConcurrentHashMap<Long, String>()
+    val sourceExpiry: StateFlow<Map<Long, String>> = sources
+        .map { list ->
+            val out = HashMap<Long, String>()
+            for (s in list) {
+                if (s.type != SourceType.XTREAM && s.type != SourceType.STALKER) continue
+                val value = expiryCache[s.id] ?: fetchExpiry(s)?.also { expiryCache[s.id] = it } ?: continue
+                out[s.id] = value
+            }
+            out
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    private suspend fun fetchExpiry(s: SourceEntity): String? = runCatching {
+        when (s.type) {
+            SourceType.XTREAM -> xtreamClient.accountExpiryMs(s)?.let {
+                java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(it))
+            }
+            SourceType.STALKER -> s.mac?.let { StalkerClient.canonicalizeMac(it) }?.let { mac ->
+                val creds = s.stalkerCredentials(mac)
+                stalkerAuth.withAuthRetry(creds) { session ->
+                    val info = runCatching {
+                        stalkerClient.getAccountInfo(session.apiBase, mac, session.token, creds.userAgent)
+                    }.getOrDefault(emptyMap())
+                    stalkerExpiryOf(info) ?: stalkerExpiryOf(session.profile)
+                }
+            }
+            else -> null
+        }
+    }.getOrNull()
+
+    /** How many channels, films and shows a playlist actually holds — re-counted when a sync ends. */
+    fun contentCounts(sourceId: Long): Flow<SyncCounts> = catalogSync.observeSync(sourceId)
+        .onStart { emit(CatalogSyncState.Idle) }
+        .filter { !it.isActive }
+        .map { importFinalizer.contentCounts(sourceId) }
 
     /**
      * Fetch the catalogue again. [removeMissing] is the destructive half of the TV app's two resync
@@ -107,25 +171,124 @@ class SettingsViewModel(
         catalogSync.enqueueSync(source.id, reason = "manual", forcePrune = removeMissing)
     }
 
-    fun deleteSource(source: SourceEntity) {
-        viewModelScope.launch { sourceRepository.deleteSource(source) }
+    fun cancelResync(source: SourceEntity) {
+        catalogSync.cancelSync(source.id)
     }
 
-    /** Add an XMLTV feed and fetch it straight away — an unsynced guide source shows nothing. */
-    fun addEpg(name: String, url: String, userAgent: String?) {
+    /**
+     * Save an edited playlist and, when a section was switched on or it has never synced, fetch it.
+     *
+     * Blank fields keep what is stored, so a password field left empty on an edit does not wipe the
+     * password. A Stalker edit drops the cached portal session: the next call has to handshake again
+     * or it would keep using a token issued for the old MAC.
+     */
+    fun updateSource(
+        id: Long,
+        name: String,
+        urlOrServer: String,
+        user: String,
+        pass: String,
+        userAgent: String,
+        autoRefresh: PlaylistRefresh,
+        mac: String = "",
+        stalkerSerialNumber: String = "",
+        stalkerDeviceId: String = "",
+        stalkerDeviceId2: String = "",
+        stalkerSignature: String = "",
+        syncLive: Boolean = true,
+        syncMovies: Boolean = true,
+        syncSeries: Boolean = true,
+        preferHls: Boolean = false,
+    ) {
         viewModelScope.launch {
-            val added = epgSourceStore.add(name, url, userAgent?.takeIf { it.isNotBlank() })
-            epgSync.enqueueSync(added.id, reason = "manual")
+            val existing = sourceDao.getById(id) ?: return@launch
+            if (existing.type == SourceType.STALKER) stalkerAuth.invalidate(id)
+            val scopeChanged = existing.syncLive != syncLive ||
+                existing.syncMovies != syncMovies ||
+                existing.syncSeries != syncSeries
+            val scopeTurnedOn = (!existing.syncLive && syncLive) ||
+                (!existing.syncMovies && syncMovies) ||
+                (!existing.syncSeries && syncSeries)
+            val updated = existing.copy(
+                name = name.trim().ifBlank { existing.name },
+                url = urlOrServer.trim().ifBlank { existing.url },
+                username = user.trim().takeIf { it.isNotBlank() } ?: existing.username,
+                password = pass.takeIf { it.isNotBlank() } ?: existing.password,
+                mac = StalkerClient.canonicalizeMac(mac) ?: existing.mac,
+                stalkerSerialNumber = stalkerSerialNumber.trim().takeIf { it.isNotBlank() },
+                stalkerDeviceId = stalkerDeviceId.trim().takeIf { it.isNotBlank() },
+                stalkerDeviceId2 = stalkerDeviceId2.trim().takeIf { it.isNotBlank() },
+                stalkerSignature = stalkerSignature.trim().takeIf { it.isNotBlank() },
+                userAgent = userAgent.trim().takeIf { it.isNotBlank() },
+                syncLive = syncLive,
+                syncMovies = syncMovies,
+                syncSeries = syncSeries,
+                preferHls = preferHls,
+            )
+            sourceRepository.updateSource(updated)
+            settings.setPlaylistAutoRefresh(id, autoRefresh)
+            expiryCache.remove(id)
+            if (scopeChanged) catalogSync.cancelSync(id)
+            if (scopeTurnedOn || updated.lastSyncAt == null) {
+                val counts = importFinalizer.contentCounts(id)
+                catalogSync.enqueueSync(
+                    id,
+                    reason = "scope_edit",
+                    contentTypes = SyncContentTypes.enabledFor(updated),
+                    baseItemCount = counts.channels + counts.movies + counts.series,
+                )
+            }
         }
     }
 
-    fun syncEpg(source: EpgSource) {
-        epgSync.enqueueSync(source.id, reason = "manual")
+    /**
+     * Removing a playlist cascades through every channel, film and episode it brought in — hundreds
+     * of thousands of rows on a big provider. The row says so and hides its actions until it is done,
+     * and the delete itself finishes even if the page is left: a half-deleted playlist is worse than
+     * a wait.
+     */
+    private val _deletingSourceIds = MutableStateFlow<Set<Long>>(emptySet())
+    val deletingSourceIds: StateFlow<Set<Long>> = _deletingSourceIds.asStateFlow()
+
+    fun deleteSource(source: SourceEntity) {
+        if (source.id in _deletingSourceIds.value) return
+        viewModelScope.launch {
+            _deletingSourceIds.value = _deletingSourceIds.value + source.id
+            try {
+                catalogSync.cancelSync(source.id)
+                stalkerAuth.invalidate(source.id)
+                withContext(NonCancellable) {
+                    sourceRepository.deleteSource(source)
+                    if (defaultSourceId.value == source.id) settings.setDefaultSource(-1L)
+                }
+            } finally {
+                _deletingSourceIds.value = _deletingSourceIds.value - source.id
+                expiryCache.remove(source.id)
+            }
+        }
     }
 
-    fun removeEpg(source: EpgSource) {
-        viewModelScope.launch { epgSourceStore.remove(source.id) }
+    /** Null while no test is on screen; [SourceTestState.Running] while the request is in flight. */
+    sealed interface SourceTestState {
+        val sourceName: String
+        data class Running(override val sourceName: String) : SourceTestState
+        data class Done(override val sourceName: String, val result: SourceTestResult) : SourceTestState
     }
+
+    private val _sourceTest = MutableStateFlow<SourceTestState?>(null)
+    val sourceTest: StateFlow<SourceTestState?> = _sourceTest.asStateFlow()
+
+    /** Ask the provider whether the account is still good, without waiting for a sync to fail. */
+    fun testSource(source: SourceEntity) {
+        viewModelScope.launch {
+            _sourceTest.value = SourceTestState.Running(source.name)
+            val result = sourceTester.test(source)
+            // The sheet may have been dismissed while the request ran; don't re-open it.
+            if (_sourceTest.value != null) _sourceTest.value = SourceTestState.Done(source.name, result)
+        }
+    }
+
+    fun dismissSourceTest() { _sourceTest.value = null }
 
     /** Clear what the user has watched. Null clears everything; a type clears just that section. */
     fun clearHistory(type: MediaType? = null) {
@@ -289,6 +452,9 @@ class SettingsViewModel(
             )
         }
     }
+
+    /** Clears a stale result, so a key that has just been removed stops reporting its old match. */
+    fun resetMetadataTest() { _metadataTest.value = MetadataTestState.Idle }
 
     // --- Proxy and DNS, saved as a form and testable before it is saved ---
 

@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +64,9 @@ fun SettingsAppearancePage(
     val highlightWidth = vm.settings.focusHighlightWidth.pref(2)
 
     var sheet by remember { mutableStateOf<AppearanceSheet?>(null) }
+    // The zoom the low-memory warning is holding, and whether its risk has already been accepted.
+    var pendingLowZoom by remember { mutableStateOf<Int?>(null) }
+    var lowZoomAccepted by remember { mutableStateOf(zoom < UiZoom.LOW_RAM_WARN) }
 
     SettingsPage(modifier) {
         item(key = "preview") { AppearancePreview() }
@@ -146,7 +151,17 @@ fun SettingsAppearancePage(
                 value = zoom,
                 range = UiZoom.MIN..UiZoom.MAX,
                 steps = stepsFor(UiZoom.MIN, UiZoom.MAX, UiZoom.STEP),
-                onValueChange = { pct -> vm.edit { setUiZoomPercent(UiZoom.clamp(pct)) } },
+                // Below the warning point a screen holds so many more items that a small-memory
+                // device can run out of it. Ask once, on the drag that crosses the line, and
+                // remember the answer for the rest of the visit rather than asking at every step.
+                onValueChange = { raw ->
+                    val pct = UiZoom.clamp(raw)
+                    if (pct < UiZoom.LOW_RAM_WARN && !lowZoomAccepted) {
+                        pendingLowZoom = pct
+                    } else {
+                        vm.edit { setUiZoomPercent(pct) }
+                    }
+                },
             )
         }
         item(key = "animations") {
@@ -208,6 +223,36 @@ fun SettingsAppearancePage(
         AppearanceSheet.GLASS -> GlassSheet(vm, glass, onDismiss = { sheet = null })
         AppearanceSheet.FONTS -> FontsSheet(vm, fonts, onDismiss = { sheet = null })
         null -> Unit
+    }
+
+    pendingLowZoom?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingLowZoom = null },
+            title = { Text(stringResource(R.string.settings_low_zoom_warning_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.settings_low_zoom_warning,
+                        UiZoom.LOW_RAM_WARN,
+                        UiZoom.LOW_RAM_WARN,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        lowZoomAccepted = true
+                        pendingLowZoom = null
+                        vm.edit { setUiZoomPercent(target) }
+                    },
+                ) { Text(stringResource(R.string.settings_low_zoom_accept)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingLowZoom = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
     }
 }
 

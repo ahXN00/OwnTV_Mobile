@@ -27,16 +27,74 @@ class QuickToggle(
     @param:StringRes val titleRes: Int,
     val flow: (SettingsRepository) -> Flow<Boolean>,
     val set: suspend SettingsRepository.(Boolean) -> Unit,
+    /** What the switch shows until the stored value arrives — core's own default for the setting. */
+    val default: Boolean = false,
 )
 
 /** Every switch this app lets the user pin, by the key it is stored under. */
 val QUICK_TOGGLES: List<QuickToggle> = listOf(
-    QuickToggle("quick_hdr", R.string.settings_quick_hdr, { it.hdrEnabled }, { setHdrEnabled(it) }),
+    QuickToggle(
+        "quick_hdr",
+        R.string.settings_quick_hdr,
+        { it.hdrEnabled },
+        { setHdrEnabled(it) },
+        default = true,
+    ),
     QuickToggle(
         "quick_autoplay",
         R.string.settings_quick_autoplay,
         { it.autoPlayNext },
         { setAutoPlayNext(it) },
+        default = true,
+    ),
+    // The video player's own switches, under the keys the television pins them by, so a pinned list
+    // restored from a television lands on the same rows here.
+    QuickToggle(
+        "vp_hw",
+        R.string.settings_hardware_decoding,
+        { it.hwDecoding },
+        { setHwDecoding(it) },
+        default = true,
+    ),
+    QuickToggle(
+        "vp_deinterlace",
+        R.string.settings_deinterlace,
+        { it.deinterlace },
+        { setDeinterlace(it) },
+    ),
+    QuickToggle(
+        "vp_hdr",
+        R.string.settings_quick_hdr,
+        { it.hdrEnabled },
+        { setHdrEnabled(it) },
+        default = true,
+    ),
+    QuickToggle(
+        "vp_channel_numbers",
+        R.string.settings_channel_numbers,
+        { it.directTune },
+        { setDirectTune(it) },
+        default = true,
+    ),
+    QuickToggle(
+        "vp_autoplay",
+        R.string.settings_autoplay_next,
+        { it.autoPlayNext },
+        { setAutoPlayNext(it) },
+        default = true,
+    ),
+    QuickToggle(
+        "vp_measured_stats",
+        R.string.settings_measured_stats,
+        { it.measuredStreamStats },
+        { setMeasuredStreamStats(it) },
+        default = true,
+    ),
+    QuickToggle(
+        "vp_logging",
+        R.string.settings_detailed_playback_logging,
+        { it.detailedDiagnostics },
+        { setDetailedDiagnostics(it) },
     ),
     QuickToggle(
         "background_playback",
@@ -73,7 +131,7 @@ fun QuickSwitchRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
 ) {
-    val checked = toggle.flow(vm.settings).pref(false)
+    val checked = toggle.flow(vm.settings).pref(toggle.default)
     val pinned = vm.settings.quickPinnedKeys.pref(emptyList())
     var menu by remember { mutableStateOf(false) }
 
@@ -89,20 +147,43 @@ fun QuickSwitchRow(
     )
 
     if (menu) {
-        val isPinned = toggle.key in pinned
-        MobileBottomSheet(onDismissRequest = { menu = false }, title = stringResource(toggle.titleRes)) {
+        val at = pinned.indexOf(toggle.key)
+        val isPinned = at >= 0
+        val close = { menu = false }
+        // Moving rewrites the whole stored list, keys this app has no row for included, so an order
+        // set on the phone is the order the television shows too.
+        val move = { to: Int ->
+            val next = pinned.toMutableList().apply { add(to, removeAt(at)) }
+            vm.edit { setQuickPinnedKeys(next) }
+            close()
+        }
+        MobileBottomSheet(onDismissRequest = close, title = stringResource(toggle.titleRes)) {
             MobileListRow(
                 title = stringResource(
                     if (isPinned) R.string.settings_row_menu_unpin else R.string.settings_row_menu_pin,
                 ),
                 onClick = {
-                    val next =
-                        if (isPinned) pinned - toggle.key
-                        else pinned + toggle.key
+                    val next = if (isPinned) pinned - toggle.key else pinned + toggle.key
                     vm.edit { setQuickPinnedKeys(next) }
-                    menu = false
+                    close()
                 },
             )
+            if (at > 0) {
+                MobileListRow(
+                    title = stringResource(R.string.settings_row_menu_move_up),
+                    onClick = { move(at - 1) },
+                )
+            }
+            if (isPinned && at < pinned.lastIndex) {
+                MobileListRow(
+                    title = stringResource(R.string.settings_row_menu_move_down),
+                    onClick = { move(at + 1) },
+                )
+            }
         }
     }
 }
+
+/** The pinnable switch stored under [key]. Every key passed here is one of [QUICK_TOGGLES]. */
+fun quickToggle(key: String): QuickToggle =
+    QUICK_TOGGLES.first { it.key == key }

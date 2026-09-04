@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
@@ -36,6 +37,7 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.SectionHeader
+import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
@@ -66,22 +68,16 @@ enum class SettingsGroup(
 fun settingsGroupOf(route: String?): SettingsGroup? =
     SettingsGroup.entries.firstOrNull { it.route == route }
 
-/** Folder hiding, renaming and reordering, reached from the Content & metadata page. */
-const val SETTINGS_CUSTOMIZE_ROUTE = "settings/content/customize"
-
-/** The crash and playback log, reached from the App page. */
-const val SETTINGS_ERROR_LOG_ROUTE = "settings/app/errorlog"
-
 /**
- * The bar's title for a settings page, or null when the route is not one — the nine groups plus the
- * two screens opened from inside one. A non-null answer is also what tells the bar to offer back.
+ * The bar's title for a settings page, or null when the route is not one — the nine group pages and
+ * every leaf under them. A non-null answer is also what tells the bar to offer back.
+ *
+ * Leaves are asked first: a leaf route begins with its group's route, so testing the group first
+ * would title every leaf after the group it hangs off.
  */
 @StringRes
-fun settingsPageTitleRes(route: String?): Int? = when (route) {
-    SETTINGS_CUSTOMIZE_ROUTE -> R.string.settings_customize_title
-    SETTINGS_ERROR_LOG_ROUTE -> R.string.settings_playback_error_title
-    else -> settingsGroupOf(route)?.titleRes
-}
+fun settingsPageTitleRes(route: String?): Int? =
+    settingsLeafOf(route)?.titleRes ?: settingsGroupOf(route)?.titleRes
 
 /** Collect a settings flow for the row that displays it. */
 @Composable
@@ -106,6 +102,18 @@ fun LazyListScope.settingsSection(@StringRes titleRes: Int) {
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             SectionHeader(title = stringResource(titleRes))
         }
+    }
+}
+
+/** The rows that open a group's screen-sized settings, at the head of its page. */
+fun LazyListScope.settingsLeafRows(group: SettingsGroup, onOpen: (SettingsLeaf) -> Unit) {
+    items(leavesOf(group), key = { it.route }) { leaf ->
+        SettingRow(
+            title = stringResource(leaf.titleRes),
+            subtitle = leaf.summaryRes?.let { stringResource(it) },
+            showChevron = true,
+            onClick = { onOpen(leaf) },
+        )
     }
 }
 

@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.shell
 
+import android.widget.Toast
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -26,8 +27,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
@@ -40,6 +46,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import tv.own.owntv.core.metadata.MetadataBudget
 import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
 import tv.own.owntv.mobile.ui.nav.MobileNavHost
@@ -109,6 +116,24 @@ fun MobileShell(
     val settingsTitle = settingsPageTitleRes(currentRoute)
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
+    // Say once per launch that the day's share of the shared metadata service is gone, rather than
+    // letting posters and plots quietly stop appearing. It can happen on any screen, so it belongs
+    // here; `remember` (not rememberSaveable) is exactly the once-per-launch scope wanted.
+    val metadataBudget: MetadataBudget = koinInject()
+    val budgetRefusedAt by metadataBudget.refusedAt.collectAsStateWithLifecycle()
+    var budgetNoticeShown by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    LaunchedEffect(budgetRefusedAt) {
+        if (budgetRefusedAt > 0L && !budgetNoticeShown) {
+            budgetNoticeShown = true
+            Toast.makeText(
+                context,
+                tv.own.owntv.mobile.R.string.settings_metadata_limit_reached,
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
 
     Scaffold(
         modifier = modifier

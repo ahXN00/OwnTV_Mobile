@@ -210,8 +210,10 @@ fun ChannelMenu(
             onDismiss = { dialog = null },
         )
         ChannelDialog.MATCH_EPG -> EpgMatchSheet(
-            channel = channel,
-            vm = vm,
+            channelName = channel.name,
+            currentMatch = vm.currentEpgMatch(channel),
+            search = { vm.availableEpgChannels(channel.name, it) },
+            onPick = { vm.setEpgMatch(channel, it) },
             onDismiss = { dialog = null },
         )
         ChannelDialog.EPG_OFFSET -> EpgOffsetDialog(
@@ -285,22 +287,25 @@ private fun RenameChannelDialog(
  * Providers name the same channel three different ways across a playlist and its XMLTV, and the
  * automatic match gives up on some of them. Searching here is a live query, debounced so a typed
  * word costs one lookup rather than one per letter.
+ *
+ * The Guide opens this same sheet, which is why it takes plain values rather than a view model.
  */
 @Composable
-private fun EpgMatchSheet(
-    channel: ChannelEntity,
-    vm: LiveViewModel,
+internal fun EpgMatchSheet(
+    channelName: String,
+    currentMatch: String?,
+    search: suspend (String) -> List<EpgChannelEntity>,
+    onPick: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<EpgChannelEntity>?>(null) }
-    val currentMatch = remember(channel.id) { vm.currentEpgMatch(channel) }
 
-    LaunchedEffect(channel.id) {
+    LaunchedEffect(channelName) {
         snapshotFlow { query }
             .debounce(SEARCH_DEBOUNCE_MS)
             .distinctUntilChanged()
-            .collect { results = vm.availableEpgChannels(channel.name, it) }
+            .collect { results = search(it) }
     }
 
     MobileBottomSheet(
@@ -309,9 +314,9 @@ private fun EpgMatchSheet(
     ) {
         Text(
             text = if (currentMatch != null) {
-                stringResource(R.string.content_epg_match_prompt_current, channel.name, currentMatch)
+                stringResource(R.string.content_epg_match_prompt_current, channelName, currentMatch)
             } else {
-                stringResource(R.string.content_epg_match_prompt, channel.name)
+                stringResource(R.string.content_epg_match_prompt, channelName)
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -347,7 +352,7 @@ private fun EpgMatchSheet(
                     MobileListRow(
                         title = epg.displayName ?: epg.epgChannelId,
                         subtitle = epg.epgChannelId,
-                        onClick = { vm.setEpgMatch(channel, epg.epgChannelId); onDismiss() },
+                        onClick = { onPick(epg.epgChannelId); onDismiss() },
                     )
                 }
             }
@@ -355,7 +360,7 @@ private fun EpgMatchSheet(
         if (currentMatch != null) {
             MobileButton(
                 text = stringResource(R.string.content_clear_match),
-                onClick = { vm.setEpgMatch(channel, null); onDismiss() },
+                onClick = { onPick(null); onDismiss() },
                 style = MobileButtonStyle.TEXT,
                 modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
             )
@@ -370,7 +375,7 @@ private fun EpgMatchSheet(
  * them runs hours out. This moves that channel only; the global offset in Settings stays put.
  */
 @Composable
-private fun EpgOffsetDialog(
+internal fun EpgOffsetDialog(
     channelName: String,
     currentMinutes: Int?,
     globalMinutes: Int,
@@ -443,7 +448,7 @@ private fun EpgOffsetDialog(
 
 /** "+2h", "−30m", or "Off". The digits go through the locale's own number format. */
 @Composable
-private fun epgShiftLabel(minutes: Int): String {
+internal fun epgShiftLabel(minutes: Int): String {
     if (minutes == 0) return stringResource(R.string.common_off)
     val locale = LocalConfiguration.current.locales[0] ?: java.util.Locale.US
     val number = java.text.NumberFormat.getIntegerInstance(locale)
@@ -647,7 +652,7 @@ private fun NewCategoryDialog(onCreate: (String) -> Unit, onDismiss: () -> Unit)
 
 /** A sheet's list may take at most half the screen: the buttons under it have to stay reachable. */
 @Composable
-private fun sheetListHeight() = (LocalConfiguration.current.screenHeightDp / 2).dp
+internal fun sheetListHeight() = (LocalConfiguration.current.screenHeightDp / 2).dp
 
 private const val MINUS_SIGN = "−"
 private const val PLUS_SIGN = "+"

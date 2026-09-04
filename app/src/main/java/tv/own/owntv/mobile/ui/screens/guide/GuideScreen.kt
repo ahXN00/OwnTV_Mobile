@@ -3,6 +3,7 @@ package tv.own.owntv.mobile.ui.screens.guide
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -53,6 +54,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
+import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
@@ -75,6 +77,7 @@ import java.util.Date
 fun GuideScreen(
     scrollToTop: SharedFlow<String>,
     onOpenChannel: (Long) -> Unit,
+    onAddEpg: () -> Unit,
     modifier: Modifier = Modifier,
     vm: GuideViewModel = koinViewModel(),
 ) {
@@ -87,6 +90,11 @@ fun GuideScreen(
     val window by vm.window.collectAsStateWithLifecycle()
     val storedMode by vm.viewMode.collectAsStateWithLifecycle()
     val density by vm.densityPct.collectAsStateWithLifecycle()
+    val sort by vm.sortGuide.collectAsStateWithLifecycle()
+    val stats by vm.stats.collectAsStateWithLifecycle()
+    val matching by vm.matching.collectAsStateWithLifecycle()
+    val review by vm.review.collectAsStateWithLifecycle()
+    val summary by vm.matchSummary.collectAsStateWithLifecycle()
 
     // Nothing has been chosen yet: a grid needs width, so a portrait phone opens on the "on now" list.
     val wide = LocalConfiguration.current.screenWidthDp >= WIDE_DP
@@ -98,6 +106,7 @@ fun GuideScreen(
 
     var optionsOpen by remember { mutableStateOf(false) }
     var sheetFor by remember { mutableStateOf<Pair<ChannelEntity, EpgProgrammeEntity>?>(null) }
+    var menuFor by remember { mutableStateOf<ChannelEntity?>(null) }
 
     // A different category, day or search is a different list; the old scroll position means nothing.
     LaunchedEffect(selected, day, query, mode) { listState.scrollToItem(0) }
@@ -124,8 +133,18 @@ fun GuideScreen(
         )
         DayStrip(selected = day, onSelect = vm::selectDay)
 
+        if (matching) {
+            MatchingBanner()
+        } else {
+            summary?.let { MatchSummaryBanner(it, onDismiss = vm::clearReview) }
+        }
+        // Not an empty state: the rows below are drawn, they are simply all blank until it is fixed.
+        if (stats?.mismatchedIds == true) {
+            GuideNotice(stringResource(R.string.content_epg_mismatched_ids))
+        }
+
         if (channels.itemCount == 0) {
-            EmptyGuide()
+            EmptyGuide(query = query, stats = stats, onAddEpg = onAddEpg)
         } else {
             when (mode) {
                 SettingsRepository.GuideView.ON_NOW -> OnNowList(
@@ -135,6 +154,7 @@ fun GuideScreen(
                     favorites = favorites,
                     onOpen = { channel, programme -> sheetFor = channel to programme },
                     onOpenChannel = onOpenChannel,
+                    onMenu = { menuFor = it },
                 )
                 SettingsRepository.GuideView.GRID -> GuideGrid(
                     vm = vm,
@@ -144,6 +164,7 @@ fun GuideScreen(
                     densityPct = density,
                     onOpen = { channel, programme -> sheetFor = channel to programme },
                     onOpenChannel = onOpenChannel,
+                    onMenu = { menuFor = it },
                 )
                 SettingsRepository.GuideView.TIMELINE -> GuideTimeline(
                     vm = vm,
@@ -159,10 +180,27 @@ fun GuideScreen(
         GuideOptionsSheet(
             mode = mode,
             densityPct = density,
+            sort = sort,
+            stats = stats,
+            matching = matching,
             onMode = { vm.setViewMode(it); optionsOpen = false },
             onDensity = vm::setDensityPct,
+            onSort = vm::setSortGuide,
+            onAutoMatch = { vm.autoMatchEpg(); optionsOpen = false },
             onDismiss = { optionsOpen = false },
         )
+    }
+    if (review.isNotEmpty()) {
+        EpgReviewSheet(
+            suggestions = review,
+            onAccept = vm::acceptSuggestion,
+            onSkip = vm::skipSuggestion,
+            onAcceptAll = vm::acceptAllSuggestions,
+            onDone = vm::clearReview,
+        )
+    }
+    menuFor?.let { channel ->
+        GuideChannelSheet(channel = channel, vm = vm, onDismiss = { menuFor = null })
     }
     sheetFor?.let { (channel, programme) ->
         ProgrammeSheet(
@@ -206,10 +244,13 @@ private fun OnNowList(
     favorites: Set<Long>,
     onOpen: (ChannelEntity, EpgProgrammeEntity) -> Unit,
     onOpenChannel: (Long) -> Unit,
+    onMenu: (ChannelEntity) -> Unit,
 ) {
     val onNow by vm.onNow.collectAsStateWithLifecycle()
+    val revision by vm.revision.collectAsStateWithLifecycle()
 
-    LaunchedEffect(listState, channels) {
+    // A new match clears what was read, so the rows on screen have to ask for it again.
+    LaunchedEffect(listState, channels, revision) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { it.index } }
             .distinctUntilChanged()
             .collect { indices ->
@@ -242,7 +283,7 @@ private fun OnNowList(
                 },
                 // Without a programme there is nothing to open a sheet about — go straight to the channel.
                 onClick = { if (now != null) onOpen(channel, now) else onOpenChannel(channel.id) },
-                onLongClick = { onOpenChannel(channel.id) },
+                onLongClick = { onMenu(channel) },
             )
             if (now != null) {
                 NowProgress(now)
@@ -372,8 +413,13 @@ private fun ProgrammeSheet(
 private fun GuideOptionsSheet(
     mode: SettingsRepository.GuideView,
     densityPct: Int,
+    sort: SettingsRepository.GuideSort,
+    stats: GuideStats?,
+    matching: Boolean,
     onMode: (SettingsRepository.GuideView) -> Unit,
     onDensity: (Int) -> Unit,
+    onSort: (SettingsRepository.GuideSort) -> Unit,
+    onAutoMatch: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.content_epg_title)) {
@@ -384,6 +430,26 @@ private fun GuideOptionsSheet(
                 onClick = { onMode(entry) },
             )
         }
+        HorizontalDivider()
+        Text(
+            text = stringResource(R.string.content_epg_sort_button, stringResource(sort.labelRes())),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(
+                start = MobileDimens.ScreenPaddingH,
+                top = MobileDimens.GapSmall,
+            ),
+        )
+        FilterChipRow(
+            labels = SettingsRepository.GuideSort.entries.map { stringResource(it.labelRes()) },
+            selectedIndex = SettingsRepository.GuideSort.entries.indexOf(sort),
+            onSelect = { index -> SettingsRepository.GuideSort.entries.getOrNull(index)?.let(onSort) },
+        )
+        HorizontalDivider()
+        MobileListRow(
+            title = stringResource(R.string.content_epg_match_button),
+            subtitle = stats?.let { epgStatsText(it) },
+            onClick = { if (!matching) onAutoMatch() },
+        )
         if (mode == SettingsRepository.GuideView.GRID) {
             HorizontalDivider()
             Text(
@@ -404,16 +470,84 @@ private fun GuideOptionsSheet(
     }
 }
 
+/**
+ * Nothing to draw — and which of the four reasons it is decides what the user can do about it.
+ *
+ * A search that found nothing is not the same problem as having no guide feed at all, and offering
+ * "Add EPG" to someone who simply mistyped a channel name helps nobody.
+ */
 @Composable
-private fun EmptyGuide() {
-    Box(Modifier.fillMaxSize().padding(MobileDimens.GapLarge), contentAlignment = Alignment.Center) {
+private fun EmptyGuide(query: String, stats: GuideStats?, onAddEpg: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(MobileDimens.GapLarge),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        val noEpg = stats?.hasEpgSources == false
         Text(
-            text = stringResource(R.string.content_epg_add_playlist),
+            text = when {
+                query.isNotBlank() -> stringResource(R.string.content_epg_no_channels_query, query)
+                noEpg -> stringResource(R.string.content_epg_empty)
+                else -> stringResource(R.string.content_epg_add_playlist)
+            },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        if (query.isBlank() && noEpg) {
+            Text(
+                text = stringResource(R.string.content_epg_add_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(vertical = MobileDimens.GapSmall),
+            )
+            MobileButton(text = stringResource(R.string.content_epg_add), onClick = onAddEpg)
+        }
     }
+}
+
+/** The guide is being matched: an indeterminate bar, because the matcher counts nothing usefully. */
+@Composable
+private fun MatchingBanner() {
+    Column(Modifier.fillMaxWidth()) {
+        GuideNotice(stringResource(R.string.content_epg_matching))
+        LinearProgressIndicator(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = MobileDimens.ScreenPaddingH),
+        )
+    }
+}
+
+/** What the run did, until it is tapped away. */
+@Composable
+private fun MatchSummaryBanner(summary: EpgMatchSummary, onDismiss: () -> Unit) {
+    MobileListRow(
+        title = epgMatchSummaryText(summary),
+        trailing = {
+            Text(
+                text = stringResource(R.string.common_done),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        },
+        onClick = onDismiss,
+    )
+}
+
+/** One line of explanation across the top of the guide. */
+@Composable
+private fun GuideNotice(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(
+            horizontal = MobileDimens.ScreenPaddingH,
+            vertical = MobileDimens.GapTiny,
+        ),
+    )
 }
 
 /** The chip's text: a translated label for the two built-in lists, the stored name otherwise. */
@@ -422,6 +556,14 @@ private fun LiveCategory.label(): String = when (builtIn) {
     LiveCategory.BuiltIn.ALL -> stringResource(R.string.content_epg_all_categories)
     LiveCategory.BuiltIn.FAVORITES -> stringResource(R.string.content_category_favorites)
     else -> title.orEmpty()
+}
+
+private fun SettingsRepository.GuideSort.labelRes() = when (this) {
+    SettingsRepository.GuideSort.ALPHA -> R.string.content_epg_sort_alpha
+    SettingsRepository.GuideSort.PROVIDER -> R.string.content_epg_sort_provider
+    SettingsRepository.GuideSort.LIVE_TV -> R.string.content_epg_sort_live
+    SettingsRepository.GuideSort.CATCHUP -> R.string.content_epg_sort_catchup
+    SettingsRepository.GuideSort.FAVORITES -> R.string.content_epg_sort_favorites
 }
 
 private fun SettingsRepository.GuideView.labelRes() = when (this) {

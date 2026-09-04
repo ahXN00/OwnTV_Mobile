@@ -30,6 +30,7 @@ fun MobileListRow(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleMaxLines: Int = 1,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit = {},
@@ -67,7 +68,7 @@ fun MobileListRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = subtitleMaxLines,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
