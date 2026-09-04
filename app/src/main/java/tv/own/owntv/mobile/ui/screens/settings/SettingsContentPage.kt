@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -254,7 +255,8 @@ private val METADATA_LANGUAGE_CODES = listOf(
 private fun metadataLanguageName(code: String): String = when (code) {
     "" -> stringResource(R.string.settings_language_default)
     MetadataConfig.LANGUAGE_AUTO -> stringResource(R.string.settings_language_device)
-    else -> Locale.forLanguageTag(code).getDisplayName(Locale.getDefault())
+    else -> Locale.forLanguageTag(code)
+        .getDisplayName(LocalConfiguration.current.locales[0])
 }
 
 /** One window of the shared allowance: how many lookups are left of how many. */
