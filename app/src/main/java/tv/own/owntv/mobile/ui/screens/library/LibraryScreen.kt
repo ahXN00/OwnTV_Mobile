@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -49,6 +51,7 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -106,6 +109,7 @@ fun LibraryScreen(
 
     var menuFor by remember { mutableStateOf<VodItem?>(null) }
     var sheetOpen by remember { mutableStateOf(false) }
+    var categoryPicker by remember { mutableStateOf(false) }
 
     // A new selection's scroll position has nothing to do with the old one's.
     LaunchedEffect(tab, selected) {
@@ -130,14 +134,24 @@ fun LibraryScreen(
                 labels = categories.map { it.label(tab) },
                 selectedIndex = categories.indexOfFirst { it.key == selected },
                 onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
-                modifier = Modifier.padding(end = MobileDimens.TouchTarget),
+                modifier = Modifier.padding(end = MobileDimens.TouchTarget * 2),
             )
-            IconButton(
-                onClick = { sheetOpen = true },
-                modifier = Modifier.align(Alignment.CenterEnd),
-            ) {
-                Icon(Icons.Filled.Tune, stringResource(R.string.content_sorting))
+            Row(Modifier.align(Alignment.CenterEnd)) {
+                IconButton(onClick = { categoryPicker = true }) {
+                    Icon(Icons.Filled.Search, stringResource(R.string.content_search_categories))
+                }
+                IconButton(onClick = { sheetOpen = true }) {
+                    Icon(Icons.Filled.Tune, stringResource(R.string.content_sorting))
+                }
             }
+        }
+        if (categoryPicker) {
+            CategoryPickerSheet(
+                labels = categories.map { it.label(tab) },
+                selectedIndex = categories.indexOfFirst { it.key == selected },
+                onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
+                onDismiss = { categoryPicker = false },
+            )
         }
         val categoryLabel = categories.firstOrNull { it.key == selected }?.label(tab).orEmpty()
         Text(
@@ -206,6 +220,7 @@ fun LibraryScreen(
             tab = tab,
             selected = selected,
             isFavorite = item.id in favorites,
+            originName = categories.firstOrNull { it.key == selected }?.label(tab).orEmpty(),
             vm = vm,
             onDismiss = { menuFor = null },
         )

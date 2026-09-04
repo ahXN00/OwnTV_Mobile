@@ -18,6 +18,9 @@ work = "2.11.2"
 
 # --- Paging ---
 paging = "3.5.1"
+# Correct squircle maths for the Aurora glass. Hand-rolled continuous curvature looks wrong at
+# small radii, and this is the supported implementation of it.
+graphicsShapes = "1.0.1"
 
 # --- Kotlin libs ---
 coroutines = "1.11.0"
@@ -75,6 +78,7 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 # components assume a focus-driven, ten-foot UI. If a screen seems to need it, it is TV code.
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "adaptive" }
+androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphicsShapes" }
 
 # Lifecycle / Navigation
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }

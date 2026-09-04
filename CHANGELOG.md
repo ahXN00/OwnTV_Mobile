@@ -55,6 +55,8 @@ release automation.
 - **Catch-up** opens a list of programmes the provider still keeps, newest first; pick one to replay.
 - **Pull the list down to refresh it**, which runs the same playlist sync the TV app's manual refresh
   runs.
+- **Find a category by typing.** A playlist with four hundred folders makes the chip strip along the
+  top useless on a phone, so the search button beside it opens a list you can filter by name.
 
 ### 🎬 Films and shows
 
@@ -67,12 +69,28 @@ release automation.
 - **Pinch to make the posters bigger or smaller**, or use the size slider; the app remembers the size
   you chose.
 - **Press and hold a film or a show for its menu**: favourite, play in another app, mark as watched,
-  download, remove from history and hide, in the order you arranged them in Settings.
+  download, move it, move it to another folder, delete its downloaded subtitles, film details, play
+  the trailer, fetch the details again, set the name used to look them up, remove from history and
+  hide — in the order you arranged them in Settings, on either app.
+- **Film details in a sheet**: the picture, the year, the rating, the length, the full description
+  and the cast, taken from the same place the television takes them and honouring the same choice
+  about whether your provider's text or the online text wins.
+- **The trailer opens in whatever plays YouTube on your phone**, which is a better player than one
+  built into a television app.
+- **Press and hold an episode too** — download it, play it in another app, mark it watched, see its
+  details, fetch them again, or delete the subtitles you downloaded for it. The television has had
+  this; the phone now has the same six.
 - **Tap one to open it**, with its picture, year, rating, length and description, and a **Resume**
   button that starts where you stopped — the same place the television stopped, because both apps
   share it.
 - **A show opens on the season of the last episode you watched**, with a bar under each episode
   showing how far through it you are.
+- **A show tells you where you are in it.** A **Next up** card at the top starts the episode you owe,
+  each season chip carries how many of its episodes are finished, a tick marks the ones that are, and
+  the one you watched last is labelled.
+- **Hide the episodes you have finished**, and **sort seasons and episodes oldest or newest first** —
+  the same choice the television makes, stored in the same place, so a show reversed there opens
+  reversed here.
 - **Films play in the same player as live television**, in the mini bar or full screen, with all the
   same controls and gestures.
 
@@ -242,6 +260,24 @@ release automation.
   programmes and catch-up channels it brought in, or what went wrong.
 - **Catch-up settings**: follow the phone's clock or set the provider's offset by hand, and choose
   whether a catch-up programme asks, plays in OwnTV, or opens in another app.
+- **A frosted glass look, made for the phone.** Set a background picture and the app's panels, bars,
+  cards and sheets become panes of frosted glass over it: the picture is genuinely blurred behind
+  them, each pane has a lit edge and a highlight along its top, and the panes pick up a little of the
+  picture's own colour so they belong to it instead of sitting on it. A new **Aurora** look is the
+  one to try first. Devices older than Android 12 cannot blur behind a panel, so there the glass is
+  see-through and edge-lit without the frost.
+- **Glass Effect has a page of its own**, with a live sample at the top that changes as you drag.
+  Six looks to pick from, a switch for each part of the app you want it on — bars, panels, cards,
+  sheets, the mini player — sliders for see-through, blur and edge light, shadows on or off, a
+  background picture you choose with the phone's own picker, and one press back to Balanced.
+- **Fonts have a page of their own.** The interface font and size, and — new on the phone — the font
+  and size used inside menus and sheets, with a sample that changes as you choose.
+- **Weather has a page of its own, and can use where the phone actually is.** Turn it on and the
+  forecast follows the phone instead of guessing from the network, which on a phone that travels is
+  the difference between your weather and your provider's. It asks only for approximate location,
+  only when you turn it on, and typing a city by hand still works.
+- **Any accent colour, not just the presets**: type six hex digits and the app checks them as you
+  type.
 - **Everything is stored where the TV app stores it**, so a setting changed on the phone and backed
   up arrives on the television when you restore it there.
 

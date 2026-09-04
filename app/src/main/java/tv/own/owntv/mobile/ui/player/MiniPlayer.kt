@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -32,8 +33,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassSurface
 import tv.own.owntv.player.OwnTVPlayer
 
 private val BAR_HEIGHT = 64.dp
@@ -67,7 +70,11 @@ fun MiniPlayer(
     Column(
         modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .glassSurface(
+                GlassSurface.MINI_PLAYER,
+                RectangleShape,
+                MaterialTheme.colorScheme.surfaceContainerHigh,
+            )
             .clickable(onClick = onExpand)
             .pointerInput(Unit) {
                 var travel = 0f

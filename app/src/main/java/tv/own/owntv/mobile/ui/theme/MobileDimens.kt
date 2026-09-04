@@ -20,7 +20,7 @@ object MobileDimens {
     val GapLarge = 24.dp
 
     val CardCorner = 12.dp
-    val SheetCorner = 24.dp
+    val SheetCorner = 28.dp
 
     val PosterWidthPortrait = 100.dp
     val PosterWidthLandscape = 120.dp

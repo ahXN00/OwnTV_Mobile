@@ -30,6 +30,8 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsContentPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsCustomizePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsDataPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsErrorLogPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsFontsPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsGlassPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsGroup
 import tv.own.owntv.mobile.ui.screens.settings.SettingsLayoutPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsLeaf
@@ -44,6 +46,7 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsPlaylistsPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsSourcesPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsSubtitleAppearancePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsVideoPlayerPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsWeatherPage
 import tv.own.owntv.mobile.ui.setup.SetupFlow
 
 /**
@@ -179,7 +182,7 @@ fun MobileNavHost(
                 when (group) {
                     SettingsGroup.PROFILE -> SettingsProfilePage()
                     SettingsGroup.SOURCES -> SettingsSourcesPage(onOpenLeaf = openLeaf)
-                    SettingsGroup.APPEARANCE -> SettingsAppearancePage()
+                    SettingsGroup.APPEARANCE -> SettingsAppearancePage(onOpenLeaf = openLeaf)
                     SettingsGroup.LAYOUT -> SettingsLayoutPage()
                     SettingsGroup.CONTENT -> SettingsContentPage(onOpenLeaf = openLeaf)
                     SettingsGroup.PLAYBACK -> SettingsPlaybackPage(onOpenLeaf = openLeaf)
@@ -198,6 +201,9 @@ fun MobileNavHost(
                         onAddSource = { navController.navigate(SETUP_ROUTE) },
                     )
                     SettingsLeaf.EPG_SOURCES -> SettingsEpgSourcesPage()
+                    SettingsLeaf.GLASS_EFFECT -> SettingsGlassPage()
+                    SettingsLeaf.FONTS -> SettingsFontsPage()
+                    SettingsLeaf.WEATHER -> SettingsWeatherPage()
                     SettingsLeaf.CUSTOMIZE -> SettingsCustomizePage()
                     SettingsLeaf.METADATA -> SettingsMetadataPage()
                     SettingsLeaf.OPEN_SUBTITLES -> SettingsOpenSubtitlesPage()

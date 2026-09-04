@@ -26,6 +26,10 @@
 - **Press and hold a film or show for its full menu**
 - **Film and show details with Resume, seasons and episode progress**
 - **A show opens on the season you last watched**
+- **Press and hold an episode for its own menu**
+- **Film details in a sheet, with the cast and the trailer**
+- **Next up card, season progress, watched ticks and a last-watched marker**
+- **Hide finished episodes, and sort seasons and episodes oldest or newest first**
 - **Home with your own rows, in your order, hiding what you hid on the TV**
 - **A hero card for what you were last watching, with Resume**
 - **Continue-watching rows for films and shows, with progress**
@@ -46,6 +50,7 @@
 - **Watch a channel with the guide, the other channels and catch-up below it**
 - **Catch-up TV**
 - **Pull down to refresh the playlist**
+- **Search the categories instead of scrolling the chip strip**
 - **Full screen player with the complete control bar**
 - **Touch gestures: skip, scrub, volume, brightness, zoom, speed and mute**
 - **Rewind live TV into the archive, and Go live**
@@ -91,6 +96,12 @@
 - **Settings search shows the full path to a result and lands on it**
 - **Pickers open as bottom sheets**
 - **Live preview while you choose a theme, accent and text size**
+- **Frosted glass over your own background picture**
+- **New Aurora look**
+- **Glass Effect page: six looks, per-part switches, blur, edge light and shadows**
+- **Fonts page, including the font used in menus and sheets**
+- **Weather page, with approximate device location**
+- **Any accent colour by hex code**
 - **Phone-only settings: background playback, Picture-in-Picture, gestures and a data saver**
 - **Downloads over Wi-Fi only**
 - **Per-playlist player, buffer and pre-buffer overrides**

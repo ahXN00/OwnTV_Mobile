@@ -33,6 +33,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -47,6 +49,7 @@ import androidx.navigation.compose.rememberNavController
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import tv.own.owntv.core.metadata.MetadataBudget
+import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
 import tv.own.owntv.mobile.ui.nav.MobileNavHost
@@ -59,6 +62,7 @@ import tv.own.owntv.mobile.ui.player.MiniPlayer
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.screens.settings.settingsPageTitleRes
+import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /**
  * The frame every screen sits in: a top app bar that collapses as you scroll, the navigation itself,
@@ -136,11 +140,18 @@ fun MobileShell(
     }
 
     Scaffold(
+        // The wallpaper is drawn by the backdrop root underneath; a Scaffold that painted its own
+        // background would cover it and leave the glass with nothing to be transparent to.
+        containerColor = Color.Transparent,
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             if (!fullscreen) TopAppBar(
+                // Transparent container plus the glass modifier, rather than a colour: the bar has
+                // to let the wallpaper through it, and a container colour cannot.
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                modifier = Modifier.glassSurface(GlassSurface.TOPBAR, RectangleShape),
                 title = {
                     Text(
                         // Search belongs to no tab, so it names itself rather than inheriting Home's.
@@ -214,7 +225,10 @@ fun MobileShell(
                         )
                     }
                     if (!useRail) {
-                        NavigationBar {
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            modifier = Modifier.glassSurface(GlassSurface.SIDEBAR, RectangleShape),
+                        ) {
                             destinations.forEach { destination ->
                                 NavigationBarItem(
                                     selected = destination == current,
@@ -232,7 +246,10 @@ fun MobileShell(
     ) { insets ->
         Row(Modifier.padding(insets)) {
             if (useRail && !fullscreen) {
-                NavigationRail {
+                NavigationRail(
+                    containerColor = Color.Transparent,
+                    modifier = Modifier.glassSurface(GlassSurface.SIDEBAR, RectangleShape),
+                ) {
                     destinations.forEach { destination ->
                         NavigationRailItem(
                             selected = destination == current,
@@ -244,7 +261,7 @@ fun MobileShell(
                     }
                 }
             }
-            Box(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize().glassSurface(GlassSurface.PANELS, RectangleShape)) {
                 MobileNavHost(
                     navController = navController,
                     scrollToTop = shellViewModel.scrollToTop,

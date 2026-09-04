@@ -16,21 +16,27 @@ import kotlinx.coroutines.launch
 import tv.own.owntv.core.content.AdultCategoryClassifier
 import tv.own.owntv.core.database.dao.CategoryDao
 import tv.own.owntv.core.database.dao.FavoriteDao
+import tv.own.owntv.core.database.dao.LinkedSubtitle
 import tv.own.owntv.core.database.dao.MovieDao
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.ProgressDao
 import tv.own.owntv.core.database.dao.SeriesDao
+import tv.own.owntv.core.database.dao.SeriesSortOrderDao
 import tv.own.owntv.core.database.dao.resolveExistingProfileId
 import tv.own.owntv.core.database.entity.EpisodeEntity
 import tv.own.owntv.core.database.entity.FavoriteEntity
+import tv.own.owntv.core.database.entity.MetadataCacheEntity
 import tv.own.owntv.core.database.entity.MovieEntity
 import tv.own.owntv.core.database.entity.PlaybackProgressEntity
 import tv.own.owntv.core.database.entity.SeriesEntity
 import tv.own.owntv.core.download.DownloadManager
+import tv.own.owntv.core.metadata.MetadataMode
+import tv.own.owntv.core.metadata.MetadataRepository
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.repository.SeriesRepository
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.storage.StorageAccess
+import tv.own.owntv.core.subtitles.SubtitleController
 
 /**
  * One film or one show, opened.
@@ -53,6 +59,9 @@ class DetailViewModel(
     private val seriesRepository: SeriesRepository,
     private val downloadManager: DownloadManager,
     private val tuner: VodTuner,
+    private val seriesSortOrderDao: SeriesSortOrderDao,
+    private val metadata: MetadataRepository,
+    private val subtitleController: SubtitleController,
 ) : ViewModel() {
 
     private data class Target(val tab: LibraryTab, val id: Long)
@@ -81,10 +90,35 @@ class DetailViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** The seasons this show actually has episodes for, in order. */
-    val seasons: StateFlow<List<Int>> = episodes
-        .map { list -> list.map { it.seasonNumber }.distinct().sorted() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /**
+     * How this show's seasons and episodes are presented. Persisted per profile and per series in the
+     * database the TV app writes too, so a show reversed on the television opens reversed here.
+     *
+     * Presentation only: playing on from one episode to the next always follows episode order.
+     */
+    data class SeriesOrder(val seasonsDescending: Boolean = false, val episodesDescending: Boolean = false)
+
+    val order: StateFlow<SeriesOrder> = combine(target, profileId) { t, pid -> t to pid }
+        .flatMapLatest { (t, pid) ->
+            if (t?.tab != LibraryTab.SERIES || pid < 0) flowOf(null) else seriesSortOrderDao.observe(pid, t.id)
+        }
+        .map { row -> row?.let { SeriesOrder(it.seasonsDescending, it.episodesDescending) } ?: SeriesOrder() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SeriesOrder())
+
+    fun setOrder(seasonsDescending: Boolean, episodesDescending: Boolean) {
+        val t = target.value ?: return
+        viewModelScope.launch {
+            val pid = profileId.value.takeIf { it >= 0 } ?: return@launch
+            seriesSortOrderDao.setOrder(pid, t.id, seasonsDescending, episodesDescending)
+        }
+    }
+
+    /** The seasons this show actually has episodes for, in the order the user chose. */
+    val seasons: StateFlow<List<Int>> = combine(episodes, order) { list, o ->
+        val numbers = list.map { it.seasonNumber }.distinct().sorted()
+        if (o.seasonsDescending) numbers.reversed() else numbers
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
 
     val isFavorite: StateFlow<Boolean> = combine(target, profileId) { t, pid -> t to pid }
         .flatMapLatest { (t, pid) ->
@@ -109,6 +143,37 @@ class DetailViewModel(
             }
             .map { list -> list.associateBy { it.itemId } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** Episodes counted as finished: ≥95 % watched, which is also what "mark watched" writes. */
+    val completedIds: StateFlow<Set<Long>> = episodeProgress
+        .map { prog -> prog.values.filter { it.isFinished() }.map { it.itemId }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    /** The episode the row marker points at: the one watched most recently, finished or not. */
+    val lastWatchedId: StateFlow<Long?> = episodeProgress
+        .map { prog -> prog.values.maxByOrNull { it.updatedAt }?.itemId }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * What the "Next up" card offers: the episode still in progress, else the one after the last
+     * finished, else the first — and nothing at all once the whole show has been watched.
+     */
+    val nextUpId: StateFlow<Long?> = combine(episodes, episodeProgress) { eps, prog ->
+        if (eps.isEmpty()) return@combine null
+        val ordered = eps.sortedWith(compareBy({ it.seasonNumber }, { it.episodeNumber }))
+        val lastWatched = prog.values.maxByOrNull { it.updatedAt } ?: return@combine ordered.first().id
+        if (lastWatched.isFinished()) {
+            val index = ordered.indexOfFirst { it.id == lastWatched.itemId }
+            if (index in 0 until ordered.size - 1) ordered[index + 1].id else null
+        } else {
+            ordered.firstOrNull { it.id == lastWatched.itemId }?.id
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** "Hide watched" for the episode list. Off on every open, exactly as on the television. */
+    private val _hideWatched = MutableStateFlow(false)
+    val hideWatched: StateFlow<Boolean> = _hideWatched
+    fun setHideWatched(value: Boolean) { _hideWatched.value = value }
 
     /**
      * Point the screen at an item. For a show this also fetches the episode list if the provider has
@@ -247,6 +312,26 @@ class DetailViewModel(
         )
     }
 
+    val metadataMode: StateFlow<MetadataMode> = settings.metadataMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MetadataMode.PROVIDER_PLUS_TMDB)
+
+    /** The TMDB record for one episode — the still, the plot, the air date. Null when off or unmatched. */
+    suspend fun episodeMeta(episode: EpisodeEntity): MetadataCacheEntity? = runCatching {
+        show.value?.let { metadata.resolveEpisode(it, episode) }
+    }.getOrNull()
+
+    /** Forget what TMDB said about this episode, so the next resolve asks again. */
+    suspend fun clearEpisodeMeta(episode: EpisodeEntity) {
+        show.value?.let { metadata.clearEpisode(it, episode) }
+    }
+
+    suspend fun downloadedSubtitles(episode: EpisodeEntity): List<LinkedSubtitle> =
+        show.value?.let { subtitleController.downloadsForEpisode(it, episode) }.orEmpty()
+
+    fun deleteSubtitle(cacheId: Long) {
+        viewModelScope.launch { subtitleController.deleteCached(cacheId) }
+    }
+
     /** Play on a show means carry on: the episode left unfinished, else the first one. */
     private suspend fun firstEpisodeToPlay(): Long? {
         val t = target.value ?: return null
@@ -263,3 +348,7 @@ class DetailViewModel(
 
 private fun LibraryTab.mediaType() =
     if (this == LibraryTab.MOVIES) MediaType.MOVIE else MediaType.SERIES
+
+/** Finished at 95 %, which is also where the mark-watched marker and the TV app's card sit. */
+private fun PlaybackProgressEntity.isFinished(): Boolean =
+    durationMs > 0 && positionMs >= (durationMs * 0.95f).toLong()
