@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.guide
 
+import tv.own.owntv.mobile.ui.components.ChannelLogoImage
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,11 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -42,7 +38,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
@@ -124,7 +119,7 @@ fun GuideScreen(
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = { optionsOpen = true }) {
-                Icon(Icons.Filled.Tune, stringResource(R.string.content_epg_title))
+                Icon(MobileIcons.Tune, stringResource(R.string.content_epg_title))
             }
         }
         FilterChipRow(
@@ -275,7 +270,7 @@ private fun OnNowList(
                 trailing = {
                     if (channel.id in favorites) {
                         Icon(
-                            imageVector = Icons.Filled.Star,
+                            imageVector = MobileIcons.Star,
                             contentDescription = stringResource(R.string.content_category_favorites),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(TRAILING_ICON),
@@ -329,22 +324,18 @@ private fun NowProgress(programme: EpgProgrammeEntity) {
 
 @Composable
 internal fun ChannelLogo(channel: ChannelEntity) {
-    val logo = channel.displayLogoUrl
-    if (logo != null) {
-        AsyncImage(
-            model = logo,
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.size(LOGO_SIZE),
-        )
-    } else {
-        Icon(
-            imageVector = Icons.Filled.LiveTv,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(LOGO_SIZE),
-        )
-    }
+    ChannelLogoImage(
+        url = channel.displayLogoUrl,
+        modifier = Modifier.size(LOGO_SIZE),
+        fallback = {
+            Icon(
+                imageVector = MobileIcons.LiveTv,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(LOGO_SIZE),
+            )
+        },
+    )
 }
 
 /**
@@ -406,7 +397,7 @@ private fun ProgrammeSheet(
             ),
             leading = {
                 Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    imageVector = if (isFavorite) MobileIcons.Star else MobileIcons.StarBorder,
                     contentDescription = null,
                 )
             },

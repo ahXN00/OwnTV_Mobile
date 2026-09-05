@@ -1,5 +1,8 @@
 package tv.own.owntv.mobile.ui.player
 
+import tv.own.owntv.mobile.ui.theme.LocalAnimations
+import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -17,9 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,13 +41,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
-import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.SleepTimer
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.MobileSheetShape
 
 /** What the sleep timer offers, in minutes. Round numbers, because nobody falls asleep to 37. */
 private val SLEEP_MINUTES = intArrayOf(15, 30, 45, 60, 90)
@@ -85,10 +85,8 @@ fun AudioOnlyBackdrop(
     artworkUrl: String? = null,
     programmeEndMs: Long? = null,
     sleepTimer: SleepTimer = koinInject(),
-    settings: SettingsRepository = koinInject(),
 ) {
     val remaining by sleepTimer.remainingMs.collectAsStateWithLifecycle()
-    val animations by settings.animationLevel.collectAsStateWithLifecycle(AnimationLevel.FULL)
     var timerSheet by remember { mutableStateOf(false) }
 
     Box(
@@ -107,14 +105,14 @@ fun AudioOnlyBackdrop(
             if (!compact) Box(
                 Modifier
                     .size(ARTWORK_SIZE)
-                    .clip(RoundedCornerShape(MobileDimens.SheetCorner))
+                    .clip(MobileSheetShape)
                     .background(Color.White.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center,
             ) {
                 // A channel logo is the only artwork a live stream has, and plenty of them have none
                 // at all — hence a glyph underneath rather than an empty square.
                 Icon(
-                    Icons.Default.MusicNote,
+                    MobileIcons.MusicNote,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                     tint = Color.White.copy(alpha = 0.6f),
@@ -147,14 +145,14 @@ fun AudioOnlyBackdrop(
             }
             Waveform(
                 active = playing,
-                animate = animations == AnimationLevel.FULL,
+                animate = LocalAnimations.current == AnimationLevel.FULL,
                 modifier = Modifier.padding(top = MobileDimens.GapMedium),
             )
             // The one thing the player's own bar does not already offer, and the reason most people
             // drop the picture in the first place. The bar itself covers this spot, so it waits for
             // the controls to go away — which they do on their own after a few seconds.
             if (!compact) TextButton(onClick = { timerSheet = true }) {
-                Icon(Icons.Default.Bedtime, contentDescription = null, tint = Color.White)
+                Icon(MobileIcons.Bedtime, contentDescription = null, tint = Color.White)
                 Text(
                     text = remaining?.let {
                         stringResource(R.string.player_sleep_timer_remaining, minutesLabel(it))
@@ -219,9 +217,13 @@ private fun minutesLabel(remainingMs: Long): String {
     return stringResource(R.string.player_duration_minutes, minutes)
 }
 
-/** Something moving, so a screen with no picture still looks like it is playing. */
+/**
+ * Something moving, so a screen with no picture still looks like it is playing.
+ *
+ * Shared with the mini player's bar, which has the same black rectangle and the same problem.
+ */
 @Composable
-private fun Waveform(active: Boolean, animate: Boolean, modifier: Modifier = Modifier) {
+fun Waveform(active: Boolean, animate: Boolean, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "waveform")
     Row(
         modifier.height(WAVE_HEIGHT),
@@ -248,7 +250,9 @@ private fun Waveform(active: Boolean, animate: Boolean, modifier: Modifier = Mod
                     .width(WAVE_BAR_WIDTH)
                     .fillMaxHeight(fraction)
                     .clip(RoundedCornerShape(WAVE_BAR_WIDTH / 2))
-                    .background(MaterialTheme.colorScheme.primary),
+                    // Over the picture — or, here, over where the picture would be. The scheme's
+                    // primary is a dark accent on a dark scene in the light theme.
+                    .background(LocalAccentOnVideo.current),
             )
         }
     }

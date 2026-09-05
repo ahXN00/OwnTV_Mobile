@@ -1,13 +1,12 @@
 package tv.own.owntv.mobile.ui.screens.settings.customize
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,7 +69,7 @@ fun CustomizeItemsPane(
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = MobileIcons.ArrowBack,
                         contentDescription = stringResource(R.string.settings_customize_back),
                     )
                 }

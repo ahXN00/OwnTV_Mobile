@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.guide
 
+import tv.own.owntv.core.theme.AnimationLevel
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -21,8 +23,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +51,7 @@ import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import java.util.Date
 
@@ -78,6 +79,7 @@ internal fun GuideGrid(
     val revision by vm.revision.collectAsStateWithLifecycle()
     val timeScroll = rememberScrollState()
     val scope = rememberCoroutineScope()
+    val instant = LocalAnimations.current == AnimationLevel.OFF
     val minuteWidth = (BASE_MINUTE_DP * densityPct / 100f).dp
     val minutePx = with(LocalDensity.current) { minuteWidth.toPx() }
     val times = rememberGuideTimeFormat()
@@ -90,10 +92,13 @@ internal fun GuideGrid(
                         // Where "now" falls in the window. Outside it — another day — this is the start.
                         val minutes = ((System.currentTimeMillis() - window.start) / MINUTE_MS)
                             .coerceAtLeast(0L)
-                        scope.launch { timeScroll.animateScrollTo((minutes * minutePx).toInt()) }
+                        val to = (minutes * minutePx).toInt()
+                        scope.launch {
+                            if (instant) timeScroll.scrollTo(to) else timeScroll.animateScrollTo(to)
+                        }
                     },
                 ) {
-                    Icon(Icons.Filled.Schedule, stringResource(R.string.content_epg_jump_now))
+                    Icon(MobileIcons.Schedule, stringResource(R.string.content_epg_jump_now))
                 }
             }
             Row(Modifier.horizontalScroll(timeScroll)) {

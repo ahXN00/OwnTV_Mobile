@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.dev
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -175,7 +174,7 @@ fun ThemeGalleryScreen(modifier: Modifier = Modifier) {
                         subtitle = stringResource(R.string.common_nav_guide),
                         leading = {
                             Icon(
-                                imageVector = Icons.Filled.Favorite,
+                                imageVector = MobileIcons.Favorite,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                             )

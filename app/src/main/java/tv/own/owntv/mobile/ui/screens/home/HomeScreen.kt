@@ -1,5 +1,9 @@
 package tv.own.owntv.mobile.ui.screens.home
 
+import tv.own.owntv.mobile.ui.screens.library.LibraryTab
+import tv.own.owntv.mobile.ui.nav.posterKey
+import tv.own.owntv.mobile.ui.components.ChannelLogoImage
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -18,17 +22,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Grain
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -76,6 +69,7 @@ import tv.own.owntv.mobile.ui.components.SectionHeader
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.MobilePosterShape
 
 /**
  * Home, on a phone.
@@ -294,7 +288,7 @@ private fun HeroCard(
         // Underneath the picture, so a channel with no logo and a film with no backdrop are still a
         // card with a subject rather than an empty rectangle — and so is one whose URL fails to load.
         Icon(
-            imageVector = if (live) Icons.Filled.LiveTv else Icons.Filled.PlayArrow,
+            imageVector = if (live) MobileIcons.LiveTv else MobileIcons.PlayArrow,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f),
             modifier = Modifier.align(Alignment.Center).size(HeroLogoSize),
@@ -323,7 +317,7 @@ private fun HeroCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (live) {
                     Icon(
-                        Icons.Filled.LiveTv,
+                        MobileIcons.LiveTv,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(HeroBadgeSize).padding(end = MobileDimens.GapTiny),
@@ -356,7 +350,7 @@ private fun HeroCard(
                 )
             }
             Button(onClick = onPlay, modifier = Modifier.padding(top = MobileDimens.GapSmall)) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                Icon(MobileIcons.PlayArrow, contentDescription = null)
                 Text(
                     text = stringResource(item.actionLabel()),
                     modifier = Modifier.padding(start = MobileDimens.GapSmall),
@@ -405,6 +399,7 @@ private fun TrendingRow(
                     is TrendingHomeItem.Movie -> PosterCard(
                         title = item.movie.name,
                         imageUrl = item.movie.posterUrl,
+                        sharedKey = posterKey(LibraryTab.MOVIES.name, item.movie.id),
                         onClick = { onOpenMovie(item.movie.id) },
                         onLongClick = {
                             onMenu(ContentTarget(MediaType.MOVIE, item.movie.id, item.movie.name))
@@ -413,6 +408,7 @@ private fun TrendingRow(
                     is TrendingHomeItem.Series -> PosterCard(
                         title = item.series.name,
                         imageUrl = item.series.posterUrl,
+                        sharedKey = posterKey(LibraryTab.SERIES.name, item.series.id),
                         onClick = { onOpenSeries(item.series.id) },
                         onLongClick = {
                             onMenu(ContentTarget(MediaType.SERIES, item.series.id, item.series.name))
@@ -596,25 +592,21 @@ private fun ChannelLogo(channel: ChannelEntity, size: androidx.compose.ui.unit.D
     Box(
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(MobileDimens.PosterArtCorner))
+            .clip(MobilePosterShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
-        val logo = channel.displayLogoUrl
-        if (logo != null) {
-            AsyncImage(
-                model = logo,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize().padding(MobileDimens.GapTiny),
-            )
-        } else {
-            Icon(
-                Icons.Filled.LiveTv,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        ChannelLogoImage(
+            url = channel.displayLogoUrl,
+            modifier = Modifier.fillMaxSize().padding(MobileDimens.GapTiny),
+            fallback = {
+                Icon(
+                    MobileIcons.LiveTv,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+        )
     }
 }
 
@@ -658,13 +650,13 @@ private fun WeatherChip(info: WeatherInfo, fahrenheit: Boolean) {
  * off the code and not [WeatherInfo.symbolKey], whose keys name the TV's drawings.
  */
 private fun WeatherInfo.conditionIcon(): ImageVector = when {
-    weatherCode <= 2 && isDay -> Icons.Filled.WbSunny
-    weatherCode <= 2 -> Icons.Filled.DarkMode
-    weatherCode in 51..57 -> Icons.Filled.Grain
-    weatherCode in 61..67 || weatherCode in 80..82 -> Icons.Filled.WaterDrop
-    weatherCode in 71..77 || weatherCode in 85..86 -> Icons.Filled.AcUnit
-    weatherCode in 95..99 -> Icons.Filled.Bolt
-    else -> Icons.Filled.Cloud
+    weatherCode <= 2 && isDay -> MobileIcons.WbSunny
+    weatherCode <= 2 -> MobileIcons.DarkMode
+    weatherCode in 51..57 -> MobileIcons.Grain
+    weatherCode in 61..67 || weatherCode in 80..82 -> MobileIcons.WaterDrop
+    weatherCode in 71..77 || weatherCode in 85..86 -> MobileIcons.AcUnit
+    weatherCode in 95..99 -> MobileIcons.Bolt
+    else -> MobileIcons.Cloud
 }
 
 @Composable

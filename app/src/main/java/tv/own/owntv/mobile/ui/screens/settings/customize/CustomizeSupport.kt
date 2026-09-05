@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings.customize
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,8 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -218,7 +217,7 @@ fun selectedTick(selected: Boolean): (@Composable () -> Unit)? =
     if (!selected) null else {
         {
             Icon(
-                imageVector = Icons.Filled.Check,
+                imageVector = MobileIcons.Check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )

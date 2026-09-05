@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.library
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -8,20 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Subtitles
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.Title
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -114,7 +101,7 @@ fun VodMenu(
                     label = stringResource(
                         if (isFavorite) R.string.content_remove_favourite else R.string.content_add_favourite,
                     ),
-                    icon = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    icon = if (isFavorite) MobileIcons.Star else MobileIcons.StarBorder,
                     group = 0,
                     onClick = { vm.toggleFavorite(item.id) },
                 ),
@@ -126,7 +113,7 @@ fun VodMenu(
                         label = stringResource(
                             if (watched) R.string.content_mark_unwatched else R.string.content_mark_watched,
                         ),
-                        icon = if (watched) Icons.Filled.RadioButtonUnchecked else Icons.Filled.CheckCircle,
+                        icon = if (watched) MobileIcons.RadioButtonUnchecked else MobileIcons.CheckCircle,
                         group = 0,
                         onClick = { vm.setWatched(item.id, !watched) },
                     ),
@@ -135,7 +122,7 @@ fun VodMenu(
                     SheetAction(
                         key = "play_external",
                         label = stringResource(R.string.content_play_external_short),
-                        icon = Icons.Filled.OpenInNew,
+                        icon = MobileIcons.OpenInNew,
                         group = 1,
                         onClick = { vm.playExternal(item.id) },
                     ),
@@ -147,7 +134,7 @@ fun VodMenu(
                     label = stringResource(
                         if (movie) R.string.content_download else R.string.content_download_all_episodes,
                     ),
-                    icon = Icons.Filled.Download,
+                    icon = MobileIcons.Download,
                     group = 1,
                     onClick = { vm.download(item.id) },
                 ),
@@ -157,7 +144,7 @@ fun VodMenu(
                     SheetAction(
                         key = "delete_subtitles",
                         label = stringResource(R.string.content_delete_subtitles),
-                        icon = Icons.Filled.Subtitles,
+                        icon = MobileIcons.Subtitles,
                         group = 1,
                         onClick = { dialog = VodDialog.SUBTITLES },
                     ),
@@ -168,7 +155,7 @@ fun VodMenu(
                     SheetAction(
                         key = "move",
                         label = stringResource(R.string.content_move),
-                        icon = Icons.Filled.SwapVert,
+                        icon = MobileIcons.SwapVert,
                         group = 2,
                         onClick = { dialog = VodDialog.MOVE },
                     ),
@@ -177,7 +164,7 @@ fun VodMenu(
                     SheetAction(
                         key = "move_to_category",
                         label = stringResource(R.string.content_move_to_category),
-                        icon = Icons.Filled.PlaylistAdd,
+                        icon = MobileIcons.PlaylistAdd,
                         group = 2,
                         onClick = { dialog = VodDialog.MOVE_TO_CATEGORY },
                     ),
@@ -190,7 +177,7 @@ fun VodMenu(
                         SheetAction(
                             key = "tmdb_details",
                             label = stringResource(R.string.content_tmdb_details),
-                            icon = Icons.Filled.Info,
+                            icon = MobileIcons.Info,
                             group = 3,
                             onClick = { dialog = VodDialog.DETAILS },
                         ),
@@ -201,7 +188,7 @@ fun VodMenu(
                         SheetAction(
                             key = "play_trailer",
                             label = stringResource(R.string.content_play_trailer),
-                            icon = Icons.Filled.OpenInNew,
+                            icon = MobileIcons.OpenInNew,
                             group = 3,
                             onClick = { context.playTrailer(key) },
                         ),
@@ -213,7 +200,7 @@ fun VodMenu(
                     SheetAction(
                         key = "refetch_tmdb",
                         label = stringResource(R.string.content_refetch_tmdb),
-                        icon = Icons.Filled.Refresh,
+                        icon = MobileIcons.Refresh,
                         group = 3,
                         onClick = {
                             Toast.makeText(context, R.string.content_researching_tmdb, Toast.LENGTH_SHORT).show()
@@ -228,7 +215,7 @@ fun VodMenu(
                     SheetAction(
                         key = "set_tmdb_name",
                         label = stringResource(R.string.content_set_tmdb_name),
-                        icon = Icons.Filled.Title,
+                        icon = MobileIcons.Title,
                         group = 3,
                         onClick = { dialog = VodDialog.TMDB_NAME },
                     ),
@@ -238,7 +225,7 @@ fun VodMenu(
                 SheetAction(
                     key = "hide",
                     label = stringResource(R.string.common_hide),
-                    icon = Icons.Filled.VisibilityOff,
+                    icon = MobileIcons.VisibilityOff,
                     destructive = true,
                     group = 4,
                     onClick = { vm.hide(item.id) },

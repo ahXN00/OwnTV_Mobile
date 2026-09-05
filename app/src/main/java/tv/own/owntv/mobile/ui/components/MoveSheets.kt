@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -79,7 +76,7 @@ fun ReorderSheet(
                                 enabled = index > 0,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowUp,
+                                    imageVector = MobileIcons.KeyboardArrowUp,
                                     contentDescription = stringResource(R.string.settings_row_menu_move_up),
                                 )
                             }
@@ -88,7 +85,7 @@ fun ReorderSheet(
                                 enabled = index < items.lastIndex,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowDown,
+                                    imageVector = MobileIcons.KeyboardArrowDown,
                                     contentDescription = stringResource(R.string.settings_row_menu_move_down),
                                 )
                             }

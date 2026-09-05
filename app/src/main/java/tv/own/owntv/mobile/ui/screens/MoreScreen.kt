@@ -1,20 +1,10 @@
 package tv.own.owntv.mobile.ui.screens
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -60,26 +50,26 @@ fun MoreScreen(
         // groups its rows.
         item {
             MobileGroup {
-                MoreRow(R.string.common_nav_downloads, Icons.Filled.Download) {
+                MoreRow(R.string.common_nav_downloads, MobileIcons.Download) {
                     onNavigate(MobileDestination.DOWNLOADS)
                 }
-                MoreRow(R.string.common_nav_settings, Icons.Filled.Settings) {
+                MoreRow(R.string.common_nav_settings, MobileIcons.Settings) {
                     onNavigate(MobileDestination.SETTINGS)
                 }
             }
             MobileGroup {
-                MoreRow(R.string.profiles_title, Icons.Filled.People)
-                MoreRow(R.string.content_category_favorites, Icons.Filled.Favorite)
-                MoreRow(R.string.content_category_history, Icons.Filled.History)
+                MoreRow(R.string.profiles_title, MobileIcons.People)
+                MoreRow(R.string.content_category_favorites, MobileIcons.Favorite)
+                MoreRow(R.string.content_category_history, MobileIcons.History)
             }
             MobileGroup {
                 // Both land on the same flow, which asks again which of the two it is — but a user
                 // who came here to restore a backup should not have to find it behind "add a
                 // playlist".
-                MoreRow(R.string.setup_add_playlist, Icons.Filled.PlaylistAdd, onAddSource)
-                MoreRow(R.string.setup_restore_backup, Icons.Filled.Restore, onAddSource)
-                MoreRow(R.string.settings_sync_now, Icons.Filled.Sync)
-                MoreRow(R.string.settings_about, Icons.Filled.Info)
+                MoreRow(R.string.setup_add_playlist, MobileIcons.PlaylistAdd, onAddSource)
+                MoreRow(R.string.setup_restore_backup, MobileIcons.Restore, onAddSource)
+                MoreRow(R.string.settings_sync_now, MobileIcons.Sync)
+                MoreRow(R.string.settings_about, MobileIcons.Info)
             }
 
             // Dev-only, and English-only by the same rule the harness itself lives under: R8 removes
@@ -88,12 +78,12 @@ fun MoreScreen(
                 MobileGroup {
                     MobileListRow(
                         title = "Theme gallery",
-                        leading = { Icon(Icons.Filled.Build, contentDescription = null) },
+                        leading = { Icon(MobileIcons.Build, contentDescription = null) },
                         onClick = { onDevRoute(DevRoute.GALLERY) },
                     )
                     MobileListRow(
                         title = "Dev harness",
-                        leading = { Icon(Icons.Filled.Build, contentDescription = null) },
+                        leading = { Icon(MobileIcons.Build, contentDescription = null) },
                         onClick = { onDevRoute(DevRoute.HARNESS) },
                     )
                 }

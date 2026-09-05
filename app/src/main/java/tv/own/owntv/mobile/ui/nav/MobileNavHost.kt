@@ -1,6 +1,11 @@
 package tv.own.owntv.mobile.ui.nav
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -48,6 +53,7 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsSubtitleAppearancePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsVideoPlayerPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsWeatherPage
 import tv.own.owntv.mobile.ui.setup.SetupFlow
+import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 
 /**
  * Every route in the app.
@@ -56,6 +62,7 @@ import tv.own.owntv.mobile.ui.setup.SetupFlow
  * with real scroll state, so navigation, back and scroll restoration can be tested now rather than
  * discovered to be broken in Phase 7.
  */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MobileNavHost(
     navController: NavHostController,
@@ -63,13 +70,22 @@ fun MobileNavHost(
     onNavigate: (MobileDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // One layout around the whole graph: it is what lets a poster tile on one screen and the header
+    // image on the next be understood as the same picture rather than two pictures crossfading.
+    SharedTransitionLayout(modifier = modifier) {
+        CompositionLocalProvider(LocalSharedTransition provides this) {
+    // Navigation's own default is a 700 ms crossfade that ignores the reduce-motion setting. The
+    // app's effects spring is quicker, and it is genuinely nothing at all when animations are off.
+    val fade = LocalMobileMotion.current.fast<Float>()
     NavHost(
         navController = navController,
         startDestination = MobileDestination.HOME.route,
-        modifier = modifier,
+        enterTransition = { fadeIn(fade) },
+        exitTransition = { fadeOut(fade) },
     ) {
         MobileDestination.entries.forEach { destination ->
             composable(destination.route) {
+                CompositionLocalProvider(LocalNavAnimatedScope provides this) {
                 when (destination) {
                     MobileDestination.MORE -> MoreScreen(
                         scrollToTop = scrollToTop,
@@ -121,6 +137,7 @@ fun MobileNavHost(
                     )
                     else -> PlaceholderScreen(destination = destination, scrollToTop = scrollToTop)
                 }
+                }
             }
         }
         // A film or a show sits under the tab it was opened from, so the bar keeps that tab selected
@@ -135,11 +152,14 @@ fun MobileNavHost(
                 ),
             ) { entry ->
                 val tab = entry.arguments?.getString(ARG_TAB) ?: return@composable
-                DetailScreen(
-                    tab = LibraryTab.valueOf(tab),
-                    itemId = entry.arguments?.getLong(ARG_ITEM_ID) ?: return@composable,
-                    onPlay = { navController.navigate(PLAYER_ROUTE) },
-                )
+                val itemId = entry.arguments?.getLong(ARG_ITEM_ID) ?: return@composable
+                CompositionLocalProvider(LocalNavAnimatedScope provides this) {
+                    DetailScreen(
+                        tab = LibraryTab.valueOf(tab),
+                        itemId = itemId,
+                        onPlay = { navController.navigate(PLAYER_ROUTE) },
+                    )
+                }
             }
         }
         CHANNEL_PARENTS.forEach { parent ->
@@ -154,6 +174,7 @@ fun MobileNavHost(
                     channelId = entry.arguments?.getLong(ARG_CHANNEL_ID) ?: return@composable,
                     openCatchup = entry.arguments?.getBoolean(ARG_CATCHUP) == true,
                     onFullscreen = { navController.navigate(PLAYER_ROUTE) },
+                    onBack = { navController.popBackStack() },
                 )
             }
         }
@@ -227,6 +248,8 @@ fun MobileNavHost(
         if (BuildConfig.DEV_TOOLS) {
             composable(DevRoute.GALLERY.route) { ThemeGalleryScreen() }
             composable(DevRoute.HARNESS.route) { DevHarnessScreen() }
+        }
+    }
         }
     }
 }

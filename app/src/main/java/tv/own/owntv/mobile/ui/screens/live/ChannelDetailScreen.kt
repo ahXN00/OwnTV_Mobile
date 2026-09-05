@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.live
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -27,12 +28,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.player.VideoStage
+import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import java.text.DateFormat
 import java.util.Date
@@ -52,10 +55,22 @@ fun ChannelDetailScreen(
     channelId: Long,
     openCatchup: Boolean,
     onFullscreen: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     vm: ChannelDetailViewModel = koinViewModel(),
+    tuner: LiveTuner = koinInject(),
+    vodTuner: VodTuner = koinInject(),
 ) {
     LaunchedEffect(channelId) { vm.load(channelId) }
+
+    // This screen is watching, the same as the full screen player is — it just watches in a smaller
+    // box — so Back means the same thing here: finished, stop the stream. Leaving it running would put
+    // a mini player on the list the user just went back to, which is a window they never asked for.
+    BackHandler {
+        tuner.stop()
+        vodTuner.stop()
+        onBack()
+    }
 
     val channel by vm.channel.collectAsStateWithLifecycle()
     val nowNext by vm.nowNext.collectAsStateWithLifecycle()

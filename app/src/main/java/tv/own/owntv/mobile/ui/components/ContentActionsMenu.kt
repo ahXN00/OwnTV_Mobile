@@ -1,10 +1,5 @@
 package tv.own.owntv.mobile.ui.components
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import tv.own.owntv.core.model.ContentMenu
@@ -37,7 +32,7 @@ fun ContentActionsMenu(
                 label = stringResource(
                     if (isFavorite) R.string.content_remove_favourite else R.string.content_add_favourite,
                 ),
-                icon = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                icon = if (isFavorite) MobileIcons.Star else MobileIcons.StarBorder,
                 group = 0,
                 onClick = onToggleFavorite,
             ),
@@ -50,7 +45,7 @@ fun ContentActionsMenu(
                         if (target.type == MediaType.MOVIE) R.string.content_download
                         else R.string.content_download_all_episodes,
                     ),
-                    icon = Icons.Filled.Download,
+                    icon = MobileIcons.Download,
                     group = 1,
                     onClick = onDownload,
                 ),
@@ -62,7 +57,7 @@ fun ContentActionsMenu(
                 label = stringResource(
                     if (target.type == MediaType.LIVE) R.string.content_hide_channel else R.string.common_hide,
                 ),
-                icon = Icons.Filled.VisibilityOff,
+                icon = MobileIcons.VisibilityOff,
                 destructive = true,
                 group = 2,
                 onClick = onHide,

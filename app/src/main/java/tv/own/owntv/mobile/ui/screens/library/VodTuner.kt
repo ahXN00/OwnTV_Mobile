@@ -275,6 +275,10 @@ class VodTuner(
     }
 
     private suspend fun began(profileId: Long, what: VodPlayback) {
+        // A new film starts with its picture on, whatever the last thing playing was doing. The engine
+        // holds the sound-only flag across a change of stream, so without this a channel watched
+        // without a picture handed the next film the same fate.
+        player.exitAudioOnly()
         session.attach(engine)
         PlaybackService.start(context)
         playingProfileId = profileId

@@ -1,5 +1,8 @@
 package tv.own.owntv.mobile.ui.theme
 
+import tv.own.owntv.core.theme.AnimationLevel
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Animatable
 import android.app.ActivityManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -447,7 +450,6 @@ private const val PRESS_TINT_GAIN = 0.06f
 private const val PRESS_FROST_DAMP = 0.85f
 private const val PRESS_RIM_GAIN = 2.4f
 private const val PRESS_SHADOW_DAMP = 0.4f
-private const val PRESS_DURATION_MS = 90
 
 /** A selected pane wears the accent on its rim and warms its body. Persistent, not momentary. */
 private const val SELECTED_RIM = 0.55f
@@ -456,6 +458,18 @@ private const val SELECTED_TINT_GAIN = 0.03f
 
 /** The top highlight at full material sheen, before the user's highlight strength scales it. */
 private const val SHEEN_BASE = 0.11f
+
+/** How long a pane's arrival glint takes to cross it, and how bright it is at its brightest. */
+private const val ARRIVAL_MS = 420
+private const val GLINT_PEAK = 0.20f
+
+/**
+ * How much slower the frosted wallpaper moves than the pane in front of it.
+ *
+ * Small deliberately: this is the difference between a panel that sits *on* the wallpaper and one
+ * that floats above it, and any more than a few per cent reads as the picture sliding about.
+ */
+private const val BACKDROP_PARALLAX = 0.06f
 
 /**
  * Fill a panel with the material its [surface] is made of.
@@ -492,10 +506,9 @@ fun Modifier.glassSurface(
     val accent = MaterialTheme.colorScheme.primary
 
     val pressed = interactionSource?.collectIsPressedAsState()?.value == true
-    val animations = LocalAnimations.current
     val scale by animateFloatAsState(
         targetValue = if (pressed) PRESS_SCALE else 1f,
-        animationSpec = tween(animations.scale(PRESS_DURATION_MS)),
+        animationSpec = LocalMobileMotion.current.fast(),
         label = "glassPress",
     )
     // A graphics layer per card is not free, so one is taken only while a pane is actually moving.
@@ -557,6 +570,7 @@ fun Modifier.glassSurface(
     var position by remember { mutableStateOf(Offset.Zero) }
     var inWindow by remember { mutableStateOf(Offset.Zero) }
     val windowSize = LocalWindowInfo.current.containerSize
+    val arrival = rememberGlassArrival()
 
     return this
         .then(sink)
@@ -601,7 +615,11 @@ fun Modifier.glassSurface(
             val edge = if (treatment.edge && material.edge > 0f) luminousEdge(size, material.edge * light) else null
 
             val frost = if (treatment.frost && material.hasBackdrop) backdrop?.frostFor(frostAsk) else null
-            val slice = if (backdrop == null) Offset.Zero else position - backdrop.rootOffset
+            // The pane's own place on the wallpaper, pulled back a little so the picture behind it
+            // travels slower than it does as the page scrolls. Depth off means no parallax: it is a
+            // depth cue, and that switch is what turns depth cues off.
+            val raw = if (backdrop == null) Offset.Zero else position - backdrop.rootOffset
+            val slice = if (glass.depthEffects) raw * (1f - BACKDROP_PARALLAX) else raw
             val backdropLuma =
                 if (frost == null || freeAlpha) null else backdrop?.sampledLuminance(Rect(slice, size))
             val tintAlpha = if (backdropLuma == null) {
@@ -646,6 +664,11 @@ fun Modifier.glassSurface(
                     body?.let { drawRect(it) }
                     shade?.let { drawRect(it) }
                     sheen?.let { drawRect(it) }
+                    // The arrival: one band of light travelling across the pane, once. It is drawn
+                    // only while it is travelling, so a settled screen pays nothing for it.
+                    if (arrival > 0f && arrival < 1f) {
+                        drawRect(glint(size, arrival))
+                    }
                 }
                 if (rim == null && edge == null) return@onDrawBehind
                 clipRect(
@@ -659,6 +682,42 @@ fun Modifier.glassSurface(
                 }
             }
         }
+}
+
+/**
+ * One number per glass pane: how far its arrival is through, from 0 to 1.
+ *
+ * One `Animatable` per *surface*, never per element — that is the whole reason this is cheap. It runs
+ * once, on the pane's first composition, and a settled pane holds 1 forever after. With animations off
+ * it is 1 from the first frame, so nothing is drawn at all rather than being drawn quickly.
+ */
+@Composable
+private fun rememberGlassArrival(): Float {
+    val instant = LocalAnimations.current == AnimationLevel.OFF
+    val progress = remember { Animatable(if (instant) 1f else 0f) }
+    LaunchedEffect(instant) {
+        if (instant) progress.snapTo(1f) else if (progress.value < 1f) {
+            progress.animateTo(1f, tween(ARRIVAL_MS, easing = LinearEasing))
+        }
+    }
+    return progress.value
+}
+
+/** The travelling band of light itself: a narrow diagonal sweep, brightest in its middle. */
+private fun glint(size: Size, progress: Float): Brush {
+    // It starts off the leading edge and leaves by the trailing one, so the pane is never half-lit at
+    // either end of the run.
+    val span = size.width + size.height
+    val head = -span * 0.35f + progress * span * 1.35f
+    // Brightest halfway across and gone at both ends: a sweep that stopped dead would read as a flash.
+    val strength = GLINT_PEAK * kotlin.math.sin(progress * Math.PI).toFloat()
+    return Brush.linearGradient(
+        0f to Color.Transparent,
+        0.5f to Color.White.copy(alpha = strength),
+        1f to Color.Transparent,
+        start = Offset(head, 0f),
+        end = Offset(head + span * 0.35f, size.height),
+    )
 }
 
 /**

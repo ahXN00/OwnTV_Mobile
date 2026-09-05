@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 
 /** The track when the setting is off — a neutral grey that reads as "not accented". */
 private val TRACK_OFF = Color(0xFF89938F).copy(alpha = 0.42f)
@@ -54,16 +55,22 @@ fun MobileSwitch(
     onCheckedChange: ((Boolean) -> Unit)? = null,
     enabled: Boolean = true,
 ) {
+    val motion = LocalMobileMotion.current
     val track by animateColorAsState(
         targetValue = if (checked) MaterialTheme.colorScheme.primary else TRACK_OFF,
+        animationSpec = motion.fast(),
         label = "switchTrack",
     )
     val thumb by animateColorAsState(
         targetValue = if (checked) THUMB_ON else THUMB_OFF,
+        animationSpec = motion.fast(),
         label = "switchThumb",
     )
+    // The thumb travels, so it is spatial: it has a little weight to it, and none at all when
+    // animations are off.
     val thumbX by animateDpAsState(
         targetValue = if (checked) TRACK_WIDTH - THUMB_SIZE - THUMB_INSET * 2 else 0.dp,
+        animationSpec = motion.spatial(),
         label = "switchThumbX",
     )
     Box(

@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,9 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -110,7 +108,7 @@ fun SettingsPlaylistsPage(
             }
             MobileListRow(
                 title = stringResource(R.string.settings_sources_add),
-                leading = { Icon(Icons.Filled.Add, contentDescription = null) },
+                leading = { Icon(MobileIcons.Add, contentDescription = null) },
                 onClick = onAddSource,
             )
         }
@@ -365,7 +363,7 @@ private fun EditPlaylistDialog(
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.settings_close))
+                        Icon(MobileIcons.Close, contentDescription = stringResource(R.string.settings_close))
                     }
                 }
                 AddSourceForm(

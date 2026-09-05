@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 import tv.own.owntv.mobile.ui.theme.MobileChipShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.glassClickable
@@ -79,6 +80,7 @@ fun MobileListRow(
         } else {
             Color.Transparent
         },
+        animationSpec = LocalMobileMotion.current.fast(),
         label = "rowPress",
     )
     Row(
@@ -153,7 +155,7 @@ private fun RowIconChip(icon: @Composable () -> Unit) {
             .size(MobileDimens.ListRowIconSize)
             .clip(MobileChipShape)
             .background(accent.copy(alpha = CHIP_FILL_ALPHA))
-            .border(1.dp, Color.White.copy(alpha = CHIP_RIM_ALPHA), MobileChipShape),
+            .border(1.dp, accent.copy(alpha = CHIP_RIM_ALPHA), MobileChipShape),
         contentAlignment = Alignment.Center,
     ) {
         CompositionLocalProvider(LocalContentColor provides accent) {

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,16 +48,19 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.theme.GlassConfig
 import tv.own.owntv.core.theme.GlassSurface
+import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.ChannelLogoImage
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.LocalGlass
@@ -128,12 +132,17 @@ private fun Modifier.playerPane(
         .border(1.dp, DockRim, shape)
 }
 
-/** The bottom container: the instrument over the tools, in one pane. */
+/**
+ * The bottom container: the instrument over the tools, in one pane.
+ *
+ * Deliberately **not** clipped to its own shape. The fill and the rim are drawn to [DockShape]
+ * already, so a clip would add nothing except cutting off the one thing that has to escape upward —
+ * the scrub bubble, which is above the bar precisely so a thumb is not covering it.
+ */
 @Composable
 internal fun PlayerDock(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier
-            .clip(DockShape)
             .playerPane(DockShape)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         content = content,
@@ -290,21 +299,54 @@ private fun TextControl(
     }
 }
 
-/** The channel's logo, falling back to the first letters of its name on the house plate. */
+/**
+ * The channel's logo, falling back to the first letters of its name on the house plate.
+ *
+ * [number] is the provider's own channel number, and it is drawn across the foot of the plate rather
+ * than beside the title: a user who knows their channels by number looks for it where the logo is,
+ * and the title row on a phone has no width to give away. Null hides it entirely, which is what
+ * turning *Channel numbers* off means.
+ */
 @Composable
-internal fun ChannelLogo(logoUrl: String?, title: String?, modifier: Modifier = Modifier, size: Dp = 46.dp) {
+internal fun ChannelLogo(
+    logoUrl: String?,
+    title: String?,
+    modifier: Modifier = Modifier,
+    size: Dp = 46.dp,
+    number: Int? = null,
+) {
     Box(
         modifier.size(size).clip(SquircleShape(10.dp)).background(Color(0xFF004F46)),
         contentAlignment = Alignment.Center,
     ) {
-        if (!logoUrl.isNullOrBlank()) {
-            AsyncImage(model = logoUrl, contentDescription = null, modifier = Modifier.fillMaxSize())
-        } else if (!title.isNullOrBlank()) {
+        ChannelLogoImage(
+            url = logoUrl,
+            modifier = Modifier.fillMaxSize(),
+            fallback = {
+                if (!title.isNullOrBlank()) {
+                    Text(
+                        title.take(3).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF6FF8E4),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+        )
+        if (number != null) {
             Text(
-                title.take(3).uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFF6FF8E4),
+                stringResource(R.string.player_channel_number, number),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
                 fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = 2.dp),
+                textAlign = TextAlign.Center,
             )
         }
     }

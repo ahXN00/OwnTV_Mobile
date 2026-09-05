@@ -49,7 +49,6 @@ class MainActivity : ComponentActivity() {
 
     /** Both read on a lifecycle callback, where there is no time to suspend on a preference. */
     private var pipEnabled = true
-    private var pipOnBack = false
     private var backgroundPlayback = true
     private var audioOnScreenOff = true
     private var pausedForBackground = false
@@ -57,6 +56,10 @@ class MainActivity : ComponentActivity() {
     /** Set when *this* class dropped the picture on the way off screen, so returning restores it —
      *  and a sound-only mode the user chose themselves is left exactly as they left it. */
     private var droppedVideoForBackground = false
+
+    /** Set the moment the floating window opens, and cleared by whichever comes first: coming back to
+     *  full screen, or the window being closed — see [onPictureInPictureModeChanged]. */
+    private var wasInPipWindow = false
 
     /** The result is deliberately ignored: refusing only costs the user the lockscreen controls, and
      *  playback must not depend on it. */
@@ -78,13 +81,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         askForNotifications()
+        readOpenPlayerRequest(intent)
         // The buttons say Play or Pause depending on what is happening, so they are rebuilt whenever
         // that changes — a PiP window whose button lies is worse than one with no buttons.
         lifecycleScope.launch {
             player.isPlaying.collectLatest { if (pip.inPip.value) applyPipParams() }
         }
         lifecycleScope.launch { settings.pipEnabled.collect { pipEnabled = it } }
-        lifecycleScope.launch { settings.pipOnBack.collect { pipOnBack = it } }
         lifecycleScope.launch { settings.backgroundPlayback.collect { backgroundPlayback = it } }
         lifecycleScope.launch { settings.audioOnScreenOff.collect { audioOnScreenOff = it } }
         keepScreenOnWhileThereIsAPicture()
@@ -107,33 +110,26 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Home pressed while watching: keep the picture in the little window rather than stopping it.
-     * Only from the full screen player — from anywhere else the window would show the browsing UI
-     * shrunk down, which is not what a PiP window is for.
+     * Leaving the app while the picture is full screen takes the picture along, in the system's own
+     * floating window.
+     *
+     * That window goes over *other* apps, so it belongs to leaving the app and to nothing else. The
+     * button in the player's tools is the app's own mini player, which stays inside it. With the
+     * setting off, or with no picture to carry, Home leaves the sound and the notification instead.
      */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        enterPipNow()
-    }
-
-    /**
-     * Shrink into the little window if there is a picture worth keeping, and say whether it happened.
-     *
-     * Home asks unconditionally; Back asks only when the user turned "Picture-in-Picture on Back" on,
-     * and uses the answer to decide whether it still has to close the player itself.
-     */
-    fun enterPipNow(fromBack: Boolean = false): Boolean {
-        if (!pipEnabled) return false
-        if (fromBack && !pipOnBack) return false
-        if (!pip.playerOnScreen.value) return false
-        if (!player.isPlaying.value || player.audioOnly.value || player.audioOnlyMedia.value) return false
-        return runCatching { enterPictureInPictureMode(pipParams()) }.getOrDefault(false)
+        if (!pipEnabled) return
+        if (!pip.playerOnScreen.value) return
+        if (!player.isPlaying.value || player.audioOnly.value || player.audioOnlyMedia.value) return
+        runCatching { enterPictureInPictureMode(pipParams()) }
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         pip.inPip.value = isInPictureInPictureMode
         if (isInPictureInPictureMode) {
+            wasInPipWindow = true
             ContextCompat.registerReceiver(
                 this,
                 pipActions,
@@ -142,9 +138,47 @@ class MainActivity : ComponentActivity() {
             )
         } else {
             runCatching { unregisterReceiver(pipActions) }
-            // The X on the PiP window closes the activity with it, and that is the one exit from PiP
-            // that means "I am done" — tapping the window instead brings the app back, still playing.
-            if (isFinishing) tuner.stop()
+            // Deliberately no decision here. Leaving the window means one of two opposite things —
+            // tapped, to come back to full screen, or closed — and this callback cannot tell them
+            // apart. Nor can it be relied on to arrive first: on some builds it lands after onStop,
+            // and a flag set here would then be read after the moment it was meant to answer. So the
+            // two lifecycle callbacks decide, in whichever order they come: onResume means tapped,
+            // onStop means closed.
+            if (isFinishing) {
+                wasInPipWindow = false
+                closedThePipWindow()
+            }
+        }
+    }
+
+    /**
+     * The X on the PiP window: the picture ends, the session does not.
+     *
+     * Closing the window says "off my screen", not "forget where I was". So the video stops, the sound
+     * stops with it, and what stays behind is the notification and the quick-panel controls — press
+     * play there and it comes back as sound only, tap the notification and the full player opens again
+     * at the same place. Live channels included: the user closed a window, and stopping their
+     * subscription's stream is a bigger thing than the button they pressed.
+     */
+    private fun closedThePipWindow() {
+        if (!player.hasActiveStream) return
+        // Sound-only first, then stop. The window is gone, so there is no surface and no reason to keep
+        // a video decoder alive — and it settles what the play button in the quick panel will do next.
+        if (!player.audioOnly.value) player.enterAudioOnly()
+        if (player.isPlaying.value) player.togglePlayPause()
+    }
+
+    /** The playback notification was tapped. The player is a navigation destination, so the shell
+     *  does the moving — see [PipController.openPlayerRequested]. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readOpenPlayerRequest(intent)
+    }
+
+    private fun readOpenPlayerRequest(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_PLAYER, false) == true) {
+            pip.openPlayerRequested.value = true
         }
     }
 
@@ -162,6 +196,13 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         if (isChangingConfigurations) return
+        // Stopped after the floating window was up, without ever resuming in between: the window was
+        // closed. That is its own answer, and not the background-playback question below.
+        if (wasInPipWindow) {
+            wasInPipWindow = false
+            closedThePipWindow()
+            return
+        }
         if (pip.inPip.value) return
         if (!player.hasActiveStream) return
         if (!backgroundPlayback) {
@@ -180,6 +221,12 @@ class MainActivity : ComponentActivity() {
         if (player.audioOnly.value) return
         droppedVideoForBackground = true
         player.enterAudioOnly()
+    }
+
+    /** Back on screen at full size, so the window was tapped rather than closed. */
+    override fun onResume() {
+        super.onResume()
+        wasInPipWindow = false
     }
 
     override fun onStart() {
@@ -265,15 +312,18 @@ class MainActivity : ComponentActivity() {
         if (!granted) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
-    private companion object {
-        const val ACTION_PIP = "tv.own.owntv.mobile.PIP"
-        const val EXTRA_PIP_ACTION = "pip_action"
-        const val PIP_TOGGLE = "toggle"
-        const val PIP_BACK = "back"
-        const val PIP_FORWARD = "forward"
+    companion object {
+        /** Set on the playback notification's own intent: "open the player, not wherever the app was". */
+        const val EXTRA_OPEN_PLAYER = "open_player"
+
+        private const val ACTION_PIP = "tv.own.owntv.mobile.PIP"
+        private const val EXTRA_PIP_ACTION = "pip_action"
+        private const val PIP_TOGGLE = "toggle"
+        private const val PIP_BACK = "back"
+        private const val PIP_FORWARD = "forward"
 
         /** Fixed, not the user's seek step: three buttons is all a PiP window has room for, and a
          *  window is not where anyone sets up a 90-second jump. */
-        const val PIP_SEEK_MS = 10_000L
+        private const val PIP_SEEK_MS = 10_000L
     }
 }

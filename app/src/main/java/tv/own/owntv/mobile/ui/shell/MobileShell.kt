@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.shell
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import android.widget.Toast
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.ui.Alignment
@@ -20,11 +21,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Cast
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,6 +64,7 @@ import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
 import tv.own.owntv.mobile.ui.nav.MobileNavHost
+import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.mobile.ui.nav.PLAYER_ROUTE
 import tv.own.owntv.mobile.ui.nav.isChannelRoute
 import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE
@@ -145,8 +142,31 @@ fun MobileShell(
     // Floating window, bar above the tabs, or neither — the user's choice, and the only thing that
     // changes is where the same stream is drawn.
     val settings: SettingsRepository = koinInject()
-    val miniStyle by settings.miniPlayerStyle
+    val chosenMiniStyle by settings.miniPlayerStyle
         .collectAsStateWithLifecycle(SettingsRepository.MiniPlayerStyle.FLOATING)
+    // Sound only has no picture, and a floating window with nothing in it is a smudge over the list the
+    // user went back to. It docks instead, as a bar — which is also the shape that has room for a title
+    // and the transport buttons, the only things left to show.
+    val audioOnly by tuner.player.audioOnly.collectAsStateWithLifecycle()
+    val audioOnlyMedia by tuner.player.audioOnlyMedia.collectAsStateWithLifecycle()
+    // OFF is not offered in Settings any more, but an older install may still have it stored.
+    val miniStyle = if (audioOnly || audioOnlyMedia || chosenMiniStyle == SettingsRepository.MiniPlayerStyle.OFF) {
+        SettingsRepository.MiniPlayerStyle.DOCKED
+    } else {
+        chosenMiniStyle
+    }
+
+    // The playback notification was tapped, from a shade that may well outlive the activity that was
+    // showing the player. Put it back.
+    val pip: PipController = koinInject()
+    val openPlayerRequested by pip.openPlayerRequested.collectAsStateWithLifecycle()
+    LaunchedEffect(openPlayerRequested) {
+        if (openPlayerRequested) {
+            pip.openPlayerRequested.value = false
+            if (channel != null || film != null) navController.navigate(PLAYER_ROUTE)
+        }
+    }
+
     val favorite by tuner.isFavorite.collectAsStateWithLifecycle()
     var windowMenu by remember { mutableStateOf(false) }
     var sleepSheet by remember { mutableStateOf(false) }
@@ -245,7 +265,7 @@ fun MobileShell(
                         if (destinations.none { it.route == currentRoute }) {
                             IconButton(onClick = { navController.popBackStack() }) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    imageVector = MobileIcons.ArrowBack,
                                     contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_back),
                                 )
                             }
@@ -258,7 +278,7 @@ fun MobileShell(
                             },
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Search,
+                                imageVector = MobileIcons.Search,
                                 contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_nav_search),
                             )
                         }
@@ -266,13 +286,13 @@ fun MobileShell(
                         // the bar's layout is the final one and nothing shifts when it starts working.
                         IconButton(onClick = { }, enabled = false) {
                             Icon(
-                                imageVector = Icons.Filled.Cast,
+                                imageVector = MobileIcons.Cast,
                                 contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_cast),
                             )
                         }
                         IconButton(onClick = { navController.navigateToTab(MobileDestination.MORE) }) {
                             Icon(
-                                imageVector = Icons.Filled.Person,
+                                imageVector = MobileIcons.Person,
                                 contentDescription = stringResource(tv.own.owntv.mobile.R.string.profiles_title),
                             )
                         }

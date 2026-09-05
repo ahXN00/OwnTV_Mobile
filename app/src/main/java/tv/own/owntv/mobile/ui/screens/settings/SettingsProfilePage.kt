@@ -1,8 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Person
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -36,12 +34,12 @@ fun SettingsProfilePage(
                         profile.pinHash != null -> stringResource(R.string.profiles_locked_tag)
                         else -> null
                     },
-                    leading = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    leading = { Icon(MobileIcons.Person, contentDescription = null) },
                     onClick = { vm.edit { setActiveProfile(profile.id) } },
                     trailing = if (profile.id == activeId) {
                         {
                             Icon(
-                                imageVector = Icons.Filled.Check,
+                                imageVector = MobileIcons.Check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                             )

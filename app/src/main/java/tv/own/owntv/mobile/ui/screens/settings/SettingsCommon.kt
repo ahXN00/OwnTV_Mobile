@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -10,17 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.PlaylistPlay
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,15 +52,15 @@ enum class SettingsGroup(
     @param:StringRes val summaryRes: Int,
     val icon: ImageVector,
 ) {
-    PROFILE("settings/profile", R.string.settings_profile_group, R.string.settings_group_summary_profile, Icons.Filled.Person),
-    SOURCES("settings/sources", R.string.settings_group_sources, R.string.settings_group_summary_sources, Icons.Filled.PlaylistPlay),
-    APPEARANCE("settings/appearance", R.string.settings_appearance_group, R.string.settings_group_summary_appearance, Icons.Filled.Palette),
-    LAYOUT("settings/layout", R.string.settings_group_layout, R.string.settings_group_summary_layout, Icons.Filled.ViewList),
-    CONTENT("settings/content", R.string.settings_group_content_metadata, R.string.settings_group_summary_content_metadata, Icons.Filled.Image),
-    PLAYBACK("settings/playback", R.string.settings_playback_group, R.string.settings_group_summary_playback, Icons.Filled.PlayCircle),
-    NETWORK("settings/network", R.string.settings_network_group, R.string.settings_group_summary_network, Icons.Filled.Wifi),
-    DATA("settings/data", R.string.settings_group_data, R.string.settings_group_summary_data, Icons.Filled.Storage),
-    APP("settings/app", R.string.settings_app_group, R.string.settings_group_summary_app, Icons.Filled.Info),
+    PROFILE("settings/profile", R.string.settings_profile_group, R.string.settings_group_summary_profile, MobileIcons.Person),
+    SOURCES("settings/sources", R.string.settings_group_sources, R.string.settings_group_summary_sources, MobileIcons.PlaylistPlay),
+    APPEARANCE("settings/appearance", R.string.settings_appearance_group, R.string.settings_group_summary_appearance, MobileIcons.Palette),
+    LAYOUT("settings/layout", R.string.settings_group_layout, R.string.settings_group_summary_layout, MobileIcons.ViewList),
+    CONTENT("settings/content", R.string.settings_group_content_metadata, R.string.settings_group_summary_content_metadata, MobileIcons.Image),
+    PLAYBACK("settings/playback", R.string.settings_playback_group, R.string.settings_group_summary_playback, MobileIcons.PlayCircle),
+    NETWORK("settings/network", R.string.settings_network_group, R.string.settings_group_summary_network, MobileIcons.Wifi),
+    DATA("settings/data", R.string.settings_group_data, R.string.settings_group_summary_data, MobileIcons.Storage),
+    APP("settings/app", R.string.settings_app_group, R.string.settings_group_summary_app, MobileIcons.Info),
 }
 
 /** The group a settings route belongs to, so the shell's bar can name the page and offer back. */
@@ -277,7 +267,7 @@ fun <T> SettingsChoiceSheet(
                 trailing = if (choice.value == selected) {
                     {
                         Icon(
-                            imageVector = Icons.Filled.Check,
+                            imageVector = MobileIcons.Check,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(end = 0.dp),

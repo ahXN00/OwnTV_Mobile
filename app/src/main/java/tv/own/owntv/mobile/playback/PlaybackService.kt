@@ -117,12 +117,17 @@ class PlaybackService : Service() {
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(meta.title ?: ctx.getString(R.string.app_name))
             .setContentText(meta.subtitle.orEmpty())
+            // Tapping the notification means "show me what I am listening to", so it opens the player
+            // rather than wherever the app happened to be left — and after the PiP window was closed
+            // the activity is gone entirely, so there is no "wherever" to go back to.
             .setContentIntent(
                 PendingIntent.getActivity(
                     this,
                     0,
-                    Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                    PendingIntent.FLAG_IMMUTABLE,
+                    Intent(this, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        .putExtra(MainActivity.EXTRA_OPEN_PLAYER, true),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                 ),
             )
             .setOngoing(playing)

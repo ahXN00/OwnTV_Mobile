@@ -1,17 +1,12 @@
 package tv.own.owntv.mobile.ui.screens.settings.customize
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,7 +40,7 @@ internal fun spanTick(selected: Boolean): (@Composable () -> Unit)? =
     if (!selected) null else {
         {
             Icon(
-                imageVector = Icons.Filled.Check,
+                imageVector = MobileIcons.Check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -93,10 +88,10 @@ internal fun SpanBar(
             modifier = Modifier.weight(1f),
         )
         if (mode == SpanSelector.Mode.MOVE && hasEnd) {
-            MoveArrow(Icons.Filled.KeyboardDoubleArrowUp, R.string.settings_customize_move_top) { onMove(MoveKind.TOP) }
-            MoveArrow(Icons.Filled.KeyboardArrowUp, R.string.settings_row_menu_move_up) { onMove(MoveKind.UP) }
-            MoveArrow(Icons.Filled.KeyboardArrowDown, R.string.settings_row_menu_move_down) { onMove(MoveKind.DOWN) }
-            MoveArrow(Icons.Filled.KeyboardDoubleArrowDown, R.string.settings_customize_move_bottom) { onMove(MoveKind.BOTTOM) }
+            MoveArrow(MobileIcons.KeyboardDoubleArrowUp, R.string.settings_customize_move_top) { onMove(MoveKind.TOP) }
+            MoveArrow(MobileIcons.KeyboardArrowUp, R.string.settings_row_menu_move_up) { onMove(MoveKind.UP) }
+            MoveArrow(MobileIcons.KeyboardArrowDown, R.string.settings_row_menu_move_down) { onMove(MoveKind.DOWN) }
+            MoveArrow(MobileIcons.KeyboardDoubleArrowDown, R.string.settings_customize_move_bottom) { onMove(MoveKind.BOTTOM) }
         }
         TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
     }

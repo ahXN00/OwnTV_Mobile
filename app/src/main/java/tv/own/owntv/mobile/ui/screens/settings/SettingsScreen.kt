@@ -1,9 +1,8 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -49,7 +48,7 @@ fun SettingsScreen(
                 onValueChange = { query = it },
                 singleLine = true,
                 placeholder = { Text(stringResource(R.string.settings_search_hint)) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                leadingIcon = { Icon(MobileIcons.Search, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(

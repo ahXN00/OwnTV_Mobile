@@ -24,7 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
@@ -39,6 +42,7 @@ import org.koin.compose.koinInject
 import tv.own.owntv.mobile.MainActivity
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.PipController
+import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
@@ -49,6 +53,9 @@ import tv.own.owntv.player.describe
 private const val CONTROLS_TIMEOUT_MS = 3_000L
 private const val HUD_TIMEOUT_MS = 900L
 private const val SPEED_HOLD = 2.0
+
+/** How many notches the brightness slide is divided into for its haptic tick. */
+private const val NOTCHES = 20
 
 /**
  * The picture, full screen, with everything on top of it.
@@ -80,6 +87,10 @@ fun PlayerScreen(
     val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
     val siblings by tuner.siblings.collectAsStateWithLifecycle()
     val offsetSec by tuner.offsetSec.collectAsStateWithLifecycle()
+    val watchingWallMs by tuner.watchingWallMs.collectAsStateWithLifecycle()
+    val timelineProgrammes by tuner.timelineProgrammes.collectAsStateWithLifecycle()
+    // The same switch the Live TV list reads: off hides every number in the app, this one included.
+    val showChannelNumbers by settings.directTune.collectAsStateWithLifecycle(true)
     val duration by player.duration.collectAsStateWithLifecycle()
     val error by player.error.collectAsStateWithLifecycle()
     val errorInfo by player.errorInfo.collectAsStateWithLifecycle()
@@ -91,13 +102,23 @@ fun PlayerScreen(
     val gestureSensitivity by settings.gestureSensitivityPct.collectAsStateWithLifecycle(100)
 
     // A replay has an end and therefore a seek bar; the live edge and a rewind into the archive have
-    // neither, and get the red bar instead.
-    val isLive = channel != null && (offsetSec != null || duration <= 0L)
+    // neither, and get the live bar instead.
+    //
+    // Asked of the tuner, never of the duration: a live stream reports whatever its rolling window
+    // is, and providers that report a plausible twenty-odd hours had their channels classed as
+    // recordings — a scrub bar offering 25 hours of live television, and no clock, Now/Next, live
+    // badge, Go Live pill or programme timeline anywhere.
+    val replaying by tuner.replaying.collectAsStateWithLifecycle()
+    val isLive = channel != null && !replaying
 
     var controlsVisible by remember { mutableStateOf(true) }
     var sheet by remember { mutableStateOf<PlayerSheet?>(null) }
     var brightness by remember { mutableFloatStateOf(0.5f) }
-    var hud by remember { mutableStateOf<String?>(null) }
+    var hud by remember { mutableStateOf<GestureFeedback?>(null) }
+    val haptics = LocalHapticFeedback.current
+    // How far the screen-wide scrub gesture has moved so far, as a fraction of the whole, or null
+    // when no such gesture is in progress. The seek bar draws it; nothing has been seeked yet.
+    var scrubFraction by remember { mutableStateOf<Float?>(null) }
     // Fractional carry: one flick of a thumb is many tiny deltas, and rounding each one to a whole
     // percent on its own would throw most of the movement away.
     val carry = remember { Carry() }
@@ -113,7 +134,13 @@ fun PlayerScreen(
         insets?.hide(WindowInsetsCompat.Type.systemBars())
         // Hiding the bars is not enough: the strip the camera sits in stays outside the window
         // unless the window is told to lay out into it, and the wallpaper shows through there.
-        val cutoutMode = window?.attributes?.layoutInDisplayCutoutMode
+        // The field itself only exists from Android 9, so it is read and restored inside the guard —
+        // touching it on an older phone is a NoSuchFieldError, not a no-op.
+        val cutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window?.attributes?.layoutInDisplayCutoutMode
+        } else {
+            null
+        }
         if (window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes = window.attributes.apply {
                 layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -134,7 +161,9 @@ fun PlayerScreen(
             if (window != null) {
                 window.attributes = window.attributes.apply {
                     screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-                    if (cutoutMode != null) layoutInDisplayCutoutMode = cutoutMode
+                    if (cutoutMode != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        layoutInDisplayCutoutMode = cutoutMode
+                    }
                 }
             }
         }
@@ -151,29 +180,38 @@ fun PlayerScreen(
         window.attributes = window.attributes.apply { screenBrightness = brightness }
     }
 
-    fun showHud(text: String) {
-        hud = text
+    /** A short tick when a gesture crosses a step: a volume notch, a skip firing, fast play engaging. */
+    fun tick() {
+        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
+    // Every readout is a burst except fast play, which lasts exactly as long as the finger is down.
     LaunchedEffect(hud) {
-        if (hud != null) {
+        if (hud != null && hud !is GestureFeedback.Speed) {
             delay(HUD_TIMEOUT_MS)
             hud = null
         }
     }
-    // The controls go away on their own, but never while a picker is open over them.
-    LaunchedEffect(controlsVisible, sheet, isPlaying) {
-        if (controlsVisible && sheet == null && isPlaying) {
+    // The controls go away on their own, but never while a picker is open over them and never in the
+    // middle of a scrub — the bar is the only thing saying where letting go would land.
+    val scrubbing = scrubFraction != null
+    LaunchedEffect(controlsVisible, sheet, isPlaying, scrubbing) {
+        if (controlsVisible && sheet == null && isPlaying && !scrubbing) {
             delay(CONTROLS_TIMEOUT_MS)
             controlsVisible = false
         }
     }
 
-    // Back leaves the player playing — into the little window over whatever the user goes to next if
-    // they asked for that, into the mini player otherwise.
-    BackHandler {
-        if ((activity as? MainActivity)?.enterPipNow(fromBack = true) != true) onExit()
+    // Back means "I am finished watching", and it ends the stream. Leaving the player *playing* is
+    // what the mini-player button and the swipe down are for — both of them say so, and Back does not.
+    // A stream that outlived a Back press was the app quietly holding one of the provider's allowed
+    // connections open with nothing on screen to say so.
+    val stopAndExit = {
+        tuner.stop()
+        vodTuner.stop()
+        onExit()
     }
+    BackHandler(onBack = stopAndExit)
 
     Box(
         modifier
@@ -181,10 +219,25 @@ fun PlayerScreen(
             .background(Color.Black)
             .playerGestures(
                 onTap = { controlsVisible = !controlsVisible },
-                onDoubleTapLeft = { skip(tuner, isLive, forward = false) },
-                onDoubleTapRight = { skip(tuner, isLive, forward = true) },
-                onScrub = { carry.scrub += it },
+                onDoubleTapLeft = {
+                    skip(tuner, isLive, forward = false)
+                    tick()
+                    hud = GestureFeedback.Skip(forward = false, deltaMs = player.seekStepMs.value)
+                },
+                onDoubleTapRight = {
+                    skip(tuner, isLive, forward = true)
+                    tick()
+                    hud = GestureFeedback.Skip(forward = true, deltaMs = player.seekStepMs.value)
+                },
+                onScrub = {
+                    carry.scrub += it
+                    // The chrome is what shows the target, so a scrub that started on a bare picture
+                    // brings the bar back rather than moving the film blind.
+                    controlsVisible = true
+                    scrubFraction = carry.scrub
+                },
                 onScrubEnd = {
+                    scrubFraction = null
                     if (isLive) {
                         val window = tuner.archiveWindowSec()
                         if (window > 0) tuner.scrubLive((-carry.scrub * window).toInt())
@@ -194,8 +247,10 @@ fun PlayerScreen(
                     carry.scrub = 0f
                 },
                 onBrightness = { delta ->
+                    val before = (brightness * NOTCHES).toInt()
                     setBrightness(brightness + delta)
-                    showHud(res.getString(R.string.player_percent, (brightness * 100).toInt()))
+                    if ((brightness * NOTCHES).toInt() != before) tick()
+                    hud = GestureFeedback.Level(volume = false, percent = (brightness * 100).toInt())
                 },
                 onVolume = { delta ->
                     carry.volume += delta * 150f
@@ -203,11 +258,14 @@ fun PlayerScreen(
                     if (whole != 0) {
                         carry.volume -= whole
                         player.adjustVolumeByUser(whole)
+                        tick()
                     }
-                    showHud(res.getString(R.string.player_percent, player.volume.value))
+                    hud = GestureFeedback.Level(volume = true, percent = player.volume.value)
                 },
                 onPinch = { zoomIn ->
-                    player.setZoomModeByUser(if (zoomIn) ZoomMode.FILL else ZoomMode.FIT)
+                    val mode = if (zoomIn) ZoomMode.FILL else ZoomMode.FIT
+                    player.setZoomModeByUser(mode)
+                    hud = GestureFeedback.Zoom(mode)
                 },
                 onSwipeDown = onExit,
                 onSwipeUp = { if (isLive) sheet = PlayerSheet.CHANNELS },
@@ -216,11 +274,22 @@ fun PlayerScreen(
                     if (held) {
                         carry.speedBefore = player.speed.value
                         player.setSpeed(SPEED_HOLD)
+                        tick()
+                        hud = GestureFeedback.Speed(SPEED_HOLD)
                     } else {
                         player.setSpeed(carry.speedBefore)
+                        hud = null
                     }
                 },
-                onTwoFingerTap = { player.toggleMute() },
+                onTwoFingerTap = {
+                    player.toggleMute()
+                    // Silence has no level to show; coming back out of it, the level is the answer.
+                    hud = if (player.volume.value == 0) {
+                        GestureFeedback.Muted
+                    } else {
+                        GestureFeedback.Level(volume = true, percent = player.volume.value)
+                    }
+                },
                 sensitivity = gestureSensitivity / 100f,
             ),
     ) {
@@ -235,7 +304,7 @@ fun PlayerScreen(
                 playing = isPlaying,
                 compact = controlsVisible,
                 subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
-                artworkUrl = channel?.logoUrl ?: film?.posterUrl,
+                artworkUrl = channel?.displayLogoUrl ?: film?.posterUrl,
                 programmeEndMs = nowNext?.now?.stopMs,
             )
         }
@@ -244,44 +313,54 @@ fun PlayerScreen(
         if (failure != null) {
             ErrorPanel(failure = failure, detailRes = errorInfo?.reason?.messageRes, onRetry = player::retry)
         } else if (!isPlaying && !noPicture) {
-            CircularProgressIndicator(
-                color = Color.White,
-                modifier = Modifier.align(Alignment.Center),
-            )
+            // On the same material as every other message over the picture, rather than a bare ring.
+            PlayerToast(Modifier.align(Alignment.Center)) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(32.dp))
+            }
         }
 
         PlayerControls(
             player = player,
             // Whichever tuner has the surface. Only one of them ever does.
             title = channel?.name ?: film?.title.orEmpty(),
-            subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
-            logoUrl = channel?.logoUrl ?: film?.posterUrl,
+            // On a channel with a guide the Now/Next card carries the programme, so repeating it on
+            // the title line would say the same thing twice on the narrowest row of the dock.
+            subtitle = if (channel != null) null else film?.subtitle,
+            logoUrl = channel?.displayLogoUrl ?: film?.posterUrl,
             // Nothing is drawn over the picture in the little window: it is a thumbnail, and the
             // system draws its own buttons on top of it.
             visible = controlsVisible && !inPip,
             isLive = isLive,
             offsetSec = offsetSec,
             archiveWindowSec = tuner.archiveWindowSec(),
-            onBack = onExit,
+            epg = nowNext,
+            watchingWallMs = watchingWallMs,
+            timelineProgrammes = timelineProgrammes,
+            channelNumber = channel?.number?.takeIf { showChannelNumbers },
+            onBack = stopAndExit,
             onGoLive = tuner::goToLive,
             onScrubLive = tuner::scrubLive,
             onOpenSheet = { sheet = it },
-            onDock = onExit,
+            // Shrink the picture without stopping it: the stream carries on in the mini player, docked
+            // or floating as the user set it. This is the app's own small window and stays inside the
+            // app — the system one that floats over *other* apps is what pressing Home gives.
+            onMini = onExit,
             // A stream with no video track has nothing to go back to, so for that one the button
             // only ever reports the state it is already in.
             audioOnly = audioOnly || audioOnlyMedia,
-            onAudioOnly = { if (!audioOnlyMedia) tuner.setAudioOnly(!audioOnly) },
+            // Sound only is also a way of leaving the picture, so it leaves the full screen too —
+            // otherwise the user is left staring at a black rectangle they asked to stop drawing. The
+            // mini player docks itself while there is no picture to float.
+            onAudioOnly = {
+                if (!audioOnlyMedia) {
+                    tuner.setAudioOnly(!audioOnly)
+                    if (!audioOnly) onExit()
+                }
+            },
+            gestureScrubMs = scrubFraction?.takeIf { duration > 0 }?.let { (it * duration).toLong() },
         )
 
-        hud.takeIf { !inPip }?.let { text ->
-            PlayerToast(Modifier.align(Alignment.Center)) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
-                )
-            }
-        }
+        GestureHud(hud.takeIf { !inPip })
     }
 
     sheet.takeIf { !inPip }?.let { open ->

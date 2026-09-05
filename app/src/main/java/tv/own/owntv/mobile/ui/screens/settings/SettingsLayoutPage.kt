@@ -1,10 +1,8 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -277,7 +275,7 @@ private fun ReorderableSwitchRow(
 private fun MoveButton(up: Boolean, enabled: Boolean, onClick: () -> Unit) {
     IconButton(onClick = onClick, enabled = enabled) {
         Icon(
-            imageVector = if (up) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+            imageVector = if (up) MobileIcons.KeyboardArrowUp else MobileIcons.KeyboardArrowDown,
             contentDescription = stringResource(
                 if (up) R.string.settings_row_menu_move_up else R.string.settings_row_menu_move_down,
             ),

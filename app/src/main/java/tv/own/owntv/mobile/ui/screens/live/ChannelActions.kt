@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.live
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,16 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -97,7 +88,7 @@ fun ChannelMenu(
                     label = stringResource(
                         if (isFavorite) R.string.content_remove_favourite else R.string.content_add_favourite,
                     ),
-                    icon = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    icon = if (isFavorite) MobileIcons.Star else MobileIcons.StarBorder,
                     group = 0,
                     onClick = { vm.toggleFavorite(channel) },
                 ),
@@ -106,7 +97,7 @@ fun ChannelMenu(
                 SheetAction(
                     key = "rename",
                     label = stringResource(R.string.content_rename),
-                    icon = Icons.Filled.Edit,
+                    icon = MobileIcons.Edit,
                     group = 0,
                     onClick = { dialog = ChannelDialog.RENAME },
                 ),
@@ -115,7 +106,7 @@ fun ChannelMenu(
                 SheetAction(
                     key = "match_epg",
                     label = stringResource(R.string.content_match_epg),
-                    icon = Icons.Filled.Tv,
+                    icon = MobileIcons.Tv,
                     group = 1,
                     onClick = { dialog = ChannelDialog.MATCH_EPG },
                 ),
@@ -124,7 +115,7 @@ fun ChannelMenu(
                 SheetAction(
                     key = "epg_offset",
                     label = stringResource(R.string.content_epg_time_offset),
-                    icon = Icons.Filled.History,
+                    icon = MobileIcons.History,
                     group = 1,
                     onClick = { dialog = ChannelDialog.EPG_OFFSET },
                 ),
@@ -134,7 +125,7 @@ fun ChannelMenu(
                     SheetAction(
                         key = "catchup",
                         label = stringResource(R.string.content_catchup),
-                        icon = Icons.Filled.History,
+                        icon = MobileIcons.History,
                         group = 1,
                         onClick = onOpenCatchup,
                     ),
@@ -144,7 +135,7 @@ fun ChannelMenu(
                 SheetAction(
                     key = "play_external",
                     label = stringResource(R.string.content_play_external_short),
-                    icon = Icons.Filled.OpenInNew,
+                    icon = MobileIcons.OpenInNew,
                     group = 1,
                     onClick = { vm.playExternal(channel) },
                 ),
@@ -154,7 +145,7 @@ fun ChannelMenu(
                     SheetAction(
                         key = "move",
                         label = stringResource(R.string.content_move),
-                        icon = Icons.Filled.SwapVert,
+                        icon = MobileIcons.SwapVert,
                         group = 2,
                         onClick = { dialog = ChannelDialog.MOVE },
                     ),
@@ -163,7 +154,7 @@ fun ChannelMenu(
                     SheetAction(
                         key = "move_to_category",
                         label = stringResource(R.string.content_move_to_category),
-                        icon = Icons.Filled.PlaylistAdd,
+                        icon = MobileIcons.PlaylistAdd,
                         group = 2,
                         onClick = { dialog = ChannelDialog.MOVE_TO_CATEGORY },
                     ),
@@ -173,7 +164,7 @@ fun ChannelMenu(
                 SheetAction(
                     key = "hide",
                     label = stringResource(R.string.content_hide_channel),
-                    icon = Icons.Filled.VisibilityOff,
+                    icon = MobileIcons.VisibilityOff,
                     destructive = true,
                     group = 3,
                     onClick = { vm.hideChannel(channel) },

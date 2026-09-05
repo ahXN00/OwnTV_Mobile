@@ -46,8 +46,11 @@ class SquircleShape(
     }
 }
 
-/** The shape of every card, poster and panel in the app. */
+/** The shape of every card and panel in the app. */
 val MobileCardShape: Shape = SquircleShape(MobileDimens.CardCorner)
+
+/** Artwork's own corner, a touch tighter than a card's — a poster is the picture, not a plate. */
+val MobilePosterShape: Shape = SquircleShape(MobileDimens.PosterArtCorner)
 
 /** The little plate a row's icon sits on. */
 val MobileChipShape: Shape = SquircleShape(MobileDimens.ListRowIconCorner)

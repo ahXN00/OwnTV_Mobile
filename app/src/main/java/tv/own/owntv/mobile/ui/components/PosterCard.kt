@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.components
 
+import tv.own.owntv.mobile.ui.nav.sharedPoster
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.MobilePosterShape
 import tv.own.owntv.mobile.ui.theme.glassClickable
 import tv.own.owntv.mobile.ui.theme.glassSurface
 
@@ -44,6 +45,8 @@ fun PosterCard(
     subtitle: String? = null,
     progress: Float? = null,
     width: Dp = MobileDimens.PosterWidthPortrait,
+    // Set where tapping the tile opens a screen that shows the same picture — see [sharedPoster].
+    sharedKey: String? = null,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -67,7 +70,8 @@ fun PosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(MobileDimens.PosterArtCorner))
+                .then(if (sharedKey != null) Modifier.sharedPoster(sharedKey) else Modifier)
+                .clip(MobilePosterShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
             // The title stands in for the artwork, and stays underneath it: it is what an M3U

@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.live
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,11 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,7 +33,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
@@ -47,6 +41,7 @@ import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
+import tv.own.owntv.mobile.ui.components.ChannelLogoImage
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.mobileGroupPlate
@@ -108,7 +103,7 @@ fun LiveScreen(
                 onClick = { categoryPicker = true },
                 modifier = Modifier.align(Alignment.CenterEnd),
             ) {
-                Icon(Icons.Filled.Search, stringResource(R.string.content_search_categories))
+                Icon(MobileIcons.Search, stringResource(R.string.content_search_categories))
             }
         }
         if (categoryPicker) {
@@ -210,7 +205,7 @@ private fun ChannelRow(
             Row(horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny)) {
                 if (channel.catchup) {
                     Icon(
-                        imageVector = Icons.Filled.History,
+                        imageVector = MobileIcons.History,
                         contentDescription = stringResource(R.string.content_catchup),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(TRAILING_ICON),
@@ -218,7 +213,7 @@ private fun ChannelRow(
                 }
                 if (isFavorite) {
                     Icon(
-                        imageVector = Icons.Filled.Star,
+                        imageVector = MobileIcons.Star,
                         contentDescription = stringResource(R.string.content_category_favorites),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(TRAILING_ICON),
@@ -235,22 +230,18 @@ private fun ChannelRow(
 @Composable
 private fun ChannelLogo(channel: ChannelEntity, number: Int?) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        val logo = channel.displayLogoUrl
-        if (logo != null) {
-            AsyncImage(
-                model = logo,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(LOGO_SIZE),
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Filled.LiveTv,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(LOGO_SIZE),
-            )
-        }
+        ChannelLogoImage(
+            url = channel.displayLogoUrl,
+            modifier = Modifier.size(LOGO_SIZE),
+            fallback = {
+                Icon(
+                    imageVector = MobileIcons.LiveTv,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(LOGO_SIZE),
+                )
+            },
+        )
         if (number != null) {
             Text(
                 text = number.toString(),

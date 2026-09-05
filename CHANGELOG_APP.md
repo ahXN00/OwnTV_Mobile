@@ -38,6 +38,7 @@
 - **Weather on Home, in your own °C or °F**
 - **TV guide in three shapes: On now, Grid and Timeline**
 - **Day chips, jump to now, search and category filter in the guide**
+- **Channels with a dead logo link show a TV symbol instead of a blank square**
 - **Tap a programme for its description, catch-up replay or the channel**
 - **Size slider for the guide grid**
 - **Auto-match EPG, with a review list and a confidence for each match**
@@ -111,6 +112,16 @@
 - **Menus and pickers are real frosted glass, dragged to half or full height**
 - **Blur behind dialogs on Android 12 and newer**
 - **Player controls on their own glass panes, with the channel logo**
+- **A seek bar made for a thumb, with a time bubble and a buffered band**
+- **A live instrument panel: clock, Now and Next, live-edge badge and a programme timeline**
+- **Every gesture draws itself, and the phone taps back**
+- **OwnTV draws its own icons, matched to the television's**
+- **Panes arrive with a travelling light, and a poster grows into its page**
+- **Reduce animations now removes every animation in the app, not most of them**
+- **The small-window button opens the app's own small player, not the system window**
+- **Back from a channel's page stops playback**
+- **Sound only is one tap, and shows a moving wave in the small player**
+- **Closing the system floating window stops the sound too**
 - **Hold a player tool to see its name**
 - **Glass Effect switches for the player controls and on-screen messages**
 - **One press-and-hold menu, the same on Home, library, Live TV and Search**

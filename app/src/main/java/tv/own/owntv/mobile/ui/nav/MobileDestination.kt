@@ -1,16 +1,7 @@
 package tv.own.owntv.mobile.ui.nav
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Theaters
-import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.ui.graphics.vector.ImageVector
 import tv.own.owntv.core.nav.MainSection
 import tv.own.owntv.mobile.R
@@ -32,28 +23,28 @@ enum class MobileDestination(
     val icon: ImageVector,
     val sections: Set<MainSection>,
 ) {
-    HOME("home", R.string.common_nav_home, Icons.Filled.Home, setOf(MainSection.HOME)),
-    LIVE("live", R.string.common_nav_live_tv, Icons.Filled.LiveTv, setOf(MainSection.LIVE_TV)),
+    HOME("home", R.string.common_nav_home, MobileIcons.Home, setOf(MainSection.HOME)),
+    LIVE("live", R.string.common_nav_live_tv, MobileIcons.LiveTv, setOf(MainSection.LIVE_TV)),
     LIBRARY(
         "library",
         R.string.common_nav_library,
-        Icons.Filled.VideoLibrary,
+        MobileIcons.VideoLibrary,
         setOf(MainSection.MOVIES, MainSection.SERIES),
     ),
-    GUIDE("guide", R.string.common_nav_guide, Icons.Filled.CalendarMonth, setOf(MainSection.EPG)),
-    MORE("more", R.string.common_nav_more, Icons.Filled.MoreHoriz, emptySet()),
+    GUIDE("guide", R.string.common_nav_guide, MobileIcons.CalendarMonth, setOf(MainSection.EPG)),
+    MORE("more", R.string.common_nav_more, MobileIcons.MoreHoriz, emptySet()),
 
     // Rail-only. On a phone these live inside Library and More; on a tablet there is room to show
     // them as destinations of their own, which is what step 3 of the plan calls the eight-item rail.
-    MOVIES("movies", R.string.common_nav_movies, Icons.Filled.Movie, setOf(MainSection.MOVIES)),
-    SERIES("series", R.string.common_nav_series, Icons.Filled.Theaters, setOf(MainSection.SERIES)),
+    MOVIES("movies", R.string.common_nav_movies, MobileIcons.Movie, setOf(MainSection.MOVIES)),
+    SERIES("series", R.string.common_nav_series, MobileIcons.Theaters, setOf(MainSection.SERIES)),
     DOWNLOADS(
         "downloads",
         R.string.common_nav_downloads,
-        Icons.Filled.Download,
+        MobileIcons.Download,
         setOf(MainSection.DOWNLOADS),
     ),
-    SETTINGS("settings", R.string.common_nav_settings, Icons.Filled.Settings, emptySet());
+    SETTINGS("settings", R.string.common_nav_settings, MobileIcons.Settings, emptySet());
 
     companion object {
         /** The bottom bar, in order. Library stands in for Movies and Series on a narrow screen. */

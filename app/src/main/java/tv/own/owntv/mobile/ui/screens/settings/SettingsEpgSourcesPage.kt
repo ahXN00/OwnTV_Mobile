@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,8 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -89,7 +88,7 @@ fun SettingsEpgSourcesPage(
             }
             MobileListRow(
                 title = stringResource(R.string.settings_epg_sources_add),
-                leading = { Icon(Icons.Filled.Add, contentDescription = null) },
+                leading = { Icon(MobileIcons.Add, contentDescription = null) },
                 onClick = { addSource = true },
             )
         }

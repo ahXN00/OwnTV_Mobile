@@ -57,6 +57,10 @@ release automation.
   runs.
 - **Find a category by typing.** A playlist with four hundred folders makes the chip strip along the
   top useless on a phone, so the search button beside it opens a list you can filter by name.
+- **A channel with no logo still looks like a channel.** Plenty of playlists carry logo links that
+  have gone dead, and the app used to leave a blank square where the picture should be — for as long
+  as the list was open. Now a channel whose logo is missing *or* simply will not load shows a small
+  television symbol instead, everywhere: the channel list, the guide, Home and the player.
 
 ### 🎬 Films and shows
 
@@ -170,6 +174,36 @@ release automation.
   picture size and sound-only stay labelled, because those three have no gesture of their own.
 - **The seek bar is readable in the light theme too.** Anything drawn over the picture now uses the
   accent as it looks on black, so a light theme no longer put a dark seek bar on a dark scene.
+- **A seek bar made for a thumb.** The bar is thick enough to grab and swells while you hold it, the
+  part already downloaded is shaded ahead of the playhead, and a bubble rides above your finger with
+  the time you are about to land on and how far that is from where you were — so a long drag is a
+  decision rather than a guess. Dragging across the picture feeds the same bubble, because the
+  gesture and the bar are one instrument.
+- **Live television has an instrument panel.** A channel on a provider with an archive now shows the
+  clock and how far back you are watching, a *Now* card with a progress line — and, held sideways,
+  what is on next — a red dot that pulses at the live edge and turns amber when you are behind it,
+  and a timeline marked with where each programme starts. Scrub it and the bubble names the
+  programme you are scrubbing to, not just a time.
+- **Every gesture draws itself.** Volume and brightness are a rising bar on the side of the screen
+  you are touching, zoom is a frame showing what is being cropped or fitted, double speed is a run of
+  travelling arrows, and a skip is a ripple where you tapped with the seconds beside it. The phone
+  taps back when a gesture crosses a step — a volume notch, a brightness notch, a skip firing — so
+  you can feel the change without looking at the number.
+- **The small-window button is the app's own small player.** It used to hand the picture to the
+  system's floating window and drop you on the home screen, which is not what a button inside the app
+  should do. It now moves the picture into the app's own bar or floating box, per the *Mini-player*
+  setting — and that setting no longer offers **Off**, because the button has to open something.
+- **Back means finished.** Going back from a channel's page stops the stream instead of leaving it
+  running as a bar over the list you just returned to. The small player now appears only when you ask
+  for it.
+- **Sound only is one tap, not a mode you get stuck in.** Choosing it drops the picture for what you
+  are watching now; the next channel or film comes back with its picture, as it always should have.
+  In the bar, where the picture would be, a moving wave sits over the channel logo, so a sound-only
+  stream reads as playing rather than stopped.
+- **Closing the floating window stops everything.** Leaving the app with the picture full screen puts
+  it in the system's floating window (with **Picture-in-Picture** on); close that window and the sound
+  stops with the picture, rather than carrying on invisibly. The controls stay in the quick panel, so
+  pressing play there picks the stream back up as sound only.
 
 ### 🔍 Search
 
@@ -291,6 +325,18 @@ release automation.
 - **Glass reacts to your finger.** Press a card, a row or a chip and its pane brightens and settles
   under the touch instead of only changing colour, and lets go when you do. With **Reduce
   animations** on, the change is instant rather than removed, so nothing becomes invisible.
+- **The app draws its own icons.** Every icon in the app is drawn by OwnTV rather than taken from
+  Google's set, on the same grid as the television's, so the two apps look like one product — and
+  the app carries no icon library at all, which is a smaller download. Arrows that should turn round
+  in a right-to-left language do; the play, skip and rewind buttons do not, because a timeline runs
+  the same way in every language.
+- **Things arrive instead of appearing.** Panes now settle in with a soft band of light travelling
+  across them once, the background picture drifts a fraction against the pane in front of it, and a
+  poster you tap grows out of the grid into the top of the film's page instead of the two pictures
+  crossfading. Screens change with a short fade rather than the long one the system does by itself.
+  With **Reduce animations** on, all of it is genuinely absent — nothing moves, nothing fades and
+  nothing slides, including menus closing, jumping a long list back to the top, and the switches and
+  rows that used to animate whatever the setting said.
 - **Menus and pickers are real frosted glass at last.** Every press-and-hold menu and every picker
   now opens inside the app's own window, so it blurs the same background picture the rest of the app
   blurs — before, they were a separate window and could only be flat. They can be dragged to half

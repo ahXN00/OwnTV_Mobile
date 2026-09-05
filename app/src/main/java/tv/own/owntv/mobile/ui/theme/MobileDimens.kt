@@ -49,6 +49,9 @@ object MobileDimens {
     val PosterArtCorner = 10.dp
     val PosterProgressHeight = 3.dp
 
+    /** The poster that overlaps a detail header — the tile the user tapped, arrived. */
+    val DetailPosterHeight = 132.dp
+
     /**
      * A tile's own margin, and the sliver that keeps one title off the next. Both are tiny on
      * purpose: the artwork is the tile, and every dp spent framing it is a dp off the picture.

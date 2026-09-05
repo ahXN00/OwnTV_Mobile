@@ -1,18 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.ClosedCaption
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.PlaylistPlay
-import androidx.compose.material.icons.filled.Subtitles
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.graphics.vector.ImageVector
 import tv.own.owntv.mobile.R
 
@@ -42,70 +31,70 @@ enum class SettingsLeaf(
         SettingsGroup.SOURCES, "playlists",
         R.string.settings_playlists, R.string.settings_search_keywords_playlists,
         R.string.settings_sources_description,
-        Icons.Filled.PlaylistPlay,
+        MobileIcons.PlaylistPlay,
     ),
     EPG_SOURCES(
         SettingsGroup.SOURCES, "epg",
         R.string.settings_epg_sources, R.string.settings_search_keywords_epg,
         R.string.settings_epg_sources_description,
-        Icons.Filled.CalendarMonth,
+        MobileIcons.CalendarMonth,
     ),
 
     GLASS_EFFECT(
         SettingsGroup.APPEARANCE, "glass",
         R.string.settings_glass_effect, R.string.settings_search_keywords_glass,
         R.string.settings_glass_description,
-        Icons.Filled.AutoAwesome,
+        MobileIcons.AutoAwesome,
     ),
     FONTS(
         SettingsGroup.APPEARANCE, "fonts",
         R.string.settings_font_customization, R.string.settings_search_keywords_fonts,
         R.string.settings_font_customization_description,
-        Icons.Filled.TextFields,
+        MobileIcons.TextFields,
     ),
     WEATHER(
         SettingsGroup.APPEARANCE, "weather",
         R.string.settings_weather, R.string.settings_search_keywords_weather,
         R.string.settings_weather_description_root,
-        Icons.Filled.WbSunny,
+        MobileIcons.WbSunny,
     ),
 
     CUSTOMIZE(
         SettingsGroup.CONTENT, "customize",
         R.string.settings_customize_title, R.string.settings_search_keywords_customize,
         R.string.settings_customize_nav_description,
-        Icons.Filled.Tune,
+        MobileIcons.Tune,
     ),
     METADATA(
         SettingsGroup.CONTENT, "metadata",
         R.string.settings_metadata, R.string.settings_search_keywords_metadata,
         R.string.settings_metadata_source_description,
-        Icons.Filled.Movie,
+        MobileIcons.Movie,
     ),
     OPEN_SUBTITLES(
         SettingsGroup.CONTENT, "opensubtitles",
         R.string.settings_open_subtitles, R.string.settings_search_keywords_subtitle_appearance,
         R.string.settings_open_subtitles_access_priority,
-        Icons.Filled.Subtitles,
+        MobileIcons.Subtitles,
     ),
 
     VIDEO_PLAYER(
         SettingsGroup.PLAYBACK, "video",
         R.string.settings_video_player, R.string.settings_search_keywords_video,
         R.string.settings_vp_section_engine_summary,
-        Icons.Filled.PlayCircle,
+        MobileIcons.PlayCircle,
     ),
     SUBTITLE_APPEARANCE(
         SettingsGroup.PLAYBACK, "subtitles",
         R.string.settings_subtitle_appearance, R.string.settings_search_keywords_subtitle_appearance,
         R.string.settings_vp_section_subtitles_summary,
-        Icons.Filled.ClosedCaption,
+        MobileIcons.ClosedCaption,
     ),
 
     ERROR_LOG(
         SettingsGroup.APP, "errorlog",
         R.string.settings_playback_error_log, R.string.settings_search_keywords_errors,
-        icon = Icons.Filled.BugReport,
+        icon = MobileIcons.BugReport,
     ),
     ;
 

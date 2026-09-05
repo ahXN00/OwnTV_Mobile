@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.player
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,30 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.material.icons.filled.Cast
-import androidx.compose.material.icons.filled.ClosedCaption
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.material.icons.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PictureInPictureAlt
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -57,17 +38,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.own.owntv.core.live.EpgNowNext
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
+import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.SquircleShape
+import tv.own.owntv.player.LiveProgramme
 import tv.own.owntv.player.OwnTVPlayer
 import java.text.NumberFormat
 
 /** The pickers the tool bar opens. Each one is a sheet; each one also has a gesture. */
 enum class PlayerSheet { VOLUME, BRIGHTNESS, SUBTITLES, AUDIO, ASPECT, SPEED, INFO, CHANNELS }
-
-private val LiveRed = Color(0xFFE53935)
 
 /**
  * Everything drawn over the picture: the title dock, the transport capsule, the instrument and the
@@ -87,16 +69,35 @@ fun PlayerControls(
     isLive: Boolean,
     offsetSec: Int?,
     archiveWindowSec: Int,
+    /** Now and Next for the channel playing, or null when its guide has nothing. */
+    epg: EpgNowNext?,
+    /** The wall-clock instant on screen while an archive plays; null at the live edge. */
+    watchingWallMs: Long?,
+    /** The channel's guide window, as the live timeline's boundary ticks. */
+    timelineProgrammes: List<LiveProgramme>,
+    /** The provider's own number for the channel, or null when the user has numbers turned off. */
+    channelNumber: Int?,
     onBack: () -> Unit,
     onGoLive: () -> Unit,
     onScrubLive: (deltaSec: Int) -> Unit,
     onOpenSheet: (PlayerSheet) -> Unit,
-    onDock: () -> Unit,
+    /** Shrink into the app's own mini player, still playing. */
+    onMini: () -> Unit,
     audioOnly: Boolean,
     onAudioOnly: () -> Unit,
+    /** The screen-wide scrub gesture's running total, in media milliseconds, while it is happening. */
+    gestureScrubMs: Long?,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
+    // The app's own effects spring, not Material's default: with animations off it snaps, so the
+    // chrome is simply there or not there.
+    val fade = LocalMobileMotion.current.fast<Float>()
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(fade),
+        exit = fadeOut(fade),
+        modifier = modifier,
+    ) {
         Box(Modifier.fillMaxSize()) {
             Column(
                 Modifier
@@ -112,7 +113,17 @@ fun PlayerControls(
                         title = title,
                         subtitle = subtitle,
                         logoUrl = logoUrl,
+                        channelNumber = channelNumber,
+                        showClock = isLive || watchingWallMs != null,
+                        watchingWallMs = watchingWallMs,
                         onBack = onBack,
+                    )
+                    // Under the identity rather than beside it: the guide line is the longest text on
+                    // the dock, and a phone has no width to spare on the row the title is already in.
+                    MobileNowNextCard(
+                        epg = epg,
+                        atMs = watchingWallMs,
+                        modifier = Modifier.padding(top = MobileDimens.GapTiny),
                     )
                 }
             }
@@ -132,17 +143,18 @@ fun PlayerControls(
                         LiveBar(
                             offsetSec = offsetSec,
                             archiveWindowSec = archiveWindowSec,
-                            onGoLive = onGoLive,
+                            programmes = timelineProgrammes,
                             onScrubLive = onScrubLive,
                         )
                     } else {
-                        SeekBar(player)
+                        SeekBar(player, gestureScrubMs)
                     }
                     ToolBar(
                         player = player,
                         isLive = isLive,
+                        goLive = if (isLive && (offsetSec ?: 0) > 1) onGoLive else null,
                         onOpenSheet = onOpenSheet,
-                        onDock = onDock,
+                        onMini = onMini,
                         audioOnly = audioOnly,
                         onAudioOnly = onAudioOnly,
                     )
@@ -158,15 +170,18 @@ private fun TopRow(
     title: String,
     subtitle: String?,
     logoUrl: String?,
+    channelNumber: Int?,
+    showClock: Boolean,
+    watchingWallMs: Long?,
     onBack: () -> Unit,
 ) {
     val engine by player.engineChip.collectAsStateWithLifecycle()
     val resolution by player.videoRes.collectAsStateWithLifecycle()
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) {
-            Icon(Icons.Filled.ArrowBack, stringResource(R.string.common_back), tint = Color.White)
+            Icon(MobileIcons.ArrowBack, stringResource(R.string.common_back), tint = Color.White)
         }
-        ChannelLogo(logoUrl = logoUrl, title = title)
+        ChannelLogo(logoUrl = logoUrl, title = title, number = channelNumber)
         Column(Modifier.weight(1f).padding(start = MobileDimens.GapSmall)) {
             Text(
                 text = title,
@@ -187,10 +202,16 @@ private fun TopRow(
                 )
             }
         }
+        if (showClock) {
+            MobilePlayerClock(
+                watchingMs = watchingWallMs,
+                modifier = Modifier.padding(horizontal = MobileDimens.GapTiny),
+            )
+        }
         // Cast belongs to Phase 5, when there is a session to hand over. The slot is here so the bar
         // does not shift sideways the day it starts working.
         IconButton(onClick = { }, enabled = false) {
-            Icon(Icons.Filled.Cast, stringResource(R.string.common_cast), tint = Color.White.copy(alpha = 0.4f))
+            Icon(MobileIcons.Cast, stringResource(R.string.common_cast), tint = Color.White.copy(alpha = 0.4f))
         }
     }
 }
@@ -201,16 +222,16 @@ private fun TransportRow(player: OwnTVPlayer, isLive: Boolean, modifier: Modifie
     val step by player.seekStepMs.collectAsStateWithLifecycle()
     TransportCapsule(modifier) {
         if (!isLive) {
-            RoundControl(Icons.Filled.FastRewind, R.string.player_skip_back) { player.seekBy(-step) }
+            RoundControl(MobileIcons.FastRewind, R.string.player_skip_back) { player.seekBy(-step) }
         }
         RoundControl(
-            icon = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+            icon = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
             labelRes = R.string.settings_remote_action_play_pause,
             size = 68.dp,
             onClick = { player.togglePlayPause() },
         )
         if (!isLive) {
-            RoundControl(Icons.Filled.FastForward, R.string.player_skip_forward) { player.seekBy(step) }
+            RoundControl(MobileIcons.FastForward, R.string.player_skip_forward) { player.seekBy(step) }
         }
     }
 }
@@ -231,107 +252,82 @@ private fun RoundControl(
     }
 }
 
-/** Position, duration and the scrubber, for anything with an end: a film, an episode, a replay. */
+/**
+ * Position, duration and the scrubber, for anything with an end: a film, an episode, a replay.
+ *
+ * The bar is dragged either directly or by the screen-wide horizontal gesture, and both show the same
+ * bubble in the same place — [gestureDeltaMs] is the gesture's running total, still unapplied.
+ */
 @Composable
-private fun SeekBar(player: OwnTVPlayer) {
+private fun SeekBar(player: OwnTVPlayer, gestureDeltaMs: Long?) {
     val position by player.position.collectAsStateWithLifecycle()
     val duration by player.duration.collectAsStateWithLifecycle()
+    val buffered by player.bufferedMs.collectAsStateWithLifecycle()
     if (duration <= 0) return
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
-    val fraction = if (dragging) dragValue else (position.toFloat() / duration).coerceIn(0f, 1f)
+    val playedFraction = (position.toFloat() / duration).coerceIn(0f, 1f)
+    val gestureFraction = gestureDeltaMs?.let {
+        ((position + it).toFloat() / duration).coerceIn(0f, 1f)
+    }
+    val fraction = dragValue.takeIf { dragging } ?: gestureFraction ?: playedFraction
+    val bufferedFraction = (buffered.toFloat() / duration).coerceIn(fraction, 1f)
+    val targetMs = (fraction * duration).toLong()
     // Never the theme accent: over a picture the light theme's accent is a dark tone on a dark scene.
     val accent = LocalAccentOnVideo.current
 
-    Column {
-        Slider(
-            value = fraction,
-            onValueChange = { dragging = true; dragValue = it },
-            onValueChangeFinished = {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TimeCap(formatTimestamp(targetMs), Alignment.Start)
+        MobileSeekBar(
+            fraction = fraction,
+            bufferedFraction = bufferedFraction,
+            dragging = dragging || gestureDeltaMs != null,
+            accent = accent,
+            // While the value is moving, say where it will land and by how much.
+            bubbleTargetMs = targetMs.takeIf { dragging || gestureDeltaMs != null },
+            bubbleDeltaMs = gestureDeltaMs ?: (targetMs - position).takeIf { dragging },
+            onSeekTo = { player.seekBy((it * duration).toLong() - player.position.value) },
+            onDrag = { dragging = true; dragValue = it },
+            onDragEnd = {
                 dragging = false
                 player.seekBy((dragValue * duration).toLong() - player.position.value)
             },
-            colors = SliderDefaults.colors(
-                thumbColor = accent,
-                activeTrackColor = accent,
-                inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-            ),
+            modifier = Modifier.weight(1f).padding(horizontal = MobileDimens.GapSmall),
         )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = stringResource(
-                    R.string.player_time_progress,
-                    formatTimestamp((fraction * duration).toLong()),
-                    formatTimestamp(duration),
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White,
-            )
-            Text(
-                text = stringResource(R.string.player_time_remaining, formatTimestamp(duration - (fraction * duration).toLong())),
-                style = MaterialTheme.typography.labelMedium,
-                color = OnVideo,
-            )
-        }
+        TimeCap(stringResource(R.string.player_time_remaining, formatTimestamp(duration - targetMs)), Alignment.End)
     }
 }
 
 /**
  * The live edge, and how far back from it the picture is.
  *
- * The bar spans the provider's whole archive window, so dragging it left walks back into yesterday
- * and letting go loads that instant; the right-hand end is now. The pill returns to the edge.
+ * The timeline is programme-aware: it spans the last two hours up to now, marks where each programme
+ * began, and names the one under the finger. A channel whose provider keeps no archive has nothing
+ * to drag into, so it gets the badge alone rather than a bar that refuses to move.
  */
 @Composable
 private fun LiveBar(
     offsetSec: Int?,
     archiveWindowSec: Int,
-    onGoLive: () -> Unit,
+    programmes: List<LiveProgramme>,
     onScrubLive: (Int) -> Unit,
 ) {
-    var dragging by remember { mutableStateOf(false) }
-    var dragValue by remember { mutableFloatStateOf(1f) }
-    val atEdge = offsetSec == null
-    val fraction = when {
-        dragging -> dragValue
-        archiveWindowSec <= 0 || offsetSec == null -> 1f
-        else -> (1f - offsetSec.toFloat() / archiveWindowSec).coerceIn(0f, 1f)
-    }
-
-    Column {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (archiveWindowSec > 0) {
-            Slider(
-                value = fraction,
-                onValueChange = { dragging = true; dragValue = it },
-                onValueChangeFinished = {
-                    dragging = false
-                    val target = ((1f - dragValue) * archiveWindowSec).toInt()
-                    onScrubLive(target - (offsetSec ?: 0))
-                },
-                colors = SliderDefaults.colors(
-                    thumbColor = LiveRed,
-                    activeTrackColor = LiveRed,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-                ),
+            MobileLiveTimeline(
+                offsetSec = offsetSec ?: 0,
+                programmes = programmes,
+                // Now. Read per composition, exactly as the television reads it — the bar's ticks are
+                // recomputed on the minute, not on the second.
+                liveEdgeMs = System.currentTimeMillis(),
+                accent = LocalAccentOnVideo.current,
+                onScrub = onScrubLive,
+                modifier = Modifier.weight(1f).padding(end = MobileDimens.GapSmall),
             )
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (atEdge) {
-                    stringResource(R.string.player_at_live_edge)
-                } else {
-                    stringResource(R.string.player_behind_live, formatTimestamp(offsetSec * 1000L))
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = if (atEdge) LiveRed else Color.White,
-            )
+        } else {
             Spacer(Modifier.weight(1f))
-            if (!atEdge) {
-                TextButton(onClick = onGoLive) {
-                    Text(stringResource(R.string.player_go_live), color = LiveRed)
-                }
-            }
         }
+        LiveStateBadge(offsetSec)
     }
 }
 
@@ -346,8 +342,11 @@ private fun LiveBar(
 private fun ToolBar(
     player: OwnTVPlayer,
     isLive: Boolean,
+    /** The way back to the live edge, or null when the picture is already there. */
+    goLive: (() -> Unit)?,
     onOpenSheet: (PlayerSheet) -> Unit,
-    onDock: () -> Unit,
+    /** Shrink into the app's own mini player, still playing. */
+    onMini: () -> Unit,
     audioOnly: Boolean,
     onAudioOnly: () -> Unit,
 ) {
@@ -361,25 +360,27 @@ private fun ToolBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
     ) {
-        CtrlButton(Icons.Filled.VolumeUp, stringResource(R.string.player_tool_volume), {
+        // First, so the way back to now is the first thing the thumb reaches on a bar that scrolls.
+        GoLivePill(enabled = goLive != null, onClick = { goLive?.invoke() })
+        CtrlButton(MobileIcons.VolumeUp, stringResource(R.string.player_tool_volume), {
             onOpenSheet(PlayerSheet.VOLUME)
         })
-        CtrlButton(Icons.Filled.BrightnessMedium, stringResource(R.string.player_tool_brightness), {
+        CtrlButton(MobileIcons.BrightnessMedium, stringResource(R.string.player_tool_brightness), {
             onOpenSheet(PlayerSheet.BRIGHTNESS)
         })
         CtrlButton(
-            icon = Icons.Filled.ClosedCaption,
+            icon = MobileIcons.ClosedCaption,
             label = stringResource(R.string.player_tool_subtitles),
             onClick = { onOpenSheet(PlayerSheet.SUBTITLES) },
             pinned = true,
         )
         if (audioCount > 1) {
-            CtrlButton(Icons.Filled.Audiotrack, stringResource(R.string.player_tool_audio), {
+            CtrlButton(MobileIcons.Audiotrack, stringResource(R.string.player_tool_audio), {
                 onOpenSheet(PlayerSheet.AUDIO)
             })
         }
         CtrlButton(
-            icon = Icons.Filled.AspectRatio,
+            icon = MobileIcons.AspectRatio,
             label = stringResource(R.string.player_tool_aspect),
             onClick = { onOpenSheet(PlayerSheet.ASPECT) },
             pinned = true,
@@ -399,28 +400,30 @@ private fun ToolBar(
                 // ExoPlayer is not this app's default for a film, so being on it is a state worth
                 // colouring — it is what the user switched to.
                 active = engine == EXO,
-                icon = Icons.Filled.SwapHoriz,
+                icon = MobileIcons.SwapHoriz,
                 onClick = { player.toggleVodEngine() },
             )
         }
         if (isLive) {
-            CtrlButton(Icons.Filled.FormatListBulleted, stringResource(R.string.content_channel_overlay_title), {
+            CtrlButton(MobileIcons.FormatListBulleted, stringResource(R.string.content_channel_overlay_title), {
                 onOpenSheet(PlayerSheet.CHANNELS)
             })
         }
-        CtrlButton(Icons.Filled.Info, stringResource(R.string.player_tool_info), {
+        CtrlButton(MobileIcons.Info, stringResource(R.string.player_tool_info), {
             onOpenSheet(PlayerSheet.INFO)
         })
         // Dropping the picture is the phone's biggest battery and data saving, so it is a button on
         // the bar rather than something only the notification offers.
         CtrlButton(
-            icon = Icons.Filled.MusicNote,
+            icon = MobileIcons.MusicNote,
             label = stringResource(R.string.player_tool_audio_only),
             onClick = onAudioOnly,
             active = audioOnly,
             pinned = true,
         )
-        CtrlButton(Icons.Filled.PictureInPictureAlt, stringResource(R.string.player_tool_mini), onDock)
+        // Shrink into the app's own small player and keep browsing. Not the system's floating window:
+        // that one goes over *other* apps and is what pressing Home gives, so it is not a button.
+        CtrlButton(MobileIcons.PictureInPictureAlt, stringResource(R.string.settings_mini_player), onMini)
     }
 }
 
@@ -429,7 +432,7 @@ private const val EXO = "EXO"
 
 /** "Normal" at 1x, "1.5x" otherwise — the same wording the television uses. */
 @Composable
-private fun formatSpeed(speed: Double): String {
+internal fun formatSpeed(speed: Double): String {
     if (speed == 1.0) return stringResource(R.string.player_speed_normal_short)
     val locale = LocalConfiguration.current.locales[0]
     val number = remember(speed, locale) {

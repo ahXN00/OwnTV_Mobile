@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.player
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -11,10 +12,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -33,8 +30,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobileNavShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
@@ -66,7 +65,11 @@ fun MiniPlayer(
     val playing by player.isPlaying.collectAsStateWithLifecycle()
     val position by player.position.collectAsStateWithLifecycle()
     val duration by player.duration.collectAsStateWithLifecycle()
-    val audioOnly by player.audioOnlyMedia.collectAsStateWithLifecycle()
+    // Two ways to have no picture — the user turned it off, or the stream never had one — and the bar
+    // has the same black rectangle to fill either way.
+    val noVideoTrack by player.audioOnlyMedia.collectAsStateWithLifecycle()
+    val chosenSoundOnly by player.audioOnly.collectAsStateWithLifecycle()
+    val audioOnly = noVideoTrack || chosenSoundOnly
 
     Column(
         modifier
@@ -99,11 +102,18 @@ fun MiniPlayer(
                 contentAlignment = Alignment.Center,
             ) {
                 if (audioOnly) {
+                    // Artwork underneath, bars over it: plenty of channels have no logo at all, and a
+                    // bar that shows an empty black square looks stopped rather than sound-only.
                     AsyncImage(
                         model = artworkUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxHeight(),
+                    )
+                    Waveform(
+                        active = playing,
+                        animate = LocalAnimations.current == AnimationLevel.FULL,
+                        modifier = Modifier.padding(MobileDimens.GapSmall),
                     )
                 } else {
                     VideoStage(player = player, modifier = Modifier.fillMaxHeight())
@@ -133,12 +143,12 @@ fun MiniPlayer(
             }
             IconButton(onClick = { player.togglePlayPause() }) {
                 Icon(
-                    imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    imageVector = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
                     contentDescription = stringResource(R.string.settings_remote_action_play_pause),
                 )
             }
             IconButton(onClick = onStop) {
-                Icon(Icons.Filled.Close, stringResource(R.string.content_close))
+                Icon(MobileIcons.Close, stringResource(R.string.content_close))
             }
         }
         // Live has no end to move towards, so the line only appears for something that does.

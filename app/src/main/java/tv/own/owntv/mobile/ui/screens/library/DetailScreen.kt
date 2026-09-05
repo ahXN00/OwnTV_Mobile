@@ -1,5 +1,10 @@
 package tv.own.owntv.mobile.ui.screens.library
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.height
+import tv.own.owntv.mobile.ui.nav.posterKey
+import tv.own.owntv.mobile.ui.nav.sharedPoster
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,16 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -65,6 +60,7 @@ import tv.own.owntv.mobile.ui.components.TmdbDetailsSheet
 import tv.own.owntv.mobile.ui.components.episodeDetails
 import tv.own.owntv.mobile.ui.player.formatTimestamp
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.MobilePosterShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /**
@@ -134,6 +130,22 @@ fun DetailScreen(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+                // The tile the user tapped, landed. It overlaps the backdrop rather than replacing
+                // it, which is what gives the travelling poster somewhere to arrive at — and it is
+                // the one picture on this screen that is certainly the same picture as on the grid.
+                AsyncImage(
+                    model = poster,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = MobileDimens.ScreenPaddingH, bottom = MobileDimens.GapSmall)
+                        .height(MobileDimens.DetailPosterHeight)
+                        .aspectRatio(2f / 3f)
+                        .sharedPoster(posterKey(tab.name, itemId))
+                        .clip(MobilePosterShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                )
             }
             Column(
                 Modifier
@@ -180,7 +192,7 @@ fun DetailScreen(
                     }
                     IconButton(onClick = { vm.toggleFavorite() }) {
                         Icon(
-                            imageVector = if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                            imageVector = if (favorite) MobileIcons.Star else MobileIcons.StarBorder,
                             contentDescription = stringResource(
                                 if (favorite) R.string.content_remove_favourite
                                 else R.string.content_add_favourite,
@@ -190,7 +202,7 @@ fun DetailScreen(
                     }
                     IconButton(onClick = { vm.download() }) {
                         Icon(
-                            imageVector = Icons.Filled.Download,
+                            imageVector = MobileIcons.Download,
                             contentDescription = stringResource(R.string.content_download),
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
@@ -434,7 +446,7 @@ private fun EpisodeRow(
             leading = if (completed) {
                 {
                     Icon(
-                        imageVector = Icons.Filled.CheckCircle,
+                        imageVector = MobileIcons.CheckCircle,
                         contentDescription = stringResource(R.string.content_mark_watched),
                         tint = MaterialTheme.colorScheme.primary,
                     )
@@ -511,7 +523,7 @@ private fun EpisodeMenu(
                     label = stringResource(
                         if (watched) R.string.content_mark_unwatched else R.string.content_mark_watched,
                     ),
-                    icon = if (watched) Icons.Filled.RadioButtonUnchecked else Icons.Filled.CheckCircle,
+                    icon = if (watched) MobileIcons.RadioButtonUnchecked else MobileIcons.CheckCircle,
                     onClick = { vm.setEpisodeWatched(episode, !watched) },
                 ),
             )
@@ -519,7 +531,7 @@ private fun EpisodeMenu(
                 SheetAction(
                     key = "download",
                     label = stringResource(R.string.content_download),
-                    icon = Icons.Filled.Download,
+                    icon = MobileIcons.Download,
                     group = 1,
                     onClick = { vm.download(episode) },
                 ),
@@ -528,7 +540,7 @@ private fun EpisodeMenu(
                 SheetAction(
                     key = "play_external",
                     label = stringResource(R.string.content_play_external_short),
-                    icon = Icons.Filled.OpenInNew,
+                    icon = MobileIcons.OpenInNew,
                     group = 1,
                     onClick = { vm.playExternal(episode) {} },
                 ),
@@ -538,7 +550,7 @@ private fun EpisodeMenu(
                     SheetAction(
                         key = "delete_subtitles",
                         label = stringResource(R.string.content_delete_subtitles),
-                        icon = Icons.Filled.Subtitles,
+                        icon = MobileIcons.Subtitles,
                         group = 1,
                         onClick = { dialog = EpisodeDialog.SUBTITLES },
                     ),
@@ -550,7 +562,7 @@ private fun EpisodeMenu(
                         SheetAction(
                             key = "tmdb_details",
                             label = stringResource(R.string.content_tmdb_details),
-                            icon = Icons.Filled.Info,
+                            icon = MobileIcons.Info,
                             group = 2,
                             onClick = { dialog = EpisodeDialog.DETAILS },
                         ),
@@ -560,7 +572,7 @@ private fun EpisodeMenu(
                     SheetAction(
                         key = "refetch_tmdb",
                         label = stringResource(R.string.content_refetch_tmdb),
-                        icon = Icons.Filled.Refresh,
+                        icon = MobileIcons.Refresh,
                         group = 2,
                         onClick = {
                             Toast.makeText(context, R.string.content_researching_tmdb, Toast.LENGTH_SHORT).show()

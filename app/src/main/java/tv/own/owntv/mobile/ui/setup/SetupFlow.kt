@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.setup
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -147,13 +145,13 @@ private fun SetupChoice(onAddSource: () -> Unit, onRestore: () -> Unit, onCancel
         MobileListRow(
             title = stringResource(R.string.setup_add_playlist),
             subtitle = stringResource(R.string.setup_add_playlist_description),
-            leading = { Icon(Icons.Filled.PlaylistAdd, contentDescription = null) },
+            leading = { Icon(MobileIcons.PlaylistAdd, contentDescription = null) },
             onClick = onAddSource,
         )
         MobileListRow(
             title = stringResource(R.string.setup_restore_backup),
             subtitle = stringResource(R.string.setup_import_profiles_playlists),
-            leading = { Icon(Icons.Filled.Restore, contentDescription = null) },
+            leading = { Icon(MobileIcons.Restore, contentDescription = null) },
             onClick = onRestore,
         )
         if (onCancel != null) {

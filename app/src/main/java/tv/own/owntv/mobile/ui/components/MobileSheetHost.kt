@@ -48,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -209,6 +208,12 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
             .collect { if (it == SheetAnchor.HIDDEN) entry.onDismissRequest() }
     }
 
+    // Going away is the same journey as coming up, and obeys the same setting: with animations off a
+    // dismissal is a disappearance, not a quick slide.
+    suspend fun close() {
+        if (animations == AnimationLevel.OFF) state.snapTo(SheetAnchor.HIDDEN) else state.animateTo(SheetAnchor.HIDDEN)
+    }
+
     // The back gesture shrinks and fades the sheet under the thumb and lets go of it if the gesture
     // completes. Cancelled, it springs back — which is the whole point of the predictive version.
     val backProgress = remember { Animatable(0f) }
@@ -216,9 +221,13 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
         try {
             events.collect { backProgress.snapTo(it.progress) }
             backProgress.snapTo(0f)
-            state.animateTo(SheetAnchor.HIDDEN)
+            close()
         } catch (cancelled: CancellationException) {
-            backProgress.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
+            if (animations == AnimationLevel.OFF) {
+                backProgress.snapTo(0f)
+            } else {
+                backProgress.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
+            }
             throw cancelled
         }
     }
@@ -230,14 +239,14 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
         Modifier
             .fillMaxSize()
             .onSizeChanged { containerHeight = it.height }
-            .background(Color.Black.copy(alpha = SCRIM_ALPHA * shown * (1f - backProgress.value)))
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA * shown * (1f - backProgress.value)))
             // Tapping away is a dismissal, and it is the sheet that animates out rather than the
             // whole layer blinking off. The scrim also swallows the touches the page behind must not
             // receive while a modal sheet is open.
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = { scope.launch { state.animateTo(SheetAnchor.HIDDEN) } },
+                onClick = { scope.launch { close() } },
             ),
     )
 
@@ -296,7 +305,7 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
                 )
                 .size(MobileDimens.GrabWidth, MobileDimens.GrabHeight)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = GRAB_ALPHA)),
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = GRAB_ALPHA)),
         )
         // The settle rides an inner layer, so what catches up is what is inside the pane — put it on
         // the pane itself and the glass slides off its own bottom edge.

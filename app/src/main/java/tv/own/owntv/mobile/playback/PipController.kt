@@ -17,4 +17,13 @@ class PipController {
 
     /** The app is running in the little window — no controls, no gestures, no bars. */
     val inPip = MutableStateFlow(false)
+
+    /**
+     * The playback notification was tapped: put the full screen player back on screen.
+     *
+     * A one-shot, cleared by the shell once it has navigated. It has to travel this way because the
+     * two ends cannot reach each other: the notification arrives as an Intent, which only the activity
+     * sees, and the player is a navigation destination, which only the shell can reach.
+     */
+    val openPlayerRequested = MutableStateFlow(false)
 }

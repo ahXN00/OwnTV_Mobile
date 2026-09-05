@@ -1,5 +1,8 @@
 package tv.own.owntv.mobile.ui.screens.library
 
+import tv.own.owntv.core.theme.AnimationLevel
+import tv.own.owntv.mobile.ui.nav.posterKey
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -16,9 +19,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -60,6 +60,7 @@ import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.mobileGroupPlate
 import tv.own.owntv.mobile.ui.components.PosterCard
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
+import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
@@ -148,10 +149,10 @@ fun LibraryScreen(
             )
             Row(Modifier.align(Alignment.CenterEnd)) {
                 IconButton(onClick = { categoryPicker = true }) {
-                    Icon(Icons.Filled.Search, stringResource(R.string.content_search_categories))
+                    Icon(MobileIcons.Search, stringResource(R.string.content_search_categories))
                 }
                 IconButton(onClick = { sheetOpen = true }) {
-                    Icon(Icons.Filled.Tune, stringResource(R.string.content_sorting))
+                    Icon(MobileIcons.Tune, stringResource(R.string.content_sorting))
                 }
             }
         }
@@ -213,6 +214,7 @@ fun LibraryScreen(
                             progress = progress[item.id]?.takeIf { tab == LibraryTab.MOVIES }
                                 ?.let { it.positionMs.toFloat() / it.durationMs.coerceAtLeast(1) },
                             width = posterWidth,
+                            sharedKey = posterKey(tab.name, item.id),
                             onClick = { onOpenItem(tab, item.id) },
                             onLongClick = { menuFor = item },
                         )
@@ -343,8 +345,12 @@ private fun SettingsRepository.VodViewMode.labelRes() = when (this) {
 /** [tv.own.owntv.mobile.ui.screens.ObeyScrollToTop] for a grid. */
 @Composable
 private fun LazyGridState.ObeyGridScrollToTop(route: String, scrollToTop: SharedFlow<String>) {
-    LaunchedEffect(route) {
-        scrollToTop.collect { requested -> if (requested == route) animateScrollToItem(0) }
+    val instant = LocalAnimations.current == AnimationLevel.OFF
+    LaunchedEffect(route, instant) {
+        scrollToTop.collect { requested ->
+            if (requested != route) return@collect
+            if (instant) scrollToItem(0) else animateScrollToItem(0)
+        }
     }
 }
 

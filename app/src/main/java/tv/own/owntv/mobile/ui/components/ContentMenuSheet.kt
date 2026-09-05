@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -98,7 +97,7 @@ private fun SheetRows(content: @Composable ColumnScope.() -> Unit) {
         Modifier
             .fillMaxWidth()
             .clip(MobileSheetRowsShape)
-            .background(Color.Black.copy(alpha = ROWS_PLATE_ALPHA))
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = ROWS_PLATE_ALPHA))
             .padding(vertical = 2.dp),
         content = content,
     )
@@ -114,7 +113,7 @@ private fun SheetDivider() {
             )
             .fillMaxWidth()
             .height(1.dp)
-            .background(Color.White.copy(alpha = SHEET_DIVIDER_ALPHA)),
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = SHEET_DIVIDER_ALPHA)),
     )
 }
 

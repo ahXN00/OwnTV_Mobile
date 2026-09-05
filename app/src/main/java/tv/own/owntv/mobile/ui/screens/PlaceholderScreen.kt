@@ -10,9 +10,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.flow.SharedFlow
+import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.nav.MobileDestination
 import java.text.NumberFormat
+import tv.own.owntv.mobile.ui.theme.LocalAnimations
 
 /**
  * A tab that does not exist yet.
@@ -44,7 +46,11 @@ fun PlaceholderScreen(
 /** Jumps this list to the top when the shell says its tab was long-pressed. */
 @Composable
 fun LazyListState.ObeyScrollToTop(route: String, scrollToTop: SharedFlow<String>) {
-    LaunchedEffect(route) {
-        scrollToTop.collect { requested -> if (requested == route) animateScrollToItem(0) }
+    val instant = LocalAnimations.current == AnimationLevel.OFF
+    LaunchedEffect(route, instant) {
+        scrollToTop.collect { requested ->
+            if (requested != route) return@collect
+            if (instant) scrollToItem(0) else animateScrollToItem(0)
+        }
     }
 }

@@ -42,6 +42,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
+import tv.own.owntv.player.LiveProgramme
 import tv.own.owntv.player.MpvPlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
@@ -114,6 +115,32 @@ class LiveTuner(
 
     private val _nowNext = MutableStateFlow<EpgNowNext?>(null)
     val nowNext: StateFlow<EpgNowNext?> = _nowNext
+
+    private val _replaying = MutableStateFlow(false)
+
+    /**
+     * True only while a *chosen* archive programme is playing — the one thing on this tuner that has
+     * an end and therefore a seek bar.
+     *
+     * The player cannot be asked this. A live stream's duration is whatever the provider's rolling
+     * window happens to report, which for plenty of them is a plausible-looking twenty-five hours, so
+     * deciding live-ness from the duration classed real channels as recordings and hid the entire
+     * live panel. This tuner is the thing that knows: it started the stream, and it knew which kind
+     * it was asking for.
+     *
+     * A rewind into the archive from the live edge is deliberately **not** a replay — that is still
+     * the channel, just behind, and it keeps the live bar and the way back to now.
+     */
+    val replaying: StateFlow<Boolean> = _replaying
+
+    private val _timelineProgrammes = MutableStateFlow<List<LiveProgramme>>(emptyList())
+
+    /**
+     * The playing channel's guide window, for the player's live timeline: these become the programme
+     * boundary ticks on the bar and the name the scrub bubble reads out. Loaded once per channel —
+     * scrubbing must never re-query the guide, the whole window is already here.
+     */
+    val timelineProgrammes: StateFlow<List<LiveProgramme>> = _timelineProgrammes
 
     /** Whether the channel playing is a favourite — the floating window's menu, which has no list
      *  row behind it to ask. */
@@ -196,10 +223,12 @@ class LiveTuner(
             return
         }
         timeshift.clear() // a new channel is never still rewound into the old one's archive
+        _replaying.value = false
         // A renamed channel keeps its new name on this screen too — the row the user tapped had it.
         val named = custom.value.itemNames[CustomizeKeys.channel(channel)]?.let { channel.copy(name = it) } ?: channel
         _channel.value = named
         _nowNext.value = null
+        _timelineProgrammes.value = emptyList()
 
         val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return
         if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao)) return
@@ -223,6 +252,8 @@ class LiveTuner(
         applyAudioOnlyDefault(channel)
         recordHistory(pid, channel.id)
         _nowNext.value = epgReader.nowNext(channel, custom.value, settings.epgOffsetMinutes.first())
+        _timelineProgrammes.value = catchupProgrammes()
+            .map { LiveProgramme(it.startMs, it.stopMs, it.title) }
     }
 
     /**
@@ -235,7 +266,10 @@ class LiveTuner(
     private suspend fun applyAudioOnlyDefault(channel: ChannelEntity) {
         val remembered = settings.audioPerChannelNow() && audioOnlyStore.isAudioOnly(audioOnlyKey(channel))
         val onData = settings.audioOnMobileDataNow() && dataSaver.isMetered()
-        if (remembered || onData) player.enterAudioOnly()
+        // Both ways, every time. Turning the picture off is a decision about *this* channel, and the
+        // engine keeps the flag across a retune — so without the else, one tap on Sound only silently
+        // became every channel afterwards, looking for all the world like a setting that remembered.
+        if (remembered || onData) player.enterAudioOnly() else player.exitAudioOnly()
     }
 
     /**
@@ -301,6 +335,7 @@ class LiveTuner(
             loadedId = channel.id
             _channel.value = channel
             _nowNext.value = null
+            _timelineProgrammes.value = emptyList()
         }
         scope.launch {
             if (!dataSaver.allowsStreaming()) return@launch
@@ -309,6 +344,7 @@ class LiveTuner(
             val url = archiveUrls.forProgramme(channel, programme) ?: return@launch
             val source = withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
             // isArchive: providers cut archive segments mid-GOP, and the engine needs to tolerate it.
+            _replaying.value = true
             player.play(
                 url = url,
                 title = channel.name,
@@ -371,6 +407,7 @@ class LiveTuner(
         loadedId = null
         _channel.value = null
         _nowNext.value = null
+        _timelineProgrammes.value = emptyList()
         // Withdraw first: a session left published after the sound stops keeps answering the
         // lockscreen and the headphone button for a stream that no longer exists.
         session.attach(null)

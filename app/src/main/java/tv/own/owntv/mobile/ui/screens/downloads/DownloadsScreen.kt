@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.downloads
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -11,16 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -214,7 +205,7 @@ private fun StorageHeader(
             }
             IconButton(onClick = onPickVolume) {
                 Icon(
-                    imageVector = Icons.Filled.Folder,
+                    imageVector = MobileIcons.Folder,
                     contentDescription = stringResource(R.string.settings_download_folder),
                     // Without a tint this inherits a content colour meant for a filled button and
                     // comes out black on the dark card.
@@ -247,7 +238,7 @@ private fun DownloadRow(download: DownloadEntity, onClick: () -> Unit, onLongCli
             subtitle = statusLine(download, unknown),
             leading = {
                 Icon(
-                    imageVector = Icons.Filled.Movie,
+                    imageVector = MobileIcons.Movie,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -255,7 +246,7 @@ private fun DownloadRow(download: DownloadEntity, onClick: () -> Unit, onLongCli
             trailing = {
                 if (download.status == DownloadStatus.COMPLETED) {
                     Icon(
-                        imageVector = Icons.Filled.PlayArrow,
+                        imageVector = MobileIcons.PlayArrow,
                         contentDescription = stringResource(R.string.content_downloads_play),
                         tint = MaterialTheme.colorScheme.primary,
                     )
@@ -306,23 +297,23 @@ private fun DownloadMenu(
     MobileBottomSheet(onDismissRequest = onDismiss, title = download.title) {
         when (download.status) {
             DownloadStatus.COMPLETED -> {
-                MenuRow(R.string.content_downloads_play, Icons.Filled.PlayArrow) {
+                MenuRow(R.string.content_downloads_play, MobileIcons.PlayArrow) {
                     vm.play(download); onDismiss()
                 }
-                MenuRow(R.string.settings_export, Icons.Filled.Save) { onSaveCopy(); onDismiss() }
+                MenuRow(R.string.settings_export, MobileIcons.Save) { onSaveCopy(); onDismiss() }
             }
-            DownloadStatus.FAILED -> MenuRow(R.string.common_retry, Icons.Filled.Refresh) {
+            DownloadStatus.FAILED -> MenuRow(R.string.common_retry, MobileIcons.Refresh) {
                 vm.retry(download); onDismiss()
             }
-            DownloadStatus.PAUSED -> MenuRow(R.string.common_resume, Icons.Filled.PlayArrow) {
+            DownloadStatus.PAUSED -> MenuRow(R.string.common_resume, MobileIcons.PlayArrow) {
                 vm.resume(download); onDismiss()
             }
-            else -> MenuRow(R.string.content_downloads_pause, Icons.Filled.Pause) {
+            else -> MenuRow(R.string.content_downloads_pause, MobileIcons.Pause) {
                 vm.pause(download); onDismiss()
             }
         }
         HorizontalDivider()
-        MenuRow(R.string.common_delete, Icons.Filled.Delete, destructive = true) {
+        MenuRow(R.string.common_delete, MobileIcons.Delete, destructive = true) {
             vm.delete(download); onDismiss()
         }
     }
@@ -350,9 +341,9 @@ private fun VolumePicker(
                 leading = {
                     Icon(
                         imageVector = if (volume.kind == StorageAccess.RootKind.REMOVABLE) {
-                            Icons.Filled.SdStorage
+                            MobileIcons.SdStorage
                         } else {
-                            Icons.Filled.Folder
+                            MobileIcons.Folder
                         },
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -363,7 +354,7 @@ private fun VolumePicker(
                     val chosen = if (current.isBlank()) volume == volumes.firstOrNull() else current == path
                     if (chosen) {
                         Icon(
-                            imageVector = Icons.Filled.Check,
+                            imageVector = MobileIcons.Check,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                         )

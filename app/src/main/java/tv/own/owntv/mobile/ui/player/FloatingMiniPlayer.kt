@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.player
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -13,16 +14,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.OpenInFull
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -55,6 +46,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.player.OwnTVPlayer
 
@@ -147,7 +139,7 @@ fun FloatingMiniPlayer(
                     windowWidth = it.width.toFloat()
                     windowHeight = it.height.toFloat()
                 }
-                .clip(RoundedCornerShape(MobileDimens.CardCorner))
+                .clip(MobileCardShape)
                 .background(Color.Black)
                 .windowGestures(
                     key = size,
@@ -202,14 +194,14 @@ fun FloatingMiniPlayer(
                 ) {
                     IconButton(onClick = player::togglePlayPause) {
                         Icon(
-                            imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            imageVector = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
                             contentDescription = stringResource(R.string.settings_remote_action_play_pause),
                             tint = Color.White,
                         )
                     }
                     IconButton(onClick = onStop) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = MobileIcons.Close,
                             contentDescription = stringResource(R.string.content_close),
                             tint = Color.White,
                         )
@@ -328,7 +320,7 @@ fun FloatingWindowMenu(
             ),
             leading = {
                 Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    imageVector = if (isFavorite) MobileIcons.Star else MobileIcons.StarBorder,
                     contentDescription = null,
                 )
             },
@@ -339,7 +331,7 @@ fun FloatingWindowMenu(
         )
         MobileListRow(
             title = stringResource(R.string.player_tool_audio_only),
-            leading = { Icon(Icons.Filled.MusicNote, contentDescription = null) },
+            leading = { Icon(MobileIcons.MusicNote, contentDescription = null) },
             onClick = {
                 onAudioOnly()
                 onDismiss()
@@ -347,7 +339,7 @@ fun FloatingWindowMenu(
         )
         MobileListRow(
             title = stringResource(R.string.player_sleep_timer),
-            leading = { Icon(Icons.Filled.Bedtime, contentDescription = null) },
+            leading = { Icon(MobileIcons.Bedtime, contentDescription = null) },
             onClick = {
                 onDismiss()
                 onSleepTimer()
@@ -355,7 +347,7 @@ fun FloatingWindowMenu(
         )
         MobileListRow(
             title = stringResource(R.string.player_pip_expand),
-            leading = { Icon(Icons.Filled.OpenInFull, contentDescription = null) },
+            leading = { Icon(MobileIcons.OpenInFull, contentDescription = null) },
             onClick = {
                 onDismiss()
                 onExpand()
@@ -363,7 +355,7 @@ fun FloatingWindowMenu(
         )
         MobileListRow(
             title = stringResource(R.string.content_close),
-            leading = { Icon(Icons.Filled.Close, contentDescription = null) },
+            leading = { Icon(MobileIcons.Close, contentDescription = null) },
             onClick = {
                 onDismiss()
                 onStop()

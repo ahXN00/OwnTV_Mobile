@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.search
 
+import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -275,7 +274,7 @@ private fun RecentSearches(recents: List<String>, onPick: (String) -> Unit, onCl
 private fun FavoriteMark(isFavorite: Boolean) {
     if (!isFavorite) return
     Icon(
-        imageVector = Icons.Filled.Star,
+        imageVector = MobileIcons.Star,
         contentDescription = stringResource(R.string.content_category_favorites),
         tint = MaterialTheme.colorScheme.primary,
     )
