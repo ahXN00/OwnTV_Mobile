@@ -5,9 +5,13 @@ import android.os.Build
 import android.content.res.Configuration
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,21 +41,38 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.MainActivity
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.core.epg.displayLogoUrl
+import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.subtitles.SubtitleController
+import tv.own.owntv.mobile.ui.screens.ContentActions
+import tv.own.owntv.mobile.ui.setup.copyPickedFile
+import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
+import tv.own.owntv.player.ErrorInfo
+import tv.own.owntv.player.PlaybackErrorLog
 import tv.own.owntv.player.PlaybackFailure
 import tv.own.owntv.player.ZoomMode
 import tv.own.owntv.player.describe
+import tv.own.owntv.player.displayText
+import tv.own.owntv.player.titleRes
 
 private const val CONTROLS_TIMEOUT_MS = 3_000L
 private const val HUD_TIMEOUT_MS = 900L
+
+/** How long a confirmation line stays over the picture. */
+private const val TOAST_MS = 1_800L
 private const val SPEED_HOLD = 2.0
 
 /** How many notches the brightness slide is divided into for its haptic tick. */
@@ -75,6 +96,8 @@ fun PlayerScreen(
     vodTuner: VodTuner = koinInject(),
     pip: PipController = koinInject(),
     settings: SettingsRepository = koinInject(),
+    actions: ContentActions = koinInject(),
+    subtitles: SubtitleController = koinInject(),
 ) {
     val player = tuner.player
     val activity = LocalActivity.current
@@ -98,6 +121,36 @@ fun PlayerScreen(
     // Only the stream that never had a picture — a radio channel — reaches this screen without one.
     // The user's own sound-only choice cannot, see below.
     val audioOnlyMedia by player.audioOnlyMedia.collectAsStateWithLifecycle()
+    val position by player.position.collectAsStateWithLifecycle()
+    val nav by player.nav.collectAsStateWithLifecycle()
+    val nextUpTitle by player.nextUpTitle.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // What Favourite would act on: the channel, the film, or — for an episode — the show it is from,
+    // because an episode is never favourited on its own.
+    val favoriteType = channel?.let { MediaType.LIVE }
+        ?: film?.let { if (it.mediaType == MediaType.EPISODE) MediaType.SERIES else it.mediaType }
+    val favoriteId = channel?.id ?: film?.let { it.seriesId ?: it.itemId }
+    val favoriteIds by remember(favoriteType) {
+        favoriteType?.let { actions.favoriteIds(it) } ?: flowOf(emptySet())
+    }.collectAsStateWithLifecycle(emptySet())
+
+    // A line over the picture: the engine swap, the report, a subtitle file that would not load.
+    var toast by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(toast) { if (toast != null) { delay(TOAST_MS); toast = null } }
+    val reportSaved = stringResource(R.string.player_report_saved)
+    val subtitleFailed = stringResource(R.string.content_subtitle_load_failed)
+
+    // A subtitle file already on the phone. Copied into the cache first: the player opens it by path,
+    // and a document-provider Uri is not one.
+    val pickSubtitle = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val file = copyPickedFile(context, uri, java.io.File(context.cacheDir, "subtitles"))
+            if (file == null || runCatching { subtitles.applyLocal(file) }.isFailure) toast = subtitleFailed
+        }
+    }
 
     // **There is no full-screen sound-only mode.** Full screen is the one place in the app that
     // exists to show the picture, so arriving here turns it back on, however the session came to be
@@ -118,6 +171,22 @@ fun PlayerScreen(
     // badge, Go Live pill or programme timeline anywhere.
     val replaying by tuner.replaying.collectAsStateWithLifecycle()
     val isLive = channel != null && !replaying
+
+    // "Go back to…", for a live channel whose provider keeps an archive. Recomputed per channel, since
+    // the depth of the archive is the channel's, not the playlist's.
+    val catchup = remember(channel?.id) {
+        tuner.jumpOptions().takeIf { it.isNotEmpty() }?.let { offsets ->
+            CatchupOptions(offsets, tuner.archiveWindowSec(), tuner::jumpBackTo)
+        }
+    }
+
+    // The automatic advance, made visible. The engine starts the next episode eight seconds before the
+    // end, so the card counts down to that, not to the duration.
+    var autoNextDismissed by remember { mutableStateOf(false) }
+    LaunchedEffect(nextUpTitle, nav.hasNext) { autoNextDismissed = false }
+    val msToAdvance = if (!isLive && duration > 0L) (duration - 8_000L) - position else Long.MAX_VALUE
+    val showNextCard = !isLive && error == null && nav.hasNext && nextUpTitle != null &&
+        msToAdvance in 0L..30_000L && !autoNextDismissed
 
     var controlsVisible by remember { mutableStateOf(true) }
     var sheet by remember { mutableStateOf<PlayerSheet?>(null) }
@@ -320,7 +389,7 @@ fun PlayerScreen(
 
         val failure = error
         if (failure != null) {
-            ErrorPanel(failure = failure, detailRes = errorInfo?.reason?.messageRes, onRetry = player::retry)
+            ErrorPanel(failure = failure, info = errorInfo, onRetry = player::retry)
         } else if (!isPlaying && !noPicture) {
             // On the same material as every other message over the picture, rather than a bare ring.
             PlayerToast(Modifier.align(Alignment.Center)) {
@@ -368,8 +437,59 @@ fun PlayerScreen(
                     onExit()
                 }
             },
+            favorite = favoriteId != null && favoriteId in favoriteIds,
+            onToggleFavorite = {
+                val type = favoriteType ?: return@PlayerControls
+                val id = favoriteId ?: return@PlayerControls
+                scope.launch { actions.toggleFavorite(type, id) }
+            },
+            // Only a live channel whose provider keeps an archive has anything to go back into.
+            onCatchup = if (catchup != null) ({ sheet = PlayerSheet.CATCHUP }) else null,
+            onReport = {
+                val meta = player.currentMeta.value
+                scope.launch {
+                    val snapshot = player.streamInfo().joinToString("\n") { row ->
+                        "  ${res.getString(row.label.titleRes)}: ${row.value.displayText(res)}"
+                    }
+                    PlaybackErrorLog.report(
+                        context = context,
+                        engine = player.engineChip.value ?: "?",
+                        live = isLive,
+                        title = meta.title,
+                        snapshot = snapshot,
+                    )
+                }
+                // Acknowledged at once: the user pressed a button, and the gathering takes a moment.
+                toast = reportSaved
+            },
+            onToast = { toast = it },
             gestureScrubMs = scrubFraction?.takeIf { duration > 0 }?.let { (it * duration).toLong() },
         )
+
+        // Independent of the controls, so it still appears after they have faded out on their own.
+        if (showNextCard) {
+            NextEpisodeCard(
+                seconds = ((msToAdvance + 999L) / 1000L).toInt().coerceIn(0, 30),
+                title = nextUpTitle.orEmpty(),
+                onPlayNow = { autoNextDismissed = true; player.next() },
+                onCancel = { autoNextDismissed = true; player.cancelAutoNext() },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .systemBarsPadding()
+                    .padding(end = 16.dp, bottom = 96.dp),
+            )
+        }
+
+        toast?.let { message ->
+            PlayerToast(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .systemBarsPadding()
+                    .padding(bottom = 96.dp),
+            ) {
+                Text(message, style = MaterialTheme.typography.labelLarge, color = Color.White)
+            }
+        }
 
         GestureHud(hud.takeIf { !inPip })
     }
@@ -382,6 +502,14 @@ fun PlayerScreen(
             brightness = brightness,
             onBrightness = { setBrightness(it) },
             onPickChannel = { tuner.switchTo(it) },
+            onOpenSheet = { sheet = it },
+            // A live channel has nothing to match a subtitle against, and no file to hash.
+            canAddSubtitles = film != null,
+            onPickLocalSubtitle = { pickSubtitle.launch(arrayOf("*/*")) },
+            // A phone's answer to the remote's number keys — offered on the same setting that shows
+            // the numbers at all.
+            onTuneToNumber = if (showChannelNumbers) tuner::tuneByNumber else null,
+            catchup = catchup,
             onDismiss = { sheet = null },
         )
     }
@@ -399,7 +527,7 @@ private fun skip(tuner: LiveTuner, isLive: Boolean, forward: Boolean) {
 }
 
 @Composable
-private fun ErrorPanel(failure: PlaybackFailure, detailRes: Int?, onRetry: () -> Unit) {
+private fun ErrorPanel(failure: PlaybackFailure, info: ErrorInfo?, onRetry: () -> Unit) {
     val res = LocalResources.current
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         PlayerToast {
@@ -410,16 +538,70 @@ private fun ErrorPanel(failure: PlaybackFailure, detailRes: Int?, onRetry: () ->
                 color = Color.White,
                 textAlign = TextAlign.Center,
             )
-            if (detailRes != null) {
+            // Plain reason, then the media it choked on, then the engine's own line. The last two are
+            // what turns "it did not play" into a report somebody can act on without a cable and adb.
+            info?.reason?.let {
                 Text(
-                    text = stringResource(detailRes),
+                    text = stringResource(it.messageRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
+            info?.spec?.let {
+                Text(
+                    text = it.displayText(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.55f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            info?.raw?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = stringResource(R.string.player_raw_error, it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             TextButton(onClick = onRetry) { Text(stringResource(R.string.common_retry)) }
+        }
+    }
+}
+
+/**
+ * "Next episode in 8" — the automatic advance, with a way to take it now and a way to stop it.
+ *
+ * Bottom right, clear of the transport in the middle and of the tool bar along the bottom, so the two
+ * buttons are reachable without the thumb crossing anything else that would react to it.
+ */
+@Composable
+private fun NextEpisodeCard(
+    seconds: Int,
+    title: String,
+    onPlayNow: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PlayerToast(modifier) {
+        Text(
+            text = stringResource(R.string.player_next_episode, seconds),
+            style = MaterialTheme.typography.labelLarge,
+            color = LocalAccentOnVideo.current,
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row {
+            TextButton(onClick = onPlayNow) { Text(stringResource(R.string.player_play_now)) }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         }
     }
 }

@@ -34,6 +34,8 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.player.CatchupOptions
+import tv.own.owntv.mobile.ui.player.CatchupSheet as JumpBackSheet
 import tv.own.owntv.mobile.ui.player.VideoStage
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -116,12 +118,27 @@ fun ChannelDetailScreen(
         }
     }
 
+    // "Go back to…" is the same sheet the full-screen player opens, reached from the same chip: a
+    // programme name is the usual way in, a bare time is the way in when the guide has no listing.
+    var jumpOpen by remember { mutableStateOf(false) }
+
     if (catchupOpen) {
         CatchupSheet(
             channelName = channel?.name.orEmpty(),
             load = vm::catchupProgrammes,
             onPick = { vm.playCatchup(it) },
+            onJumpBack = { catchupOpen = false; jumpOpen = true },
             onDismiss = { catchupOpen = false },
+        )
+    }
+    if (jumpOpen) {
+        JumpBackSheet(
+            options = CatchupOptions(
+                offsetsSec = tuner.jumpOptions(),
+                windowSec = tuner.archiveWindowSec(),
+                onPick = tuner::jumpBackTo,
+            ),
+            onDismiss = { jumpOpen = false },
         )
     }
 }
@@ -204,6 +221,7 @@ private fun CatchupSheet(
     channelName: String,
     load: suspend () -> List<EpgProgrammeEntity>,
     onPick: (EpgProgrammeEntity) -> Unit,
+    onJumpBack: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var programmes by remember { mutableStateOf<List<EpgProgrammeEntity>?>(null) }
@@ -232,6 +250,12 @@ private fun CatchupSheet(
                     subtitle = dates.format(Date(programme.startMs)) + separator +
                         times.format(Date(programme.startMs)),
                     onClick = { onPick(programme); onDismiss() },
+                )
+            }
+            item(key = "jump-back") {
+                MobileListRow(
+                    title = stringResource(R.string.content_catchup_jump),
+                    onClick = onJumpBack,
                 )
             }
         }

@@ -113,7 +113,7 @@ fun DetailScreen(
     val resumeMs = progress?.takeIf { it.durationMs > 1L }?.positionMs ?: 0L
 
     var menuFor by remember { mutableStateOf<EpisodeEntity?>(null) }
-    var sorting by remember { mutableStateOf(false) }
+    var episodeOptions by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
@@ -207,6 +207,18 @@ fun DetailScreen(
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
+                    // How the episode list is shown belongs with the show's other buttons, not
+                    // wedged between "Next up" and the first episode — down there it read as part of
+                    // the resume card and pushed the list itself off the screen.
+                    if (tab == LibraryTab.SERIES) {
+                        IconButton(onClick = { episodeOptions = true }) {
+                            Icon(
+                                imageVector = MobileIcons.Tune,
+                                contentDescription = stringResource(R.string.content_episode_options),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
                 }
                 if (!plot.isNullOrBlank()) {
                     Text(
@@ -245,13 +257,6 @@ fun DetailScreen(
                         onSelect = { index -> seasons.getOrNull(index)?.let { vm.selectSeason(it) } },
                     )
                 }
-                EpisodeFilterRow(
-                    hideWatched = hideWatched,
-                    canHideWatched = completedIds.isNotEmpty(),
-                    episodesDescending = order.episodesDescending,
-                    onHideWatched = { vm.setHideWatched(!hideWatched) },
-                    onSorting = { sorting = true },
-                )
                 if (loading) {
                     Box(
                         Modifier.fillMaxWidth().padding(MobileDimens.GapLarge),
@@ -282,11 +287,14 @@ fun DetailScreen(
         }
     }
 
-    if (sorting) {
-        SortingSheet(
+    if (episodeOptions) {
+        EpisodeOptionsSheet(
             order = order,
+            hideWatched = hideWatched,
+            canHideWatched = completedIds.isNotEmpty(),
+            onHideWatched = { vm.setHideWatched(!hideWatched) },
             onChange = { seasonsDesc, episodesDesc -> vm.setOrder(seasonsDesc, episodesDesc) },
-            onDismiss = { sorting = false },
+            onDismiss = { episodeOptions = false },
         )
     }
 
@@ -343,53 +351,49 @@ private fun NextUpCard(episode: EpisodeEntity, positionMs: Long, onPlay: () -> U
     }
 }
 
-/** Hide watched, and the way in to the sorting sheet. The first only once there is something to hide. */
+/**
+ * How the episode list is shown: what is hidden, and in what order.
+ *
+ * One sheet rather than a strip of chips above the list. The chips cost two lines of a phone screen
+ * on every visit to settle a question most people answer once, and they sat between the resume card
+ * and the first episode, where they read as part of the card. Hide watched only appears once there
+ * is something watched to hide.
+ *
+ * Sorting is presentation only — playing on ignores it.
+ */
 @Composable
-private fun EpisodeFilterRow(
+private fun EpisodeOptionsSheet(
+    order: DetailViewModel.SeriesOrder,
     hideWatched: Boolean,
     canHideWatched: Boolean,
-    episodesDescending: Boolean,
     onHideWatched: () -> Unit,
-    onSorting: () -> Unit,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
-        modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
-    ) {
-        if (canHideWatched) {
-            FilterChip(
-                selected = hideWatched,
-                onClick = onHideWatched,
-                label = {
-                    Text(
-                        stringResource(
-                            if (hideWatched) R.string.content_show_watched else R.string.content_hide_watched,
-                        ),
-                    )
-                },
-            )
-        }
-        AssistChip(
-            onClick = onSorting,
-            label = {
-                Text(
-                    stringResource(
-                        if (episodesDescending) R.string.content_newest_first else R.string.content_oldest_first,
-                    ),
-                )
-            },
-        )
-    }
-}
-
-/** Seasons and episodes, each oldest or newest first. Presentation only — playing on ignores it. */
-@Composable
-private fun SortingSheet(
-    order: DetailViewModel.SeriesOrder,
     onChange: (seasonsDescending: Boolean, episodesDescending: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.content_sorting)) {
+    MobileBottomSheet(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.content_episode_options),
+    ) {
+        if (canHideWatched) {
+            Row(
+                modifier = Modifier.padding(
+                    horizontal = MobileDimens.ScreenPaddingH,
+                    vertical = MobileDimens.GapSmall,
+                ),
+            ) {
+                FilterChip(
+                    selected = hideWatched,
+                    onClick = onHideWatched,
+                    label = {
+                        Text(
+                            stringResource(
+                                if (hideWatched) R.string.content_show_watched else R.string.content_hide_watched,
+                            ),
+                        )
+                    },
+                )
+            }
+        }
         SortingRow(
             label = stringResource(R.string.content_seasons),
             descending = order.seasonsDescending,

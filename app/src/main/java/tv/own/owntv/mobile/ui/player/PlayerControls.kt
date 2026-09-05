@@ -49,7 +49,9 @@ import tv.own.owntv.player.OwnTVPlayer
 import java.text.NumberFormat
 
 /** The pickers the tool bar opens. Each one is a sheet; each one also has a gesture. */
-enum class PlayerSheet { VOLUME, BRIGHTNESS, SUBTITLES, AUDIO, ASPECT, SPEED, INFO, CHANNELS }
+enum class PlayerSheet {
+    VOLUME, BRIGHTNESS, SUBTITLES, SUBTITLE_SEARCH, AUDIO, ASPECT, SPEED, INFO, CHANNELS, CATCHUP,
+}
 
 /**
  * Everything drawn over the picture: the title dock, the transport capsule, the instrument and the
@@ -85,6 +87,15 @@ fun PlayerControls(
     onMini: () -> Unit,
     audioOnly: Boolean,
     onAudioOnly: () -> Unit,
+    /** Whether what is playing is one of this profile's favourites. */
+    favorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    /** Opens "Go back to…", or null when this channel's provider keeps no archive. */
+    onCatchup: (() -> Unit)?,
+    /** Files a diagnostic report about the stream on screen. */
+    onReport: () -> Unit,
+    /** Flashes a line over the picture — what the engine toggle uses to name what it switched to. */
+    onToast: (String) -> Unit,
     /** The screen-wide scrub gesture's running total, in media milliseconds, while it is happening. */
     gestureScrubMs: Long?,
     modifier: Modifier = Modifier,
@@ -157,6 +168,11 @@ fun PlayerControls(
                         onMini = onMini,
                         audioOnly = audioOnly,
                         onAudioOnly = onAudioOnly,
+                        favorite = favorite,
+                        onToggleFavorite = onToggleFavorite,
+                        onCatchup = onCatchup,
+                        onReport = onReport,
+                        onToast = onToast,
                     )
                 }
             }
@@ -349,10 +365,19 @@ private fun ToolBar(
     onMini: () -> Unit,
     audioOnly: Boolean,
     onAudioOnly: () -> Unit,
+    favorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    onCatchup: (() -> Unit)?,
+    onReport: () -> Unit,
+    onToast: (String) -> Unit,
 ) {
     val audioCount by player.audioCount.collectAsStateWithLifecycle()
     val speed by player.speed.collectAsStateWithLifecycle()
     val engine by player.engineChip.collectAsStateWithLifecycle()
+    // The engine chip in the title line is small and easy to miss, so the swap says which engine it
+    // landed on — otherwise the only feedback for the button is a picture that blinks.
+    val switchedToExo = stringResource(R.string.player_switch_exo)
+    val switchedToMpv = stringResource(R.string.player_switch_mpv)
     Row(
         Modifier
             .fillMaxWidth()
@@ -362,6 +387,19 @@ private fun ToolBar(
     ) {
         // First, so the way back to now is the first thing the thumb reaches on a bar that scrolls.
         GoLivePill(enabled = goLive != null, onClick = { goLive?.invoke() })
+        // Adding what is on to Favourites without leaving it. From here there is no list row to hold
+        // down, so the player has to carry the toggle itself.
+        CtrlButton(
+            icon = if (favorite) MobileIcons.Favorite else MobileIcons.FavoriteBorder,
+            label = stringResource(
+                if (favorite) R.string.content_favorited else R.string.content_favorite,
+            ),
+            onClick = onToggleFavorite,
+            active = favorite,
+        )
+        if (onCatchup != null) {
+            CtrlButton(MobileIcons.History, stringResource(R.string.content_catchup_jump), onCatchup)
+        }
         CtrlButton(MobileIcons.VolumeUp, stringResource(R.string.player_tool_volume), {
             onOpenSheet(PlayerSheet.VOLUME)
         })
@@ -401,7 +439,10 @@ private fun ToolBar(
                 // colouring — it is what the user switched to.
                 active = engine == EXO,
                 icon = MobileIcons.SwapHoriz,
-                onClick = { player.toggleVodEngine() },
+                onClick = {
+                    onToast(if (engine == EXO) switchedToMpv else switchedToExo)
+                    player.toggleVodEngine()
+                },
             )
         }
         if (isLive) {
@@ -412,6 +453,9 @@ private fun ToolBar(
         CtrlButton(MobileIcons.Info, stringResource(R.string.player_tool_info), {
             onOpenSheet(PlayerSheet.INFO)
         })
+        // Reporting a bad stream is only useful while it is misbehaving, which is here — by the time
+        // the user has walked to a settings page the stream has usually recovered or been left.
+        CtrlButton(MobileIcons.BugReport, stringResource(R.string.player_tool_report), onReport)
         // Dropping the picture is the phone's biggest battery and data saving, so it is a button on
         // the bar rather than something only the notification offers.
         CtrlButton(

@@ -24,6 +24,7 @@ import tv.own.owntv.core.database.entity.PlaybackProgressEntity
 import tv.own.owntv.core.database.entity.SeriesEntity
 import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.database.entity.WatchHistoryEntity
+import tv.own.owntv.core.metadata.MetadataRepository
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.player.ExternalPlayerLauncher
 import tv.own.owntv.core.player.enginePinKey
@@ -31,13 +32,16 @@ import tv.own.owntv.core.database.dao.resolveExistingProfileId
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.ReconnectUrlProvider
 import tv.own.owntv.core.stalker.StreamUrlResolver
+import tv.own.owntv.core.subtitles.SubtitleController
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
+import tv.own.owntv.player.MediaMeta
 import tv.own.owntv.player.MpvPlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
+import tv.own.owntv.player.PlaylistItem
 
 /** A film or an episode, playing. [mediaType] and [itemId] are what the resume position is written for. */
 data class VodPlayback(
@@ -46,6 +50,8 @@ data class VodPlayback(
     val title: String,
     val subtitle: String? = null,
     val posterUrl: String? = null,
+    /** The show an episode belongs to. An episode is favourited by its series, never on its own. */
+    val seriesId: Long? = null,
 )
 
 /**
@@ -71,6 +77,8 @@ class VodTuner(
     private val settings: SettingsRepository,
     private val streamUrlResolver: StreamUrlResolver,
     private val externalPlayerLauncher: ExternalPlayerLauncher,
+    private val subtitleController: SubtitleController,
+    private val metadata: MetadataRepository,
     private val session: PlaybackSession,
     private val liveTuner: LiveTuner,
     private val dataSaver: DataSaverGate,
@@ -89,9 +97,42 @@ class VodTuner(
      *  resume position into the new profile's list. */
     private var playingProfileId = -1L
 
+    /** The season queue handed to the player, kept so a player-driven advance can be followed. */
+    private data class PlayingQueue(
+        val show: SeriesEntity,
+        val episodes: List<EpisodeEntity>,
+        val profileId: Long,
+        val parentTmdbId: Long?,
+    )
+
+    private var playingQueue: PlayingQueue? = null
+
     init {
         scope.launch {
             liveTuner.channel.collect { if (it != null) clearPlaying() }
+        }
+        // The player advances a queue by itself (auto-next, and the HUD's prev/next), so everything
+        // keyed to "the episode playing" — the title on screen, the resume position, the subtitle
+        // search context — has to be re-pointed by whoever owns it. Nobody tells this class otherwise.
+        scope.launch {
+            player.queueItemChanged.collect { index ->
+                val q = playingQueue ?: return@collect
+                val episode = q.episodes.getOrNull(index) ?: return@collect
+                // Deliberately no saveProgress() here: by the time this arrives the player is already
+                // on the new episode at position ~0, so a write would stamp that over the finished
+                // one's real position. The five-second timer saved it while it was still playing.
+                _playing.value = VodPlayback(
+                    MediaType.EPISODE,
+                    episode.id,
+                    q.show.name,
+                    episodeLabel(episode),
+                    q.show.posterUrl,
+                    q.show.id,
+                )
+                playingProfileId = q.profileId
+                subtitleController.setEpisode(q.profileId, q.show, episode, q.parentTmdbId)
+                recordHistory(q.profileId, MediaType.EPISODE, episode.id)
+            }
         }
         scope.launch {
             while (true) {
@@ -134,10 +175,18 @@ class VodTuner(
             reconnectProvider = reconnectFor(source, movie.streamUrl),
         )
         began(pid, VodPlayback(MediaType.MOVIE, movie.id, movie.name, posterUrl = movie.posterUrl))
+        playingQueue = null
+        // Turns on the player's "Add subtitles" search for this film. The TMDB id is a precision
+        // boost when the metadata cache has one, never a requirement.
+        subtitleController.setMovie(pid, movie, runCatching { metadata.resolveMovie(movie)?.tmdbId?.toLong() }.getOrNull())
         return true
     }
 
-    /** [playMovie] for one episode of [show]. */
+    /**
+     * Play one episode — and queue the rest of the series behind it, so the player's Next/Previous
+     * and its automatic advance at the end of an episode have somewhere to go. Watching a series is
+     * watching episode after episode; stopping dead at the end of each one is not the same feature.
+     */
     suspend fun playEpisode(episodeId: Long, startPositionMs: Long = 0): Boolean {
         val episode = withContext(Dispatchers.IO) { seriesDao.getEpisodeById(episodeId) } ?: return false
         val show = withContext(Dispatchers.IO) { seriesDao.getSeriesById(episode.seriesId) } ?: return false
@@ -152,24 +201,44 @@ class VodTuner(
         }
 
         if (!dataSaver.allowsStreaming()) return false
-        val url = resolve(source, episode.streamUrl) ?: return false
         saveProgress()
         liveTuner.stop()
-        player.play(
-            url = url,
-            title = title,
-            subtitle = subtitle,
-            isLive = false,
+
+        val episodes = withContext(Dispatchers.IO) { seriesDao.episodesBySeriesOnce(show.id) }
+            .ifEmpty { listOf(episode) }
+        val startIndex = episodes.indexOfFirst { it.id == episode.id }.coerceAtLeast(0)
+        val needsResolve = streamUrlResolver.needsResolve(source)
+        player.playEpisodes(
+            items = episodes.map { ep ->
+                PlaylistItem(
+                    url = ep.streamUrl,
+                    meta = MediaMeta(
+                        title = title,
+                        subtitle = episodeLabel(ep),
+                        logoUrl = show.posterUrl,
+                        contentKey = enginePinKey(show.sourceId, "EPISODE", ep.remoteId),
+                        seasonNumber = ep.seasonNumber,
+                        episodeNumber = ep.episodeNumber,
+                    ),
+                    // Stalker mints a link per episode, and it is short-lived — so it is minted as
+                    // that episode loads, not once for the whole queue.
+                    resolveUrl = if (needsResolve && source != null) {
+                        { streamUrlResolver.resolve(source, ep.streamUrl, vod = true, episode = ep.episodeNumber) }
+                    } else {
+                        null
+                    },
+                    httpHeaders = ep.httpHeaders,
+                    drmConfig = ep.drmConfig,
+                )
+            },
+            startIndex = startIndex,
             startPositionMs = startPositionMs,
             userAgent = source?.userAgent,
-            httpHeaders = episode.httpHeaders,
-            drmConfig = episode.drmConfig,
-            contentKey = enginePinKey(show.sourceId, "EPISODE", episode.remoteId),
-            seasonNumber = episode.seasonNumber,
-            episodeNumber = episode.episodeNumber,
-            reconnectProvider = reconnectFor(source, episode.streamUrl),
         )
-        began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl))
+        began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl, show.id))
+        val parentTmdbId = runCatching { metadata.resolveSeries(show)?.tmdbId?.toLong() }.getOrNull()
+        subtitleController.setEpisode(pid, show, episode, parentTmdbId)
+        playingQueue = PlayingQueue(show, episodes, pid, parentTmdbId)
         return true
     }
 
@@ -203,7 +272,26 @@ class VodTuner(
             startPositionMs = resume?.positionMs ?: 0L,
         )
         began(pid, VodPlayback(mediaType, itemId, title, posterUrl = posterUrl))
+        playingQueue = null
+        setDownloadSubtitleContext(pid, mediaType, itemId, filePath)
         return true
+    }
+
+    /**
+     * A downloaded film or episode can search for subtitles too — and better than a stream can: the
+     * file is on disk, so OpenSubtitles can be matched on the file's own hash rather than on its name.
+     */
+    private suspend fun setDownloadSubtitleContext(pid: Long, mediaType: MediaType, itemId: Long, filePath: String) {
+        runCatching {
+            if (mediaType == MediaType.MOVIE) {
+                val movie = withContext(Dispatchers.IO) { movieDao.getById(itemId) } ?: return
+                subtitleController.setMovie(pid, movie, metadata.resolveMovie(movie)?.tmdbId?.toLong(), filePath)
+            } else {
+                val ep = withContext(Dispatchers.IO) { seriesDao.getEpisodeById(itemId) } ?: return
+                val show = withContext(Dispatchers.IO) { seriesDao.getSeriesById(ep.seriesId) } ?: return
+                subtitleController.setEpisode(pid, show, ep, metadata.resolveSeries(show)?.tmdbId?.toLong(), filePath)
+            }
+        }
     }
 
     /**
@@ -283,11 +371,13 @@ class VodTuner(
         PlaybackService.start(context)
         playingProfileId = profileId
         _playing.value = what
+        recordHistory(profileId, what.mediaType, what.itemId)
+    }
+
+    private suspend fun recordHistory(profileId: Long, mediaType: MediaType, itemId: Long) {
         runCatching {
             withContext(Dispatchers.IO) {
-                historyDao.record(
-                    WatchHistoryEntity(profileId = profileId, mediaType = what.mediaType, itemId = what.itemId),
-                )
+                historyDao.record(WatchHistoryEntity(profileId = profileId, mediaType = mediaType, itemId = itemId))
             }
         }
     }
@@ -295,6 +385,10 @@ class VodTuner(
     private fun clearPlaying() {
         _playing.value = null
         playingProfileId = -1L
+        playingQueue = null
+        // The player's ADD SUBTITLES entry exists only for a film or an episode. Left set, it would
+        // still be offering to search OpenSubtitles for the film while a channel is playing.
+        subtitleController.clear()
     }
 
     private suspend fun handOver(

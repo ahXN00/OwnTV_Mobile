@@ -238,6 +238,7 @@ object MobileIcons {
     val Star: ImageVector by lazy { glyph() { star(filled = true) } }
     val StarBorder: ImageVector by lazy { glyph() { star(filled = false) } }
     val Favorite: ImageVector by lazy { glyph() { heart(filled = true) } }
+    val FavoriteBorder: ImageVector by lazy { glyph() { heart(filled = false) } }
     val Info: ImageVector by lazy {
         glyph() { ring(12f, 12f, 9f); dot(12f, 7.6f, 1.2f); line(12f, 11f, 12f, 16.5f) }
     }

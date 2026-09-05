@@ -144,6 +144,17 @@
 - **Unplugging headphones stops the sound**
 - **Lock screen and notification playback controls**
 - **Background playback: the sound continues when you leave the app**
+- **Favourite, catch-up, sound only and report in the player tool bar**
+- **Go back to an earlier time from the player, or pick an exact day and clock time**
+- **Search and download subtitles from OpenSubtitles, or pick a file off the phone**
+- **Nudge subtitle timing and audio delay, and remember the delay**
+- **Next episode counts itself in, with Play now and Cancel**
+- **Tune straight to a channel number**
+- **The failure panel names the format, size and decoder**
+- **Episode sorting and hiding moved to their own button at the top of a show**
+- **Stream information scrolls**
+- **Fixed: flicking a long list inside a pop-up sheet closed the app**
+- **The Playback page says which settings are television-only**
 - **Picture-in-Picture, with pause and channel +/− buttons**
 - **Phone and emulator builds from one signing key, shared with the TV app**
 - **26 languages on day one, inherited from the core library**

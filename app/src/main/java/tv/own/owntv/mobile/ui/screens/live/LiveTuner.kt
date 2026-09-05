@@ -362,6 +362,55 @@ class LiveTuner(
         }
     }
 
+    /**
+     * "Go back to…": start the archive [offsetSec] seconds behind live in one jump.
+     *
+     * Not a replay — this is still the channel, just behind, so the live bar and the way back to now
+     * stay. That is why it goes through the timeshift rather than through [playCatchup].
+     */
+    fun jumpBackTo(offsetSec: Int) {
+        val ch = _channel.value?.takeIf { it.catchup } ?: return
+        _replaying.value = false
+        timeshift.beginAt(ch, offsetSec)
+    }
+
+    /** Offsets worth offering in the catch-up sheet, nearest first; empty without an archive. */
+    fun jumpOptions(): List<Int> = _channel.value?.let { timeshift.jumpOptions(it) } ?: emptyList()
+
+    /**
+     * Tune the channel carrying provider number [number] — the numeric entry in the channel sheet.
+     *
+     * The current playlist's own channels first, then the profile's other Live playlists, because a
+     * number is the provider's and two providers routinely disagree about who is channel 101. Two
+     * visible channels with the same number and no way to choose between them is [DirectTune.Ambiguous]
+     * rather than a silent guess.
+     */
+    suspend fun tuneByNumber(number: Int): DirectTune {
+        val sourceIds = ctx.value.liveSourceIds.ifEmpty { return DirectTune.NotFound }
+        val playing = _channel.value
+        return runCatching {
+            val hidden = custom.value.hiddenItems
+            val ordered = if (playing == null) sourceIds else {
+                listOf(playing.sourceId) + sourceIds.filter { it != playing.sourceId }
+            }
+            // Stage by source, so the playing playlist's own 101 wins over another playlist's 101
+            // instead of the two of them cancelling each other out as an ambiguity.
+            for (sourceId in ordered) {
+                val hits = withContext(Dispatchers.IO) { channelDao.findByNumber(listOf(sourceId), number) }
+                    .filter { CustomizeKeys.channel(it) !in hidden }
+                when (hits.size) {
+                    0 -> continue
+                    1 -> {
+                        switchTo(hits.first())
+                        return DirectTune.Found(hits.first().name)
+                    }
+                    else -> return DirectTune.Ambiguous(hits.size)
+                }
+            }
+            DirectTune.NotFound
+        }.getOrElse { DirectTune.Failed }
+    }
+
     /** Drag back into the archive (+) or toward live (−), in seconds. */
     fun scrubLive(deltaSec: Int) {
         val ch = _channel.value ?: return
@@ -428,4 +477,15 @@ class LiveTuner(
     private companion object {
         const val SIBLING_LIMIT = 2_000
     }
+}
+
+/**
+ * What typing a channel number produced. Every outcome is something the user is told: a number that
+ * matches nothing must not look like a tap that was simply ignored.
+ */
+sealed interface DirectTune {
+    data class Found(val name: String) : DirectTune
+    data object NotFound : DirectTune
+    data class Ambiguous(val count: Int) : DirectTune
+    data object Failed : DirectTune
 }

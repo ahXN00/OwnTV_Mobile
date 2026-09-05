@@ -1,5 +1,7 @@
 package tv.own.owntv.mobile.ui.player
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,13 +10,18 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,9 +29,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import tv.own.owntv.core.database.entity.ChannelEntity
+import tv.own.owntv.mobile.ui.screens.live.DirectTune
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
@@ -45,17 +57,35 @@ fun PlayerSheetHost(
     brightness: Float,
     onBrightness: (Float) -> Unit,
     onPickChannel: (ChannelEntity) -> Unit,
+    /** Opens another sheet from inside this one — the subtitle sheet's way to the search. */
+    onOpenSheet: (PlayerSheet) -> Unit,
+    /** True for a film or an episode: only those can have a subtitle searched or attached. */
+    canAddSubtitles: Boolean,
+    /** Opens the phone's document picker for a subtitle file already on the device. */
+    onPickLocalSubtitle: () -> Unit,
+    /** Tunes a typed channel number, or null when the user has channel numbers turned off. */
+    onTuneToNumber: (suspend (Int) -> DirectTune)?,
+    /** "Go back to…" — the offsets on offer, and what to do with the chosen one. */
+    catchup: CatchupOptions?,
     onDismiss: () -> Unit,
 ) {
     when (sheet) {
         PlayerSheet.VOLUME -> VolumeSheet(player, onDismiss)
         PlayerSheet.BRIGHTNESS -> BrightnessSheet(brightness, onBrightness, onDismiss)
-        PlayerSheet.SUBTITLES -> SubtitleSheet(player, onDismiss)
+        PlayerSheet.SUBTITLES -> SubtitleSheet(
+            player = player,
+            canAddSubtitles = canAddSubtitles,
+            onSearch = { onOpenSheet(PlayerSheet.SUBTITLE_SEARCH) },
+            onPickLocalSubtitle = onPickLocalSubtitle,
+            onDismiss = onDismiss,
+        )
+        PlayerSheet.SUBTITLE_SEARCH -> SubtitleSearchSheet(onDismiss)
         PlayerSheet.AUDIO -> AudioSheet(player, onDismiss)
         PlayerSheet.ASPECT -> AspectSheet(player, onDismiss)
         PlayerSheet.SPEED -> SpeedSheet(player, onDismiss)
         PlayerSheet.INFO -> StreamInfoSheet(player, onDismiss)
-        PlayerSheet.CHANNELS -> ChannelSheet(channels, onPickChannel, onDismiss)
+        PlayerSheet.CHANNELS -> ChannelSheet(channels, onTuneToNumber, onPickChannel, onDismiss)
+        PlayerSheet.CATCHUP -> catchup?.let { CatchupSheet(it, onDismiss) } ?: onDismiss()
     }
 }
 
@@ -102,9 +132,23 @@ private fun SliderRow(value: Float, label: String, onChange: (Float) -> Unit) {
     }
 }
 
+/**
+ * The subtitle tracks, plus the two ways of getting one the stream does not carry, plus the timing
+ * nudge for a subtitle that runs ahead of or behind the speech.
+ *
+ * A picture-based track (PGS, VOBSUB, DVB) is labelled as one, because choosing it hands playback to
+ * the other engine for a second and the user should know why the picture blinked.
+ */
 @Composable
-private fun SubtitleSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
+private fun SubtitleSheet(
+    player: OwnTVPlayer,
+    canAddSubtitles: Boolean,
+    onSearch: () -> Unit,
+    onPickLocalSubtitle: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val tracks = remember { player.textTracks() }
+    val timing = remember { player.subtitleTimingAvailable() }
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_subtitles)) {
         MobileListRow(
             title = stringResource(R.string.common_off),
@@ -114,28 +158,153 @@ private fun SubtitleSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
             EmptyNote(stringResource(R.string.player_no_tracks))
         }
         tracks.forEach { track ->
+            val label = track.displayLabel()
             MobileListRow(
-                title = track.label,
+                title = if (track.image) stringResource(R.string.player_image_track, label) else label,
                 subtitle = if (track.selected) stringResource(R.string.common_on) else null,
                 onClick = { player.selectSubtitle(track.mpvId); onDismiss() },
+            )
+        }
+        if (canAddSubtitles) {
+            SectionLabel(stringResource(R.string.player_add_subtitles))
+            MobileListRow(title = stringResource(R.string.player_search_subtitles), onClick = onSearch)
+            MobileListRow(
+                title = stringResource(R.string.player_select_local_subtitle),
+                onClick = { onPickLocalSubtitle(); onDismiss() },
+            )
+        }
+        if (timing) {
+            SectionLabel(stringResource(R.string.player_subtitle_timing))
+            SubtitleTimingRow(player)
+        }
+    }
+}
+
+/**
+ * Subtitle timing, adjusted while the film keeps playing behind the sheet — the only way to tell
+ * whether it now matches the speech is to hear the speech.
+ */
+@Composable
+private fun SubtitleTimingRow(player: OwnTVPlayer) {
+    val delay by player.subDelayMs.collectAsStateWithLifecycle()
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall),
+    ) {
+        Text(
+            text = when {
+                delay == 0 -> stringResource(R.string.player_subtitle_delay_zero)
+                delay > 0 -> stringResource(R.string.player_subtitle_delay_positive, delay / 1000.0)
+                else -> stringResource(R.string.player_subtitle_delay_negative, -delay / 1000.0)
+            },
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = when {
+                delay > 0 -> stringResource(R.string.player_subtitles_later)
+                delay < 0 -> stringResource(R.string.player_subtitles_earlier)
+                else -> stringResource(R.string.player_no_offset)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            Modifier.padding(top = MobileDimens.GapTiny),
+            horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
+        ) {
+            TextButton(onClick = { player.adjustSubtitleDelay(-500) }) {
+                Text(stringResource(R.string.player_subtitle_delay_negative, 0.5))
+            }
+            TextButton(onClick = { player.adjustSubtitleDelay(-100) }) {
+                Text(stringResource(R.string.player_subtitle_delay_negative, 0.1))
+            }
+            TextButton(onClick = { player.resetSubtitleDelay() }) {
+                Text(stringResource(R.string.common_reset))
+            }
+            TextButton(onClick = { player.adjustSubtitleDelay(100) }) {
+                Text(stringResource(R.string.player_subtitle_delay_positive, 0.1))
+            }
+            TextButton(onClick = { player.adjustSubtitleDelay(500) }) {
+                Text(stringResource(R.string.player_subtitle_delay_positive, 0.5))
+            }
+        }
+    }
+}
+
+/** 25 ms a step, the same as the setting: what this corrects lands in the tens of milliseconds, and
+ *  50 could bracket it without ever hitting it. */
+private const val AV_SYNC_STEP_MS = 25
+private const val AV_SYNC_LIMIT_MS = 5_000
+
+@Composable
+private fun AudioSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
+    val tracks = remember { player.audioTracks() }
+    val delay by player.audioDelayMs.collectAsStateWithLifecycle()
+    val remembered by player.audioDelayRemembered.collectAsStateWithLifecycle()
+    MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_audio_track)) {
+        if (tracks.isEmpty()) EmptyNote(stringResource(R.string.player_no_tracks))
+        tracks.forEach { track ->
+            MobileListRow(
+                title = track.displayLabel(),
+                subtitle = if (track.selected) stringResource(R.string.common_on) else null,
+                onClick = { player.selectAudio(track.mpvId); onDismiss() },
+            )
+        }
+        // Lip sync, for a badly muxed file where the voices arrive before or after the mouths. Offered
+        // on everything the full-screen player plays, exactly as the television offers it.
+        run {
+            SectionLabel(stringResource(R.string.player_av_sync))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapTiny),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
+            ) {
+                TextButton(
+                    onClick = { player.adjustAudioDelay(-AV_SYNC_STEP_MS) },
+                    enabled = delay > -AV_SYNC_LIMIT_MS,
+                ) { Text(stringResource(R.string.common_minus)) }
+                Text(
+                    text = formatDelay(delay),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                )
+                TextButton(
+                    onClick = { player.adjustAudioDelay(AV_SYNC_STEP_MS) },
+                    enabled = delay < AV_SYNC_LIMIT_MS,
+                ) { Text(stringResource(R.string.common_plus)) }
+            }
+            // The error belongs to the stream, not to the user: remembering it keeps the correction on
+            // this film alone rather than carrying it onto everything watched afterwards.
+            MobileListRow(
+                title = stringResource(R.string.player_av_sync_remember),
+                subtitle = if (remembered) stringResource(R.string.common_on) else null,
+                onClick = { player.toggleRememberAudioDelay() },
             )
         }
     }
 }
 
 @Composable
-private fun AudioSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
-    val tracks = remember { player.audioTracks() }
-    MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_audio_track)) {
-        if (tracks.isEmpty()) EmptyNote(stringResource(R.string.player_no_tracks))
-        tracks.forEach { track ->
-            MobileListRow(
-                title = track.label,
-                subtitle = if (track.selected) stringResource(R.string.common_on) else null,
-                onClick = { player.selectAudio(track.mpvId); onDismiss() },
-            )
-        }
-    }
+private fun formatDelay(ms: Int): String = when {
+    ms == 0 -> stringResource(R.string.player_delay_zero)
+    ms > 0 -> stringResource(R.string.player_delay_positive, ms)
+    else -> stringResource(R.string.player_delay_negative, ms)
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(
+            start = MobileDimens.ScreenPaddingH,
+            top = MobileDimens.GapSmall,
+            bottom = MobileDimens.GapTiny,
+        ),
+    )
 }
 
 @Composable
@@ -186,9 +355,12 @@ private fun StreamInfoSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
     LaunchedEffect(player) { rows = player.streamInfo() }
     val res = LocalResources.current
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_stream_info)) {
+        // Scrollable, not merely capped: this is the longest table in the app — eleven rows, one of
+        // them a whole stream URL that wraps to three lines — and half a screen never holds it.
         Column(
             Modifier
                 .heightIn(max = (LocalConfiguration.current.screenHeightDp / 2).dp)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = MobileDimens.ScreenPaddingH),
         ) {
             rows.forEach { row ->
@@ -211,10 +383,17 @@ private fun StreamInfoSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
     }
 }
 
-/** The other channels in this folder — the swipe-up list, and its button on the tool bar. */
+/**
+ * The other channels in this folder — the swipe-up list, and its button on the tool bar.
+ *
+ * With channel numbers turned on it also takes one typed in: a remote control has a keypad, and a
+ * phone's equivalent is a field. Every way it can fail says so, because a number that quietly does
+ * nothing is indistinguishable from a field that is not working.
+ */
 @Composable
 private fun ChannelSheet(
     channels: List<ChannelEntity>,
+    onTuneToNumber: (suspend (Int) -> DirectTune)?,
     onPick: (ChannelEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -222,6 +401,7 @@ private fun ChannelSheet(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.content_channel_overlay_title),
     ) {
+        if (onTuneToNumber != null) DirectTuneField(onTuneToNumber, onDismiss)
         LazyColumn(Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp / 2).dp)) {
             items(channels, key = { it.id }) { channel ->
                 MobileListRow(
@@ -230,6 +410,55 @@ private fun ChannelSheet(
                     onClick = { onPick(channel); onDismiss() },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun DirectTuneField(onTune: suspend (Int) -> DirectTune, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val notFound = stringResource(R.string.player_channel_not_found)
+    val failed = stringResource(R.string.player_tune_failed)
+    val ambiguous = stringResource(R.string.player_multiple_channels)
+
+    fun submit() {
+        val number = text.toIntOrNull() ?: return
+        scope.launch {
+            when (onTune(number)) {
+                is DirectTune.Found -> onDismiss()
+                DirectTune.NotFound -> message = notFound
+                is DirectTune.Ambiguous -> message = ambiguous
+                DirectTune.Failed -> message = failed
+            }
+        }
+    }
+
+    Column(Modifier.padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapTiny)) {
+        OutlinedTextField(
+            value = text,
+            // Digits only, filtered rather than merely hinted: the keyboard is a suggestion, and a
+            // pasted "BBC 101" would otherwise sit there looking like a number that will not tune.
+            onValueChange = { new -> text = new.filter(Char::isDigit).take(6); message = null },
+            label = { Text(stringResource(R.string.player_channel_number_entry)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Go),
+            keyboardActions = KeyboardActions { submit() },
+            trailingIcon = {
+                TextButton(onClick = { submit() }, enabled = text.isNotEmpty()) {
+                    Text(stringResource(R.string.common_ok))
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        message?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = MobileDimens.GapTiny),
+            )
         }
     }
 }

@@ -2,7 +2,9 @@ package tv.own.owntv.mobile.ui.components
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -281,7 +283,18 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
                 alpha = 1f - backProgress.value * 0.4f
                 transformOrigin = TransformOrigin(0.5f, 1f)
             }
-            .nestedScroll(rememberSheetNestedScroll(state))
+            // A fling that hands over to the sheet obeys the animation setting the same way a
+            // dismissal does: off means it arrives, it does not travel.
+            .nestedScroll(
+                rememberSheetNestedScroll(
+                    state = state,
+                    settleSpec = if (animations == AnimationLevel.OFF) {
+                        snap()
+                    } else {
+                        AnchoredDraggableDefaults.SnapAnimationSpec
+                    },
+                ),
+            )
             .anchoredDraggable(
                 state = state,
                 orientation = Orientation.Vertical,
@@ -344,11 +357,17 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
  * Dragging up, the sheet expands before the list starts scrolling; dragging down, the list scrolls
  * until it reaches its own top and only then does the sheet take over. Without this a list inside a
  * sheet swallows every gesture and the sheet can only be moved by its handle.
+ *
+ * The fling is settled with an animation spec, never with `settle(velocity)`: that overload requires
+ * an [AnchoredDraggableState] built with positional and velocity thresholds, and **throws** on one
+ * built without them. This state has none, so the velocity overload crashed the app the moment a
+ * list inside a sheet was flung rather than dragged.
  */
 @Composable
 private fun rememberSheetNestedScroll(
     state: AnchoredDraggableState<SheetAnchor>,
-): NestedScrollConnection = remember(state) {
+    settleSpec: AnimationSpec<Float>,
+): NestedScrollConnection = remember(state, settleSpec) {
     object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset =
             if (available.y < 0f && source == NestedScrollSource.UserInput) {
@@ -366,14 +385,14 @@ private fun rememberSheetNestedScroll(
 
         override suspend fun onPreFling(available: Velocity): Velocity =
             if (available.y < 0f && state.requireOffset() > state.anchors.minPosition()) {
-                state.settle(available.y)
+                state.settle(settleSpec)
                 available
             } else {
                 Velocity.Zero
             }
 
         override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            state.settle(available.y)
+            state.settle(settleSpec)
             return available
         }
     }

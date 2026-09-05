@@ -97,6 +97,10 @@ release automation.
   reversed here.
 - **Films play in the same player as live television**, in the mini bar or full screen, with all the
   same controls and gestures.
+- **Hiding and sorting live behind their own button.** They used to sit as a row of chips between
+  *Next up* and the first episode, where they read as part of the resume card and pushed the episode
+  list off the screen. They are now behind a button beside Download, at the top of the show, with the
+  episode list starting where the list should start.
 
 ### 🏠 Home
 
@@ -221,6 +225,30 @@ release automation.
   for full screen. It carries more buttons too: ten seconds back, play and pause, ten seconds forward
   and close on a film or episode — and on a live channel, where there is nothing to skip through, a
   button back to full screen.
+- **The player's tool bar is now the television's, complete.** Favourite what you are watching
+  without leaving it — a channel, a film, or, for an episode, the show it belongs to — jump into
+  catch-up, drop the picture, and report a stream that is broken.
+- **Go back to an earlier time, from the player.** On a channel whose provider keeps an archive, the
+  catch-up button offers the last few hours as plain clock times; **Choose exact time…** opens a day
+  strip and a clock face for anything further back. Pick a moment outside what the provider actually
+  keeps and it is pulled to the nearest one it does, rather than failing silently. The same list is
+  at the foot of a channel's own page, under **Go back to…**.
+- **Subtitles, all the way.** Search OpenSubtitles for the film or episode you are watching and
+  download one in a tap; or pick a subtitle file off the phone. Subtitles that are pictures rather
+  than text are named as such instead of appearing as a blank entry. If they run early or late,
+  nudge them in half- and tenth-of-a-second steps, and do the same for sound that drifts from the
+  picture — with **Remember this delay**, so the same channel opens correct next time.
+- **The next episode counts itself in.** Thirty seconds before an episode ends, a card offers **Play
+  now** or **Cancel**, exactly as on the television.
+- **Tune straight to a channel number.** Type it into the channel list and go. If nothing has that
+  number, if more than one channel does, or if it will not open, it says which.
+- **When playback fails, the panel says what it was trying to play** — the format, the size and
+  whether it was being decoded by the chip or by software — so a failure is diagnosable instead of
+  just red.
+- **Stream information scrolls.** It is the longest table in the app, and half a screen never held
+  it; the bottom rows, the stream address among them, were simply unreachable.
+- **A fling inside any pop-up sheet no longer crashes the app.** Flicking a long list — the catch-up
+  times were the first long enough to flick — could close the app outright.
 
 ### 🔍 Search
 
@@ -388,6 +416,9 @@ release automation.
 
 ### 📱 It behaves like a phone, not a television
 
+- **The settings that a phone does not have say so.** The Playback page ends with one line
+  explaining that the live preview and the remote-control shortcuts are television features, so a
+  setting you remember from the TV app is accounted for rather than just absent.
 - **A call pauses the film and hanging up resumes it.** Anything that takes the sound away for a
   moment — a call, a navigation prompt, a voice assistant — pauses playback and gives it back
   afterwards. If you paused it yourself while the call was going on, it stays paused: your choice is

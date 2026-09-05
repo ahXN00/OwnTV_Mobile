@@ -5,12 +5,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.SettingRow
+import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /** The two "one of these" questions in the Mobile section. */
 private enum class MobilePlaybackSheet { MINI_STYLE, PIP_SIZE }
@@ -112,6 +116,21 @@ fun SettingsPlaybackPage(
                 value = gesture,
                 range = 50..200,
                 onValueChange = { pct -> vm.edit { setGestureSensitivityPct(pct) } },
+            )
+        }
+
+        // Two of the television's playback settings are missing here, and this is where somebody would
+        // come looking for them. A page that simply lacks a row reads as a bug; a page that says why
+        // does not.
+        item(key = "tv-only-note") {
+            Text(
+                text = stringResource(R.string.settings_playback_tv_only_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(
+                    horizontal = MobileDimens.ScreenPaddingH,
+                    vertical = MobileDimens.GapSmall,
+                ),
             )
         }
     }
