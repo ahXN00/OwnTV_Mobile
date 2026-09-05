@@ -59,10 +59,23 @@ import tv.own.owntv.player.ZoomMode
  * the docked mini player — because all three are the same stream and the same engine.
  */
 @Composable
-fun VideoStage(player: OwnTVPlayer, modifier: Modifier = Modifier, subtitleScale: Float = 1f) {
+fun VideoStage(
+    player: OwnTVPlayer,
+    modifier: Modifier = Modifier,
+    subtitleScale: Float = 1f,
+    /**
+     * Ignore the zoom the user chose and use this instead.
+     *
+     * The floating window passes FIT. A zoom is a choice about a *screen* — "crop this film to fill my
+     * television" — and carrying it into a 176dp window is nonsense: ORIGINAL there means a 1920px
+     * frame inside a 460px window, showing a quarter of the picture with no way to see it is cropped.
+     */
+    zoomOverride: ZoomMode? = null,
+) {
     val aspect by player.videoAspect.collectAsStateWithLifecycle()
     val videoSize by player.videoSize.collectAsStateWithLifecycle()
-    val zoom by player.zoomMode.collectAsStateWithLifecycle()
+    val chosenZoom by player.zoomMode.collectAsStateWithLifecycle()
+    val zoom = zoomOverride ?: chosenZoom
 
     // Keeping the screen awake is MainActivity's job, not this composable's: three of these exist and
     // they hand the stream to one another, so whichever one was disposed last won.

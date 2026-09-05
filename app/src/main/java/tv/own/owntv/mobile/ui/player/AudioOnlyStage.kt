@@ -1,25 +1,20 @@
 package tv.own.owntv.mobile.ui.player
 
-import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.components.MobileIcons
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +27,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -41,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
-import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.SleepTimer
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
@@ -52,16 +49,18 @@ import tv.own.owntv.mobile.ui.theme.MobileSheetShape
 /** What the sleep timer offers, in minutes. Round numbers, because nobody falls asleep to 37. */
 private val SLEEP_MINUTES = intArrayOf(15, 30, 45, 60, 90)
 
-/** The waveform's bars, and how tall each one gets at the top of its swing. */
 /** The artwork tile, big enough to read a channel logo on and small enough for landscape. */
 private val ARTWORK_SIZE = 132.dp
 
 /** Where the bars sit while the controls are up: between the top bar and the transport buttons. */
 private val COMPACT_TOP_PADDING = 84.dp
 
-private val WAVE_PEAKS = floatArrayOf(0.5f, 0.9f, 0.65f, 1f, 0.45f)
+private val WAVE_PEAKS = listOf(0.5f, 0.9f, 0.65f, 1f, 0.45f)
 private val WAVE_HEIGHT = 44.dp
-private val WAVE_BAR_WIDTH = 5.dp
+private val WAVE_WIDTH = 56.dp
+
+/** How tall a bar stands when nothing is moving it: short, but never a bare line. */
+private const val WAVE_RESTING = 0.18f
 
 /**
  * What the player shows where the picture would be, while there is no picture.
@@ -145,7 +144,6 @@ fun AudioOnlyBackdrop(
             }
             Waveform(
                 active = playing,
-                animate = LocalAnimations.current == AnimationLevel.FULL,
                 modifier = Modifier.padding(top = MobileDimens.GapMedium),
             )
             // The one thing the player's own bar does not already offer, and the reason most people
@@ -220,39 +218,48 @@ private fun minutesLabel(remainingMs: Long): String {
 /**
  * Something moving, so a screen with no picture still looks like it is playing.
  *
- * Shared with the mini player's bar, which has the same black rectangle and the same problem.
+ * The television's equaliser, drawn the same way: bars standing on a baseline and dancing on their
+ * own clocks, flattened to a stub while paused. Centre-expanding bars read as a level meter rather
+ * than an equaliser, which is why this is a canvas and not a row of boxes.
+ *
+ * Shared by the mini player's bar and the full screen backdrop a radio channel gets — the same black
+ * rectangle and the same problem.
+ *
+ * **It moves even with Reduce animations on, which the television's does too.** This is not
+ * decoration: it is the only thing on a screen with no picture that says the sound is still coming.
+ * Frozen it reads as stopped, which is the exact confusion the component exists to prevent — so the
+ * one thing it must never do is hold still while something is playing.
  */
 @Composable
-fun Waveform(active: Boolean, animate: Boolean, modifier: Modifier = Modifier) {
+fun Waveform(active: Boolean, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "waveform")
-    Row(
-        modifier.height(WAVE_HEIGHT),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        WAVE_PEAKS.forEachIndexed { index, peak ->
-            // Each bar swings on its own clock, or the row would pump as one block.
-            val fraction = if (active && animate) {
-                transition.animateFloat(
-                    initialValue = 0.2f,
-                    targetValue = peak,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 420 + index * 90),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "bar$index",
-                ).value
-            } else {
-                0.2f
-            }
-            Box(
-                Modifier
-                    .padding(horizontal = 3.dp)
-                    .width(WAVE_BAR_WIDTH)
-                    .fillMaxHeight(fraction)
-                    .clip(RoundedCornerShape(WAVE_BAR_WIDTH / 2))
-                    // Over the picture — or, here, over where the picture would be. The scheme's
-                    // primary is a dark accent on a dark scene in the light theme.
-                    .background(LocalAccentOnVideo.current),
+    // Each bar swings on its own clock, or the row would pump as one block.
+    val heights = WAVE_PEAKS.mapIndexed { index, peak ->
+        transition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = peak,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 420 + index * 90, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "bar$index",
+        )
+    }
+    // Over the picture — or, here, over where the picture would be. The scheme's primary is a dark
+    // accent on a dark scene in the light theme.
+    val color = LocalAccentOnVideo.current
+    Canvas(modifier.size(width = WAVE_WIDTH, height = WAVE_HEIGHT)) {
+        val gap = size.width * 0.12f
+        val barWidth = (size.width - gap * (WAVE_PEAKS.size - 1)) / WAVE_PEAKS.size
+        heights.forEachIndexed { index, height ->
+            // Flat only when the stream really is paused, which is the one thing it should say.
+            val fraction = if (active) height.value else WAVE_RESTING
+            val barHeight = size.height * fraction
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(index * (barWidth + gap), size.height - barHeight),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
             )
         }
     }

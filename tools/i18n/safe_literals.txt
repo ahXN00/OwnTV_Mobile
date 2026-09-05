@@ -80,6 +80,7 @@
 2	log	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerSeekBar.kt	track
 1	file-path	app/src/main/java/tv/own/owntv/mobile/ui/screens/ContentActions.kt	${StorageAccess.sanitize(movie.name)}.
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Dev harness
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Rebuild Now Trending
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Theme gallery
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	dev_gallery
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	dev_harness

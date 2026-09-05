@@ -198,12 +198,29 @@ release automation.
   for it.
 - **Sound only is one tap, not a mode you get stuck in.** Choosing it drops the picture for what you
   are watching now; the next channel or film comes back with its picture, as it always should have.
-  In the bar, where the picture would be, a moving wave sits over the channel logo, so a sound-only
-  stream reads as playing rather than stopped.
+  In the bar, where the picture would be, a moving equaliser sits over the channel logo, so a
+  sound-only stream reads as playing rather than stopped — and those bars keep moving even with
+  **Reduce animations** on, because on a screen with no picture they are the only thing saying the
+  sound is still coming.
+- **Full screen always has a picture.** Sound only lives in the bar at the bottom, which is where its
+  button sends it; there is no full-screen sound-only mode to end up in by accident. Coming back to
+  full screen from the quick panel, from a closed floating window or from an expanded bar turns the
+  picture back on rather than showing a black rectangle with sound.
+- **Sound only and the small-window button always land somewhere you can see.** Pressing either from
+  a channel's own page used to leave you back on that page with no picture, no bar and no window,
+  because the app hides the small player wherever the stream is already on screen. Both now step back
+  past the channel to a screen where the small player is visible.
 - **Closing the floating window stops everything.** Leaving the app with the picture full screen puts
   it in the system's floating window (with **Picture-in-Picture** on); close that window and the sound
   stops with the picture, rather than carrying on invisibly. The controls stay in the quick panel, so
-  pressing play there picks the stream back up as sound only.
+  pressing play there picks the stream back up as sound only — and opening the app from those controls
+  brings the picture with it.
+- **The little window is the shape of what you are watching.** It takes the picture's own proportions
+  the way the system's floating window does, so a wide film fills a wide window instead of sitting in
+  black bands, and it always shows the whole frame rather than inheriting the picture size you chose
+  for full screen. It carries more buttons too: ten seconds back, play and pause, ten seconds forward
+  and close on a film or episode — and on a live channel, where there is nothing to skip through, a
+  button back to full screen.
 
 ### 🔍 Search
 

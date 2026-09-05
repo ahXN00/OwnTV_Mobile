@@ -30,10 +30,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.R
-import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobileNavShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
@@ -112,7 +110,6 @@ fun MiniPlayer(
                     )
                     Waveform(
                         active = playing,
-                        animate = LocalAnimations.current == AnimationLevel.FULL,
                         modifier = Modifier.padding(MobileDimens.GapSmall),
                     )
                 } else {

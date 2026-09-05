@@ -7,9 +7,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
+import tv.own.owntv.core.database.dao.SourceDao
+import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.sync.work.CatalogSyncScheduler
 import tv.own.owntv.mobile.BuildConfig
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileGroup
@@ -86,10 +98,56 @@ fun MoreScreen(
                         leading = { Icon(MobileIcons.Build, contentDescription = null) },
                         onClick = { onDevRoute(DevRoute.HARNESS) },
                     )
+                    RebuildTrendingRow()
                 }
             }
         }
     }
+}
+
+/**
+ * The television's "Rebuild Now Trending", on the phone.
+ *
+ * Trending is read-only on mobile by Plan 4's own rule — the row shows what core last stored, and the
+ * refresh is scheduled a few days apart. That timer is the problem when a trending bug is being
+ * chased: reproducing it means waiting days, or driving the television. This forces the download for
+ * every playlist on the active profile, right now, ignoring the timer.
+ *
+ * Deliberately unthrottled beyond its own two-second chip, for the reason the television's is:
+ * `BuildConfig.DEV_TOOLS` is false in every published APK, so R8 deletes this function and the row
+ * that calls it, and a maintainer chasing a bug needs to press it as often as the bug requires.
+ *
+ * English-only, like the two rows above it and by the same exception — it never reaches a user. The
+ * chip is the one exception: core already has that word translated, so it costs nothing to use it.
+ */
+@Composable
+private fun RebuildTrendingRow(
+    settings: SettingsRepository = koinInject(),
+    sourceDao: SourceDao = koinInject(),
+    scheduler: CatalogSyncScheduler = koinInject(),
+) {
+    val scope = rememberCoroutineScope()
+    var running by remember { mutableStateOf(false) }
+    MobileListRow(
+        title = "Rebuild Now Trending",
+        subtitle = if (running) stringResource(R.string.settings_rebuilding) else null,
+        leading = { Icon(MobileIcons.Build, contentDescription = null) },
+        onClick = {
+            if (running) return@MobileListRow
+            running = true
+            scope.launch {
+                val profileId = settings.activeProfileId.first()
+                if (profileId >= 0) {
+                    sourceDao.sourceIdsForProfile(profileId)
+                        .forEach { scheduler.enqueueTrendingRefresh(it, force = true) }
+                }
+                // The work is a background job, so there is nothing to await — the chip is there to
+                // say the press landed, not to report the result. Watch the row itself for that.
+                delay(2_500)
+                running = false
+            }
+        },
+    )
 }
 
 /** The two Plan 3 / Phase 1 scaffolding screens, reachable only in a dev build. */

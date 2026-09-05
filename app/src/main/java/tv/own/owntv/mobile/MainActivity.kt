@@ -164,7 +164,14 @@ class MainActivity : ComponentActivity() {
         if (!player.hasActiveStream) return
         // Sound-only first, then stop. The window is gone, so there is no surface and no reason to keep
         // a video decoder alive — and it settles what the play button in the quick panel will do next.
-        if (!player.audioOnly.value) player.enterAudioOnly()
+        //
+        // Flagged as *this* class's doing, exactly as the screen-off path flags it, so coming back
+        // undoes it. Without that, tapping the quick-panel controls opened the app with sound and a
+        // black screen — and there is no full-screen sound-only mode in this app.
+        if (!player.audioOnly.value) {
+            droppedVideoForBackground = true
+            player.enterAudioOnly()
+        }
         if (player.isPlaying.value) player.togglePlayPause()
     }
 

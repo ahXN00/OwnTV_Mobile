@@ -127,7 +127,10 @@
 - **One press-and-hold menu, the same on Home, library, Live TV and Search**
 - **Settings rows grouped on plates, with the app's own switches and sliders**
 - **Full screen fills the whole screen, under the notch and behind the bars**
-- **Sound only is a slim bar with a moving wave, not a page**
+- **Sound only is a slim bar with a moving equaliser, not a page**
+- **Full screen always has a picture — sound only lives in the bar**
+- **The little window takes the shape of what you are watching**
+- **Ten seconds back and forward, or a button to full screen, in the little window**
 - **Sideways, the top bar lines up with the tab rail**
 - **Fonts page, including the font used in menus and sheets**
 - **Weather page, with approximate device location**

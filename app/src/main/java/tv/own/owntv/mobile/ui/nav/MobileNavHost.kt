@@ -237,7 +237,7 @@ fun MobileNavHost(
             }
         }
         composable(PLAYER_ROUTE) {
-            PlayerScreen(onExit = { navController.popBackStack() })
+            PlayerScreen(onExit = { navController.leavePlayerStillPlaying() })
         }
         composable(SETUP_ROUTE) {
             SetupFlow(
@@ -266,6 +266,23 @@ private fun channelRoute(parent: MobileDestination, channelId: Long, openCatchup
 
 /** A channel screen draws the picture itself, under whichever tab it was opened from. */
 fun isChannelRoute(route: String?): Boolean = route?.contains("/$CHANNEL_SEGMENT/") == true
+
+/**
+ * Leave the full screen player with the stream still running — the small-window button, Sound only,
+ * and the swipe down.
+ *
+ * It has to leave **every** screen that draws the picture, not just the top one. A channel is watched
+ * from its own screen, so popping the player alone landed the user back on that screen, and the shell
+ * hides the mini player wherever the stream is already on display: the picture went away, no bar and
+ * no floating window arrived, and the two buttons looked broken. A film's page is not one of these —
+ * it describes the film, it does not play it — so only channel screens are walked past.
+ */
+private fun NavHostController.leavePlayerStillPlaying() {
+    popBackStack()
+    while (isChannelRoute(currentDestination?.route)) {
+        if (!popBackStack()) return
+    }
+}
 
 private const val ARG_CHANNEL_ID = "channelId"
 private const val ARG_CATCHUP = "catchup"

@@ -413,6 +413,7 @@ fun MobileShell(
                     FloatingMiniPlayer(
                         player = tuner.player,
                         title = live?.name ?: film?.title.orEmpty(),
+                        isLive = live != null,
                         artworkUrl = live?.displayLogoUrl ?: film?.posterUrl,
                         onExpand = { navController.navigate(PLAYER_ROUTE) },
                         onStop = { if (live != null) tuner.stop() else vodTuner.stop() },

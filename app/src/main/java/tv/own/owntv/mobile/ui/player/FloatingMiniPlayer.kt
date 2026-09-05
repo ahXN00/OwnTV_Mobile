@@ -13,12 +13,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +51,7 @@ import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.player.OwnTVPlayer
+import tv.own.owntv.player.ZoomMode
 
 /** How wide the window is at each of the three sizes the pinch moves between. */
 private val WINDOW_WIDTHS = mapOf(
@@ -73,6 +76,19 @@ private const val DOUBLE_TAP_MS = 280L
 private val MARGIN = 12.dp
 
 /**
+ * How far from square the window is allowed to get.
+ *
+ * The window is the picture's own shape, the way the system's own floating window is — but a stream
+ * that reports something absurd must not turn it into a letterbox slot or a tower.
+ */
+private const val MIN_WINDOW_ASPECT = 0.6f
+private const val MAX_WINDOW_ASPECT = 2.5f
+
+/** Four buttons have to fit across the narrowest window, so they are smaller than a normal one. */
+private val BUTTON_SIZE = 32.dp
+private val BUTTON_ICON = 18.dp
+
+/**
  * What is playing, in a little window the user drags around the app.
  *
  * The phone's answer to the television's docked row: a phone screen has no spare band to give up,
@@ -91,11 +107,15 @@ fun FloatingMiniPlayer(
     onStop: () -> Unit,
     onMenu: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A live channel has nothing to skip through, so it gets the expand button in their place. */
+    isLive: Boolean = false,
     artworkUrl: String? = null,
     settings: SettingsRepository = koinInject(),
 ) {
     val playing by player.isPlaying.collectAsStateWithLifecycle()
     val audioOnly by player.audioOnlyMedia.collectAsStateWithLifecycle()
+    val videoAspect by player.videoAspect.collectAsStateWithLifecycle()
+    val step by player.seekStepMs.collectAsStateWithLifecycle()
     val size by settings.pipSize.collectAsStateWithLifecycle(SettingsRepository.PipSize.MEDIUM)
     val snapToEdges by settings.pipSnap.collectAsStateWithLifecycle(true)
     val scope = rememberCoroutineScope()
@@ -130,11 +150,19 @@ fun FloatingMiniPlayer(
             offsetY = if (offsetY == 0f) maxY() else offsetY.coerceIn(margin, maxY())
         }
 
+        // The picture's own shape, not a fixed 16:9 — the same thing the system's floating window
+        // does. A 2.39:1 film in a 16:9 window is a small picture with black bands above and below it
+        // on a window that is already tiny; shaping the window to the film gives the picture all of
+        // it. Sound only has no shape of its own, so it keeps the familiar one.
+        val windowAspect = when {
+            audioOnly -> 16f / 9f
+            else -> (videoAspect ?: (16f / 9f)).coerceIn(MIN_WINDOW_ASPECT, MAX_WINDOW_ASPECT)
+        }
         Box(
             Modifier
                 .offset { IntOffset(offsetX.toInt(), offsetY.toInt()) }
                 .width(WINDOW_WIDTHS.getValue(size))
-                .aspectRatio(16f / 9f)
+                .aspectRatio(windowAspect)
                 .onSizeChanged {
                     windowWidth = it.width.toFloat()
                     windowHeight = it.height.toFloat()
@@ -182,33 +210,68 @@ fun FloatingMiniPlayer(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                VideoStage(player = player, modifier = Modifier.fillMaxSize())
+                // key(...): a SurfaceView that is *resized* keeps the buffer it was first given, and
+                // the engine goes on drawing the old size into the corner of it — the picture ends up
+                // in the top left with black down the right and along the bottom. Rebuilding the view
+                // when the window changes shape or size gives it a surface that matches.
+                key(size, windowAspect) {
+                    // FIT, not the zoom the user set for full screen — see [VideoStage]. With the
+                    // window already shaped to the picture, FIT fills it exactly, edge to edge.
+                    VideoStage(
+                        player = player,
+                        modifier = Modifier.fillMaxSize(),
+                        zoomOverride = ZoomMode.FIT,
+                    )
+                }
             }
             if (controlsVisible) {
                 Row(
                     Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.45f)),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = player::togglePlayPause) {
-                        Icon(
-                            imageVector = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
-                            contentDescription = stringResource(R.string.settings_remote_action_play_pause),
-                            tint = Color.White,
-                        )
+                    // A live stream has nothing to skip through, so the space goes to the one thing
+                    // the window cannot otherwise offer without a gesture: getting back to full screen.
+                    if (isLive) {
+                        WindowButton(MobileIcons.OpenInFull, R.string.player_pip_expand, onExpand)
+                    } else {
+                        WindowButton(MobileIcons.FastRewind, R.string.player_skip_back) {
+                            player.seekBy(-step)
+                        }
                     }
-                    IconButton(onClick = onStop) {
-                        Icon(
-                            imageVector = MobileIcons.Close,
-                            contentDescription = stringResource(R.string.content_close),
-                            tint = Color.White,
-                        )
+                    WindowButton(
+                        icon = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
+                        labelRes = R.string.settings_remote_action_play_pause,
+                        onClick = player::togglePlayPause,
+                    )
+                    if (!isLive) {
+                        WindowButton(MobileIcons.FastForward, R.string.player_skip_forward) {
+                            player.seekBy(step)
+                        }
                     }
+                    WindowButton(MobileIcons.Close, R.string.content_close, onStop)
                 }
             }
         }
+    }
+}
+
+/** One of the window's buttons: small enough that four of them fit across the narrowest size. */
+@Composable
+private fun WindowButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    labelRes: Int,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick, modifier = Modifier.size(BUTTON_SIZE)) {
+        Icon(
+            imageVector = icon,
+            contentDescription = stringResource(labelRes),
+            tint = Color.White,
+            modifier = Modifier.size(BUTTON_ICON),
+        )
     }
 }
 

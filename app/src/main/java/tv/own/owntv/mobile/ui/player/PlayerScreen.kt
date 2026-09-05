@@ -95,9 +95,17 @@ fun PlayerScreen(
     val error by player.error.collectAsStateWithLifecycle()
     val errorInfo by player.errorInfo.collectAsStateWithLifecycle()
     val isPlaying by player.isPlaying.collectAsStateWithLifecycle()
-    // Either the user turned the picture off, or the stream never had one (a radio channel).
-    val audioOnly by player.audioOnly.collectAsStateWithLifecycle()
+    // Only the stream that never had a picture — a radio channel — reaches this screen without one.
+    // The user's own sound-only choice cannot, see below.
     val audioOnlyMedia by player.audioOnlyMedia.collectAsStateWithLifecycle()
+
+    // **There is no full-screen sound-only mode.** Full screen is the one place in the app that
+    // exists to show the picture, so arriving here turns it back on, however the session came to be
+    // without it. Closing the floating window switches it off deliberately, and tapping the
+    // quick-panel controls afterwards used to land here on a black rectangle with sound; expanding a
+    // sound-only mini player did the same. Sound only lives in the docked bar, which is where its
+    // own button sends it.
+    LaunchedEffect(Unit) { player.exitAudioOnly() }
     // How far a value moves per centimetre of finger. 100 is the untouched behaviour.
     val gestureSensitivity by settings.gestureSensitivityPct.collectAsStateWithLifecycle(100)
 
@@ -295,9 +303,10 @@ fun PlayerScreen(
     ) {
         VideoStage(player = player, modifier = Modifier.fillMaxSize())
 
-        // No picture: the player stays exactly as it is and the rectangle it would fill shows what is
-        // playing instead. Not a screen of its own — the controls and the gestures are still these.
-        val noPicture = (audioOnly || audioOnlyMedia) && !inPip
+        // A radio channel has no picture to show and never will, so the rectangle it would fill shows
+        // what is playing instead. Not a screen of its own — the controls and the gestures are still
+        // these. This is the *only* way full screen ends up without a picture.
+        val noPicture = audioOnlyMedia && !inPip
         if (noPicture) {
             AudioOnlyBackdrop(
                 title = channel?.name ?: film?.title.orEmpty(),
@@ -346,15 +355,17 @@ fun PlayerScreen(
             // app — the system one that floats over *other* apps is what pressing Home gives.
             onMini = onExit,
             // A stream with no video track has nothing to go back to, so for that one the button
-            // only ever reports the state it is already in.
-            audioOnly = audioOnly || audioOnlyMedia,
-            // Sound only is also a way of leaving the picture, so it leaves the full screen too —
-            // otherwise the user is left staring at a black rectangle they asked to stop drawing. The
-            // mini player docks itself while there is no picture to float.
+            // only ever reports the state it is already in. Every other stream is showing its
+            // picture here, because full screen is never sound-only — so the button is only ever
+            // one way round.
+            audioOnly = audioOnlyMedia,
+            // Sound only is a way of leaving the picture, so it leaves the full screen with it —
+            // otherwise the user is staring at a black rectangle they asked to stop drawing. What it
+            // leaves behind is the docked bar, there being no picture to float.
             onAudioOnly = {
                 if (!audioOnlyMedia) {
-                    tuner.setAudioOnly(!audioOnly)
-                    if (!audioOnly) onExit()
+                    tuner.setAudioOnly(true)
+                    onExit()
                 }
             },
             gestureScrubMs = scrubFraction?.takeIf { duration > 0 }?.let { (it * duration).toLong() },
