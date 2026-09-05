@@ -45,7 +45,7 @@ fun SettingsSubtitleAppearancePage(
     val background = s.subtitleBgOpacity.pref(SubtitleStyle.OPACITY_DEFAULT)
 
     SettingsPage(modifier) {
-        item(key = "sub-style") {
+        settingsGroup(key = "sub-style") {
             SettingRow(
                 title = stringResource(R.string.settings_subtitle_appearance),
                 subtitle = stringResource(R.string.settings_subtitle_appearance_description),
@@ -54,31 +54,28 @@ fun SettingsSubtitleAppearancePage(
             )
         }
         if (enabled) {
-            item(key = "sub-size") {
+            settingsGroup(key = "sub-size") {
                 SettingRow(
                     title = stringResource(R.string.settings_subtitle_size),
                     subtitle = stringResource(R.string.settings_subtitle_size_description),
                     value = stringResource(subSizeLabelRes(scale)),
                     onClick = { sheet = SubtitleSheet.SIZE },
                 )
-            }
-            item(key = "sub-color") {
+
                 SettingRow(
                     title = stringResource(R.string.settings_subtitle_color_short),
                     subtitle = stringResource(R.string.settings_subtitle_color_description),
                     value = subColorLabel(color),
                     onClick = { sheet = SubtitleSheet.COLOR },
                 )
-            }
-            item(key = "sub-position") {
+
                 SettingRow(
                     title = stringResource(R.string.settings_subtitle_position_short),
                     subtitle = stringResource(R.string.settings_subtitle_position_description),
                     value = stringResource(position.labelRes()),
                     onClick = { sheet = SubtitleSheet.POSITION },
                 )
-            }
-            item(key = "sub-background") {
+
                 SettingRow(
                     title = stringResource(R.string.settings_subtitle_background_transparency),
                     subtitle = stringResource(R.string.settings_subtitle_background_description),
@@ -88,7 +85,7 @@ fun SettingsSubtitleAppearancePage(
             }
             // Puts all four back to Default in one press, so a look that went wrong does not have to
             // be undone option by option.
-            item(key = "sub-reset") {
+            settingsGroup(key = "sub-reset") {
                 SettingRow(
                     title = stringResource(R.string.settings_subtitle_reset_all),
                     subtitle = stringResource(R.string.settings_subtitle_use_default),

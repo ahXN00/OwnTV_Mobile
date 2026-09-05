@@ -1,7 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
 import androidx.annotation.StringRes
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +13,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.MobileSwitch
 
 /**
  * A switch that can be lifted to the top of the settings root.
@@ -166,7 +166,7 @@ fun QuickSwitchRow(
         onClick = { vm.edit { toggle.set(this, !checked) } },
         onLongClick = { menu = true },
         trailing = {
-            Switch(checked = checked, onCheckedChange = { vm.edit { toggle.set(this, it) } })
+            MobileSwitch(checked = checked)
         },
     )
 

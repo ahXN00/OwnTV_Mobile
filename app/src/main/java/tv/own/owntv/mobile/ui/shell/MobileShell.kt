@@ -2,13 +2,24 @@ package tv.own.owntv.mobile.ui.shell
 
 import android.widget.Toast
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cast
@@ -23,6 +34,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -33,8 +45,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -55,6 +69,7 @@ import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.nav.MobileDestination.Companion.visible
 import tv.own.owntv.mobile.ui.nav.MobileNavHost
 import tv.own.owntv.mobile.ui.nav.PLAYER_ROUTE
+import tv.own.owntv.mobile.ui.nav.isChannelRoute
 import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE
 import tv.own.owntv.mobile.ui.nav.SETUP_ROUTE
 import tv.own.owntv.mobile.ui.setup.SetupFlow
@@ -67,6 +82,10 @@ import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.screens.settings.settingsPageTitleRes
 import tv.own.owntv.mobile.ui.theme.GlassNest
+import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.MobileNavShape
+import tv.own.owntv.mobile.ui.theme.MobilePageShape
+import tv.own.owntv.mobile.ui.theme.MobileTopBarShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /**
@@ -119,7 +138,9 @@ fun MobileShell(
     // Only ever ONE view of the picture at a time: the engine renders into a single surface, and a
     // second one attaching would take it away from the first. So no mini player on a screen that is
     // already showing the stream.
-    val showingStream = fullscreen || currentRoute?.startsWith("${MobileDestination.LIVE.route}/") == true
+    // A channel screen sits under whichever tab it was opened from, so the tab it is under is not
+    // what says the picture is on screen — the route being a channel's is.
+    val showingStream = fullscreen || isChannelRoute(currentRoute)
     val showMini = (channel != null || film != null) && !showingStream
     // Floating window, bar above the tabs, or neither — the user's choice, and the only thing that
     // changes is where the same stream is drawn.
@@ -132,7 +153,19 @@ fun MobileShell(
 
     val settingsTitle = settingsPageTitleRes(currentRoute)
 
+    // Downloads is a tab on a rail but a row in More on a phone, where no tab is selected to name it
+    // — without this the bar would call it "Home", which is where it is not.
+    val offBarTitle = MobileDestination.entries.firstOrNull { it.route == currentRoute }?.labelRes
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
+    // One behaviour serves every screen, so the offset the last one scrolled it to travels with the
+    // user: leave Live TV half way down its list and Home, Guide and More all open with no bar at
+    // all. Each arrival starts with the bar down.
+    LaunchedEffect(currentRoute) {
+        scrollBehavior.state.heightOffset = 0f
+        scrollBehavior.state.contentOffset = 0f
+    }
 
     // Say once per launch that the day's share of the shared metadata service is gone, rather than
     // letting posters and plots quietly stop appearing. It can happen on any screen, so it belongs
@@ -156,74 +189,110 @@ fun MobileShell(
         // The wallpaper is drawn by the backdrop root underneath; a Scaffold that painted its own
         // background would cover it and leave the glass with nothing to be transparent to.
         containerColor = Color.Transparent,
+        // The player owns every pixel, camera strip included: keeping the bars' and the cutout's room
+        // free there would leave a band of wallpaper down the side of the picture.
+        contentWindowInsets = if (fullscreen) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            if (!fullscreen) TopAppBar(
-                // Transparent container plus the glass modifier, rather than a colour: the bar has
-                // to let the wallpaper through it, and a container colour cannot.
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                modifier = Modifier.glassSurface(GlassSurface.TOPBAR, RectangleShape),
-                title = {
-                    Text(
-                        // Search belongs to no tab, so it names itself rather than inheriting Home's.
-                        // A settings page names itself too, and that name is what "back" leaves.
-                        text = stringResource(
-                            settingsTitle
-                                ?: if (currentRoute == SEARCH_ROUTE) tv.own.owntv.mobile.R.string.search_title
-                                else current?.labelRes ?: MobileDestination.HOME.labelRes,
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+            // The bar is a pane standing off the screen, not a lid on top of it: the status bar's
+            // room is held by the wrapper so the wallpaper runs above the bar and stays clear when
+            // the bar scrolls away, and the bar itself is inset and rounded.
+            if (!fullscreen) Box(
+                Modifier
+                    .statusBarsPadding()
+                    // The Scaffold hands the sides' room to the content slot only, so sideways —
+                    // where the camera strip and the gesture bar are down the edges — the bar started
+                    // further left than the rail and the page beneath it. It takes **the Scaffold's
+                    // own** horizontal insets, not the wider safe-drawing ones, so the three left
+                    // edges land on the same pixel rather than merely near each other.
+                    .windowInsetsPadding(
+                        ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal),
                     )
-                },
-                navigationIcon = {
-                    // A settings page is reached from a list, not from a tab, so the bar carries the
-                    // way out. Every other screen has its tab still selected underneath it.
-                    if (settingsTitle != null) {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                    .padding(
+                        start = MobileDimens.ShellInset,
+                        end = MobileDimens.ShellInset,
+                        bottom = MobileDimens.ShellGap,
+                    ),
+            ) {
+                TopAppBar(
+                    // Transparent container plus the glass modifier, rather than a colour: the bar has
+                    // to let the wallpaper through it, and a container colour cannot.
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    windowInsets = WindowInsets(0, 0, 0, 0),
+                    modifier = Modifier
+                        .glassSurface(GlassSurface.TOPBAR, MobileTopBarShape)
+                        .clip(MobileTopBarShape),
+                    title = {
+                        Text(
+                            // Search belongs to no tab, so it names itself rather than inheriting Home's.
+                            // A settings page names itself too, and that name is what "back" leaves.
+                            text = stringResource(
+                                settingsTitle
+                                    ?: if (currentRoute == SEARCH_ROUTE) tv.own.owntv.mobile.R.string.search_title
+                                    else current?.labelRes ?: offBarTitle ?: MobileDestination.HOME.labelRes,
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    navigationIcon = {
+                        // Anything that was opened on top of a tab — a film, a settings page, search —
+                        // carries the way out in the bar. A tab itself does not: its own button in the
+                        // bottom bar or the rail is already where it is, and there is nothing above it
+                        // to leave. That covers the settings root on a rail, which is a tab there.
+                        if (destinations.none { it.route == currentRoute }) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_back),
+                                )
+                            }
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                navController.navigate(SEARCH_ROUTE) { launchSingleTop = true }
+                            },
+                        ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_back),
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_nav_search),
                             )
                         }
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            navController.navigate(SEARCH_ROUTE) { launchSingleTop = true }
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_nav_search),
-                        )
-                    }
-                    // Cast is Phase 5's, when there is a session to hand over. The slot is here so
-                    // the bar's layout is the final one and nothing shifts when it starts working.
-                    IconButton(onClick = { }, enabled = false) {
-                        Icon(
-                            imageVector = Icons.Filled.Cast,
-                            contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_cast),
-                        )
-                    }
-                    IconButton(onClick = { navController.navigateToTab(MobileDestination.MORE) }) {
-                        Icon(
-                            imageVector = Icons.Filled.Person,
-                            contentDescription = stringResource(tv.own.owntv.mobile.R.string.profiles_title),
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-            )
+                        // Cast is Phase 5's, when there is a session to hand over. The slot is here so
+                        // the bar's layout is the final one and nothing shifts when it starts working.
+                        IconButton(onClick = { }, enabled = false) {
+                            Icon(
+                                imageVector = Icons.Filled.Cast,
+                                contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_cast),
+                            )
+                        }
+                        IconButton(onClick = { navController.navigateToTab(MobileDestination.MORE) }) {
+                            Icon(
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = stringResource(tv.own.owntv.mobile.R.string.profiles_title),
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                )
+            }
         },
         bottomBar = {
             if (!fullscreen) {
                 // The mini player shares the bottom bar slot, above the tabs, so it is docked in both
                 // layouts — a rail screen has no bottom bar of its own and would otherwise lose it.
-                Column {
+                // Both are islands: inset from the sides, clear of the gesture bar, with the page
+                // ending above them rather than running underneath.
+                Column(
+                    // The gap above the island is the page's own bottom inset, so it is not counted
+                    // twice; this only holds the island clear of the gesture bar.
+                    Modifier.navigationBarsPadding(),
+                    verticalArrangement = Arrangement.spacedBy(MobileDimens.ShellGap),
+                ) {
                     if (showMini && miniStyle == SettingsRepository.MiniPlayerStyle.DOCKED) {
                         // A channel wins when there is one, because the two tuners cannot both be
                         // playing and the live one is what the other stops before it starts.
@@ -235,12 +304,18 @@ fun MobileShell(
                             artworkUrl = live?.displayLogoUrl ?: film?.posterUrl,
                             onExpand = { navController.navigate(PLAYER_ROUTE) },
                             onStop = { if (live != null) tuner.stop() else vodTuner.stop() },
+                            modifier = Modifier.padding(horizontal = MobileDimens.ShellInset),
                         )
                     }
                     if (!useRail) {
                         NavigationBar(
                             containerColor = Color.Transparent,
-                            modifier = Modifier.glassSurface(GlassSurface.SIDEBAR, RectangleShape),
+                            windowInsets = WindowInsets(0, 0, 0, 0),
+                            modifier = Modifier
+                                .padding(horizontal = MobileDimens.ShellInset)
+                                .height(MobileDimens.NavIslandHeight)
+                                .glassSurface(GlassSurface.SIDEBAR, MobileNavShape)
+                                .clip(MobileNavShape),
                         ) {
                             destinations.forEach { destination ->
                                 NavigationBarItem(
@@ -257,24 +332,52 @@ fun MobileShell(
             }
         },
     ) { insets ->
+        // The player owns the whole display, so it gets none of the shell's geometry: an inset,
+        // rounded pane around a video would be a frame nobody asked for.
+        val pageShape = if (fullscreen) RectangleShape else MobilePageShape
         Row(Modifier.padding(insets)) {
             if (useRail && !fullscreen) {
                 NavigationRail(
                     containerColor = Color.Transparent,
-                    modifier = Modifier.glassSurface(GlassSurface.SIDEBAR, RectangleShape),
+                    windowInsets = WindowInsets(0, 0, 0, 0),
+                    modifier = Modifier
+                        .padding(start = MobileDimens.ShellInset, bottom = MobileDimens.ShellInset)
+                        .glassSurface(GlassSurface.SIDEBAR, MobileNavShape)
+                        .clip(MobileNavShape),
                 ) {
-                    destinations.forEach { destination ->
-                        NavigationRailItem(
-                            selected = destination == current,
-                            onClick = { navController.onNavClick(destination, current, shellViewModel) },
-                            icon = { NavIcon(destination) },
-                            label = { NavLabel(destination) },
-                            modifier = Modifier.longPressResetsScroll(destination, shellViewModel),
-                        )
+                    // Eight destinations do not fit down the short side of a phone held sideways, and
+                    // an unscrollable rail simply loses the last of them — which is where Settings is.
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        destinations.forEach { destination ->
+                            NavigationRailItem(
+                                selected = destination == current,
+                                onClick = { navController.onNavClick(destination, current, shellViewModel) },
+                                icon = { NavIcon(destination) },
+                                label = { NavLabel(destination) },
+                                modifier = Modifier.longPressResetsScroll(destination, shellViewModel),
+                            )
+                        }
                     }
                 }
             }
-            Box(Modifier.fillMaxSize().glassSurface(GlassSurface.PANELS, RectangleShape)) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(
+                        // Against a rail the page keeps the smaller gap; against the screen edge it
+                        // keeps the full inset, so the wallpaper frames the whole shell evenly.
+                        start = if (fullscreen) 0.dp else if (useRail) MobileDimens.ShellGap else MobileDimens.ShellInset,
+                        end = if (fullscreen) 0.dp else MobileDimens.ShellInset,
+                        bottom = if (fullscreen) 0.dp else MobileDimens.ShellInset,
+                    )
+                    .glassSurface(GlassSurface.PANELS, pageShape)
+                    .clip(pageShape),
+            ) {
                 // Every screen in the app is standing on this page panel, so a panel of its own
                 // draws as the layer behind one instead of frosting what is already frosted.
                 GlassNest(GlassSurface.PANELS) {

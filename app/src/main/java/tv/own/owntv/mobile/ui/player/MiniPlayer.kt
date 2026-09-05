@@ -24,8 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -36,6 +36,7 @@ import coil3.compose.AsyncImage
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.MobileNavShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
 import tv.own.owntv.player.OwnTVPlayer
 
@@ -70,7 +71,10 @@ fun MiniPlayer(
     Column(
         modifier
             .fillMaxWidth()
-            .glassSurface(GlassSurface.MINI_PLAYER, RectangleShape)
+            // An island above the navigation island, matching its corner: docked no longer means
+            // welded to the bottom edge.
+            .glassSurface(GlassSurface.MINI_PLAYER, MobileNavShape)
+            .clip(MobileNavShape)
             .clickable(onClick = onExpand)
             .pointerInput(Unit) {
                 var travel = 0f

@@ -1,4 +1,4 @@
-package tv.own.owntv.mobile.ui.screens.search
+package tv.own.owntv.mobile.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -10,24 +10,24 @@ import androidx.compose.ui.res.stringResource
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.mobile.R
-import tv.own.owntv.mobile.ui.components.ContentMenuSheet
-import tv.own.owntv.mobile.ui.components.SheetAction
 
-/** The row a long press was made on. */
-data class SearchTarget(val type: MediaType, val id: Long, val title: String)
+/** The item a long press was made on, wherever it was made. */
+data class ContentTarget(val type: MediaType, val id: Long, val title: String)
 
 /**
- * The long-press menu for a search result.
+ * The short long-press menu: everything an item can do to itself, and nothing that needs the list it
+ * would normally sit in — reordering a folder from a Home rail has no folder to reorder.
  *
- * A short menu on purpose: everything a result can do to itself, and nothing that needs the list it
- * would normally sit in — reordering a folder from a search result has no folder to reorder. The
- * keys are the ones the rest of the app uses, so the order the user arranged still applies.
+ * The keys are the ones the rest of the app uses, so the order the user arranged in Settings still
+ * applies here.
  */
 @Composable
-fun SearchMenu(
-    target: SearchTarget,
+fun ContentActionsMenu(
+    target: ContentTarget,
     isFavorite: Boolean,
-    vm: SearchViewModel,
+    onToggleFavorite: () -> Unit,
+    onDownload: () -> Unit,
+    onHide: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val actions = buildList {
@@ -39,7 +39,7 @@ fun SearchMenu(
                 ),
                 icon = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
                 group = 0,
-                onClick = { vm.toggleFavorite(target.type, target.id) },
+                onClick = onToggleFavorite,
             ),
         )
         if (target.type != MediaType.LIVE) {
@@ -52,7 +52,7 @@ fun SearchMenu(
                     ),
                     icon = Icons.Filled.Download,
                     group = 1,
-                    onClick = { vm.download(target.type, target.id) },
+                    onClick = onDownload,
                 ),
             )
         }
@@ -65,7 +65,7 @@ fun SearchMenu(
                 icon = Icons.Filled.VisibilityOff,
                 destructive = true,
                 group = 2,
-                onClick = { vm.hide(target.type, target.id) },
+                onClick = onHide,
             ),
         )
     }

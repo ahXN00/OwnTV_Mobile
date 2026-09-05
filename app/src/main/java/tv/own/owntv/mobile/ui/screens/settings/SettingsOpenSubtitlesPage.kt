@@ -77,7 +77,7 @@ fun SettingsOpenSubtitlesPage(
         when (val s = state) {
             is OpenSubtitlesViewModel.UiState.SignedIn -> {
                 val session = s.session
-                item(key = "os-user") {
+                settingsGroup(key = "os-user") {
                     SettingRow(
                         title = stringResource(R.string.player_subtitles_connected_as),
                         subtitle = listOfNotNull(
@@ -89,7 +89,7 @@ fun SettingsOpenSubtitlesPage(
                     )
                 }
                 session.remainingDownloads?.let { remaining ->
-                    item(key = "os-downloads") {
+                    settingsGroup(key = "os-downloads") {
                         val total = session.allowedDownloads
                         SettingRow(
                             title = stringResource(R.string.player_subtitles_downloads),
@@ -111,15 +111,14 @@ fun SettingsOpenSubtitlesPage(
                         )
                     }
                 }
-                item(key = "os-resets") {
+                settingsGroup(key = "os-resets") {
                     SettingRow(
                         title = stringResource(R.string.player_subtitles_resets),
                         subtitle = stringResource(R.string.settings_metadata_connection) +
                             stringResource(R.string.content_metadata_separator) + connectionLabel,
                         value = openSubtitlesResetLabel(session.resetTime),
                     )
-                }
-                item(key = "os-actions") {
+
                     Column(Modifier.padding(horizontal = MobileDimens.ScreenPaddingH)) {
                         MobileButton(
                             text = stringResource(R.string.player_subtitles_refresh),
@@ -147,7 +146,7 @@ fun SettingsOpenSubtitlesPage(
 
         settingsSection(R.string.settings_open_subtitles_advanced)
         settingsNote(R.string.settings_open_subtitles_advanced_description)
-        item(key = "os-fields") {
+        settingsGroup(key = "os-fields") {
             Column(Modifier.padding(horizontal = MobileDimens.ScreenPaddingH)) {
                 MobileTextField(
                     value = key,
@@ -185,8 +184,7 @@ fun SettingsOpenSubtitlesPage(
             }
         }
 
-        settingsSection(R.string.player_subtitles_search)
-        item(key = "os-filter") {
+        settingsSection(R.string.player_subtitles_search) {
             SettingRow(
                 title = stringResource(R.string.player_subtitles_filter_title),
                 subtitle = stringResource(R.string.player_subtitles_filter_description),
@@ -202,7 +200,7 @@ fun SettingsOpenSubtitlesPage(
             )
         }
         if (filterEnabled) {
-            item(key = "os-language") {
+            settingsGroup(key = "os-language") {
                 SettingRow(
                     title = stringResource(R.string.player_subtitles_search_language),
                     subtitle = stringResource(R.string.player_subtitles_search_language_description),
@@ -213,8 +211,7 @@ fun SettingsOpenSubtitlesPage(
             }
         }
 
-        settingsSection(R.string.player_subtitles_downloads)
-        item(key = "os-delete") {
+        settingsSection(R.string.player_subtitles_downloads) {
             SettingRow(
                 title = stringResource(R.string.player_subtitles_delete_action),
                 subtitle = stringResource(R.string.player_subtitles_delete_description),

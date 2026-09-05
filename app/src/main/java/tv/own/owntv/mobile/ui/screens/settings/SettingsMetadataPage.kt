@@ -74,7 +74,7 @@ fun SettingsMetadataPage(
     }
 
     SettingsPage(modifier) {
-        item(key = "metadata-mode") {
+        settingsGroup(key = "metadata-mode") {
             SettingRow(
                 title = stringResource(R.string.settings_metadata_source),
                 subtitle = stringResource(R.string.settings_metadata_source_description),
@@ -83,7 +83,7 @@ fun SettingsMetadataPage(
             )
         }
         if (mode.enrich) {
-            item(key = "metadata-language") {
+            settingsGroup(key = "metadata-language") {
                 SettingRow(
                     title = stringResource(R.string.settings_metadata_language),
                     subtitle = stringResource(R.string.settings_metadata_language_description),
@@ -92,7 +92,7 @@ fun SettingsMetadataPage(
                 )
             }
             settingsNote(R.string.settings_metadata_server_description)
-            item(key = "metadata-fields") {
+            settingsGroup(key = "metadata-fields") {
                 Column(Modifier.padding(horizontal = MobileDimens.ScreenPaddingH)) {
                     MobileTextField(
                         value = key,
@@ -122,9 +122,7 @@ fun SettingsMetadataPage(
                         )
                     }
                 }
-            }
 
-            item(key = "metadata-tier") {
                 SettingRow(
                     title = stringResource(R.string.settings_metadata_active_source),
                     subtitle = when (tier) {
@@ -142,14 +140,11 @@ fun SettingsMetadataPage(
             if (tier == MetadataConfig.Tier.DEFAULT_WORKER) {
                 budget?.let { b ->
                     val resetTime = DateFormat.getTimeFormat(context).format(Date(b.resetAtMs))
-                    settingsSection(R.string.settings_metadata_allowance)
-                    item(key = "allowance-minute") {
+                    settingsSection(R.string.settings_metadata_allowance) {
                         AllowanceRow(R.string.settings_allowance_minute, b.remainingMinute, b.limitMinute)
-                    }
-                    item(key = "allowance-hour") {
+
                         AllowanceRow(R.string.settings_allowance_hour, b.remainingHour, b.limitHour)
-                    }
-                    item(key = "allowance-day") {
+
                         AllowanceRow(
                             R.string.settings_allowance_day,
                             b.remainingDay,
@@ -161,8 +156,7 @@ fun SettingsMetadataPage(
                 }
             }
 
-            settingsSection(R.string.settings_metadata_test_connection)
-            item(key = "metadata-test") {
+            settingsSection(R.string.settings_metadata_test_connection) {
                 val testing = testState is SettingsViewModel.MetadataTestState.Testing
                 Column(Modifier.padding(horizontal = MobileDimens.ScreenPaddingH)) {
                     MobileTextField(

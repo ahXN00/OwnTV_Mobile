@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +49,7 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.mobileGroupPlate
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
@@ -127,7 +127,7 @@ fun LiveScreen(
             if (channels.itemCount == 0) {
                 EmptyChannels()
             } else {
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize().mobileGroupPlate()) {
                     items(count = channels.itemCount, key = channels.itemKey { it.id }) { index ->
                         val channel = channels[index]
                         if (channel != null) {
@@ -140,7 +140,6 @@ fun LiveScreen(
                                 onClick = { onOpenChannel(channel.id, false) },
                                 onLongClick = { menuFor = channel },
                             )
-                            HorizontalDivider()
                         }
                     }
                 }

@@ -68,24 +68,26 @@ fun SettingsAppearancePage(
         item(key = "preview") { AppearancePreview() }
         settingsLeafRows(SettingsGroup.APPEARANCE, onOpenLeaf)
 
-        item(key = "theme") {
+        settingsGroup(key = "theme") {
             SettingRow(
                 title = stringResource(R.string.settings_theme),
                 subtitle = stringResource(R.string.settings_theme_description),
                 value = stringResource(themeMode.labelRes()),
                 onClick = { sheet = AppearanceSheet.THEME },
             )
-        }
-        item(key = "accent") {
+
             SettingRow(
                 title = stringResource(R.string.settings_accent),
                 subtitle = stringResource(R.string.settings_accent_description),
                 value = stringResource(accent.labelRes),
                 onClick = { sheet = AppearanceSheet.ACCENT },
             )
+
+            // On the accent row's own plate: it sets the same thing the row above it does, and on a
+            // plate of its own it read as a field belonging to nothing.
+            AccentHexField(vm)
         }
-        item(key = "accent-hex") { AccentHexField(vm) }
-        item(key = "highlight") {
+        settingsGroup(key = "highlight") {
             SettingRow(
                 title = stringResource(R.string.settings_selection_highlight),
                 subtitle = stringResource(R.string.settings_selection_highlight_description),
@@ -96,15 +98,14 @@ fun SettingsAppearancePage(
         // The glow is a light behind solid panels, so it only means anything on a dark theme that is
         // not already showing a photograph through them — the same condition the TV app uses.
         if (themeMode == ThemeMode.DARK && !glass.enabled) {
-            item(key = "glow") {
+            settingsGroup(key = "glow") {
                 SettingRow(
                     title = stringResource(R.string.settings_ambient_glow),
                     subtitle = stringResource(R.string.settings_ambient_glow_description),
                     checked = vm.settings.ambientGlowEnabled.pref(false),
                     onCheckedChange = { vm.edit { setAmbientGlowEnabled(it) } },
                 )
-            }
-            item(key = "glow-pulse") {
+
                 SettingRow(
                     title = stringResource(R.string.settings_ambient_glow_pulse),
                     checked = vm.settings.ambientGlowPulse.pref(false),
@@ -112,7 +113,7 @@ fun SettingsAppearancePage(
                 )
             }
         }
-        item(key = "zoom") {
+        settingsGroup(key = "zoom") {
             SettingsSlider(
                 title = stringResource(R.string.settings_ui_zoom),
                 subtitle = stringResource(R.string.settings_ui_zoom_description),
@@ -131,8 +132,7 @@ fun SettingsAppearancePage(
                     }
                 },
             )
-        }
-        item(key = "animations") {
+
             SettingRow(
                 title = stringResource(R.string.settings_animations),
                 subtitle = stringResource(R.string.settings_animations_description),
@@ -373,12 +373,12 @@ private fun AccentHexField(vm: SettingsViewModel) {
         isError = complete && !valid,
         label = { Text(stringResource(R.string.settings_hex_code)) },
         prefix = { Text("#") },
-        supportingText = {
-            Text(
-                stringResource(
-                    if (complete && !valid) R.string.settings_hex_error else R.string.settings_presets,
-                ),
-            )
+        // Only when there is something to say. A line under the field is a warning, and the field's
+        // own label already says what belongs in it.
+        supportingText = if (complete && !valid) {
+            { Text(stringResource(R.string.settings_hex_error)) }
+        } else {
+            null
         },
         modifier = Modifier
             .fillMaxWidth()

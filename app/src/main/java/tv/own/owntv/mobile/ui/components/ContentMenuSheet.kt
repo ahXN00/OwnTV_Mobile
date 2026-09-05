@@ -1,15 +1,17 @@
 package tv.own.owntv.mobile.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,14 +20,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.koinInject
 import tv.own.owntv.core.menu.applyMenuOrder
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.MobileSheetRowsShape
+
+/** The rows stand on a plate a shade darker than the sheet, so the menu reads as one block. */
+private const val ROWS_PLATE_ALPHA = 0.26f
+
+/** The line between two groups of actions — a separation, not a rule. */
+private const val SHEET_DIVIDER_ALPHA = 0.08f
 
 /**
  * One action in a long-press content menu.
@@ -67,13 +80,42 @@ fun ContentMenuSheet(
         .collectAsStateWithLifecycle(emptyList())
 
     MobileBottomSheet(onDismissRequest = onDismiss, title = title, modifier = modifier) {
-        var previousGroup: Int? = null
-        applyMenuOrder(actions, order) { it.key }.forEach { action ->
-            if (previousGroup != null && action.group != previousGroup) HorizontalDivider()
-            previousGroup = action.group
-            SheetActionRow(action = action, onDismiss = onDismiss)
+        SheetRows {
+            var previousGroup: Int? = null
+            applyMenuOrder(actions, order) { it.key }.forEach { action ->
+                if (previousGroup != null && action.group != previousGroup) SheetDivider()
+                previousGroup = action.group
+                SheetActionRow(action = action, onDismiss = onDismiss)
+            }
         }
     }
+}
+
+/** The plate a sheet's rows sit on, a shade darker than the sheet itself. */
+@Composable
+private fun SheetRows(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(MobileSheetRowsShape)
+            .background(Color.Black.copy(alpha = ROWS_PLATE_ALPHA))
+            .padding(vertical = 2.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun SheetDivider() {
+    Spacer(
+        Modifier
+            .padding(
+                horizontal = MobileDimens.SheetRowPaddingH,
+                vertical = MobileDimens.GapTiny,
+            )
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(Color.White.copy(alpha = SHEET_DIVIDER_ALPHA)),
+    )
 }
 
 @Composable
@@ -83,20 +125,27 @@ private fun SheetActionRow(action: SheetAction, onDismiss: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = MobileDimens.ListRowHeight)
             .clickable { action.onClick(); onDismiss() }
-            .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall),
+            .padding(
+                horizontal = MobileDimens.SheetRowPaddingH,
+                vertical = MobileDimens.SheetRowPaddingV,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(MobileDimens.ListRowIconSize), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(MobileDimens.SheetRowIconSize), contentAlignment = Alignment.Center) {
             if (action.icon != null) {
-                Icon(imageVector = action.icon, contentDescription = null, tint = color)
+                Icon(
+                    imageVector = action.icon,
+                    contentDescription = null,
+                    // The glyph is a marker, not the message: quiet unless the action is destructive.
+                    tint = if (action.destructive) color else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
-        Spacer(Modifier.width(MobileDimens.GapMedium))
+        Spacer(Modifier.width(MobileDimens.ListRowIconGap))
         Text(
             text = action.label,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
             color = color,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,

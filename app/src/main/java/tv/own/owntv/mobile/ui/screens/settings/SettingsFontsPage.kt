@@ -45,7 +45,7 @@ fun SettingsFontsPage(
                     ),
             )
         }
-        item(key = "size") {
+        settingsGroup(key = "sizes") {
             SettingsSlider(
                 title = stringResource(R.string.settings_font_size),
                 value = fonts.sizePercent,
@@ -55,8 +55,6 @@ fun SettingsFontsPage(
                     vm.edit { setFontCustomization(fonts.copy(sizePercent = UiFontScale.clamp(pct))) }
                 },
             )
-        }
-        item(key = "popup-font-size") {
             SettingsSlider(
                 title = stringResource(R.string.settings_popup_font_size),
                 subtitle = stringResource(R.string.settings_popup_font_size_description),
@@ -71,8 +69,6 @@ fun SettingsFontsPage(
                     }
                 },
             )
-        }
-        item(key = "popup-size") {
             SettingsSlider(
                 title = stringResource(R.string.settings_popup_size),
                 subtitle = stringResource(R.string.settings_popup_size_description),
@@ -89,9 +85,8 @@ fun SettingsFontsPage(
             )
         }
 
-        settingsSection(R.string.settings_main_interface_font)
-        for (family in AppFontFamily.entries) {
-            item(key = "main-$family") {
+        settingsSection(R.string.settings_main_interface_font) {
+            AppFontFamily.entries.forEach { family ->
                 SettingRow(
                     title = stringResource(family.labelRes()),
                     checked = fonts.mainFamily == family,
@@ -102,9 +97,8 @@ fun SettingsFontsPage(
             }
         }
 
-        settingsSection(R.string.settings_popup_font)
-        for (family in AppFontFamily.entries) {
-            item(key = "popup-$family") {
+        settingsSection(R.string.settings_popup_font) {
+            AppFontFamily.entries.forEach { family ->
                 SettingRow(
                     title = stringResource(family.labelRes()),
                     checked = fonts.popupFamily == family,

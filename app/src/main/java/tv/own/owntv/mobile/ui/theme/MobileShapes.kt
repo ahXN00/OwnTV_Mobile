@@ -1,11 +1,8 @@
 package tv.own.owntv.mobile.ui.theme
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.unit.Density
@@ -31,6 +28,9 @@ class SquircleShape(
     private val smoothing: Float = 0.6f,
 ) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        // A collapsing top bar passes through zero height on its way out, and a polygon with no area
+        // has no corners to round — asking for one throws and takes the app with it.
+        if (size.minDimension <= 0f) return Outline.Rectangle(size.toRect())
         val radius = with(density) { corner.toPx() }
             // A corner cannot be deeper than half the shorter side, and a squircle's curve reaches
             // further than its radius, so leave the smoothing its room too.
@@ -46,28 +46,21 @@ class SquircleShape(
     }
 }
 
-/**
- * The same shape with the top two corners curved and the bottom two square — a bottom sheet, which
- * only ever shows its top edge.
- */
-class SquircleTopShape(private val corner: Dp, private val smoothing: Float = 0.6f) : Shape {
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-        val overhang = with(density) { corner.toPx() } * (1f + smoothing) * 2f
-        // The full four-cornered shape, grown past the bottom edge and then cut back to the sheet's
-        // own bounds: the bottom pair of corners is cut away square and the top pair survives whole.
-        val grown = SquircleShape(corner, smoothing)
-            .createOutline(Size(size.width, size.height + overhang), layoutDirection, density)
-        // Into a fresh path: an intersect that reads and writes the same path is undefined, and it
-        // comes back empty — which clips the whole sheet away rather than squaring off its bottom.
-        val clipped = Path()
-        clipped.op(
-            path1 = (grown as Outline.Generic).path,
-            path2 = Path().apply { addRect(Rect(Offset.Zero, size)) },
-            operation = PathOperation.Intersect,
-        )
-        return Outline.Generic(clipped)
-    }
-}
-
 /** The shape of every card, poster and panel in the app. */
 val MobileCardShape: Shape = SquircleShape(MobileDimens.CardCorner)
+
+/** The little plate a row's icon sits on. */
+val MobileChipShape: Shape = SquircleShape(MobileDimens.ListRowIconCorner)
+
+/** The block a run of rows is grouped into. */
+val MobileGroupShape: Shape = SquircleShape(MobileDimens.GroupCorner)
+
+// The floating shell's four panes. Each stands clear of the screen edges, so each is rounded on all
+// four corners — including the sheet, which no longer sits on the bottom edge.
+val MobileTopBarShape: Shape = SquircleShape(MobileDimens.TopBarCorner)
+val MobilePageShape: Shape = SquircleShape(MobileDimens.PageCorner)
+val MobileNavShape: Shape = SquircleShape(MobileDimens.NavCorner)
+val MobileSheetShape: Shape = SquircleShape(MobileDimens.SheetCorner)
+
+/** The plate a sheet's rows stand on, inside the sheet's own corner. */
+val MobileSheetRowsShape: Shape = SquircleShape(MobileDimens.SheetRowsCorner)

@@ -92,6 +92,7 @@ fun PlayerControls(
     onScrubLive: (deltaSec: Int) -> Unit,
     onOpenSheet: (PlayerSheet) -> Unit,
     onDock: () -> Unit,
+    audioOnly: Boolean,
     onAudioOnly: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -142,6 +143,7 @@ fun PlayerControls(
                         isLive = isLive,
                         onOpenSheet = onOpenSheet,
                         onDock = onDock,
+                        audioOnly = audioOnly,
                         onAudioOnly = onAudioOnly,
                     )
                 }
@@ -346,6 +348,7 @@ private fun ToolBar(
     isLive: Boolean,
     onOpenSheet: (PlayerSheet) -> Unit,
     onDock: () -> Unit,
+    audioOnly: Boolean,
     onAudioOnly: () -> Unit,
 ) {
     val audioCount by player.audioCount.collectAsStateWithLifecycle()
@@ -414,6 +417,7 @@ private fun ToolBar(
             icon = Icons.Filled.MusicNote,
             label = stringResource(R.string.player_tool_audio_only),
             onClick = onAudioOnly,
+            active = audioOnly,
             pinned = true,
         )
         CtrlButton(Icons.Filled.PictureInPictureAlt, stringResource(R.string.player_tool_mini), onDock)

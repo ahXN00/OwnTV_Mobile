@@ -127,7 +127,6 @@ fun DownloadsScreen(
                         },
                         onLongClick = { menuFor = download },
                     )
-                    HorizontalDivider()
                 }
             }
         }
@@ -217,6 +216,9 @@ private fun StorageHeader(
                 Icon(
                     imageVector = Icons.Filled.Folder,
                     contentDescription = stringResource(R.string.settings_download_folder),
+                    // Without a tint this inherits a content colour meant for a filled button and
+                    // comes out black on the dark card.
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

@@ -57,7 +57,7 @@ fun DeleteSubtitlesPage(
     )
 
     SettingsPage(modifier) {
-        item(key = "header") {
+        settingsGroup(key = "header") {
             Row(
                 Modifier.fillMaxWidth().padding(end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -75,7 +75,7 @@ fun DeleteSubtitlesPage(
             }
         }
         settingsNote(R.string.player_subtitles_delete_description)
-        item(key = "sections") {
+        settingsGroup(key = "sections") {
             FilterChipRow(
                 labels = sections.map {
                     stringResource(
@@ -106,14 +106,13 @@ fun DeleteSubtitlesPage(
             )
         }
 
-        item(key = "delete-section") {
+        settingsGroup(key = "delete-section") {
             TextButton(
                 onClick = { deletingSection = section },
                 enabled = items.isNotEmpty(),
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) { Text(stringResource(section.deleteAllRes())) }
-        }
-        item(key = "delete-all") {
+
             TextButton(
                 onClick = { deletingAll = true },
                 enabled = movieCount + seriesCount > 0,

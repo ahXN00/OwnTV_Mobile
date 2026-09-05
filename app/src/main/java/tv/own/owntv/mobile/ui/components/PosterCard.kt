@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -55,7 +56,12 @@ fun PosterCard(
             .glassSurface(GlassSurface.CARDS, MobileCardShape, interactionSource = press)
             .clip(MobileCardShape)
             .glassClickable(press, onClick = onClick, onLongClick = onLongClick)
-            .padding(bottom = MobileDimens.GapTiny),
+            .padding(
+                start = MobileDimens.PosterPadding,
+                end = MobileDimens.PosterPadding,
+                top = MobileDimens.PosterPadding,
+                bottom = MobileDimens.PosterPaddingBottom,
+            ),
     ) {
         Box(
             modifier = Modifier
@@ -64,26 +70,26 @@ fun PosterCard(
                 .clip(RoundedCornerShape(MobileDimens.PosterArtCorner))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
+            // The title stands in for the artwork, and stays underneath it: it is what an M3U
+            // playlist with no poster URLs shows for most of its catalogue, and it is also what is
+            // left when a URL that exists fails to load — otherwise that tile is an empty grey box.
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(MobileDimens.GapSmall),
+            )
             if (imageUrl != null) {
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                // No artwork: the title itself stands in, which is what an M3U playlist with no
-                // poster URLs looks like for most of its catalogue.
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(MobileDimens.GapSmall),
                 )
             }
             if (progress != null) {
@@ -107,18 +113,26 @@ fun PosterCard(
             text = title,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
+            // One line: a wrapped title makes every tile in the row a different height, and the
+            // second line is what runs into the neighbouring column.
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = MobileDimens.GapSmall),
+            modifier = Modifier.padding(
+                start = MobileDimens.PosterTextInset,
+                end = MobileDimens.PosterTextInset,
+                top = MobileDimens.GapTiny + 2.dp,
+            ),
         )
-        if (subtitle != null) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        // Drawn even when there is nothing to say, for the reason the title is held to one line: half
+        // a catalogue has a rating and half has none, and a tile that skips the line is shorter than
+        // the four beside it, so the row's cards end at four different heights.
+        Text(
+            text = subtitle.orEmpty(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = MobileDimens.PosterTextInset),
+        )
     }
 }

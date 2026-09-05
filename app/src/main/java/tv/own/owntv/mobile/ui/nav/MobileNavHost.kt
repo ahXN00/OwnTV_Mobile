@@ -241,6 +241,9 @@ fun MobileNavHost(
 private fun channelRoute(parent: MobileDestination, channelId: Long, openCatchup: Boolean) =
     "${parent.route}/$CHANNEL_SEGMENT/$channelId/$openCatchup"
 
+/** A channel screen draws the picture itself, under whichever tab it was opened from. */
+fun isChannelRoute(route: String?): Boolean = route?.contains("/$CHANNEL_SEGMENT/") == true
+
 private const val ARG_CHANNEL_ID = "channelId"
 private const val ARG_CATCHUP = "catchup"
 private const val CHANNEL_SEGMENT = "channel"

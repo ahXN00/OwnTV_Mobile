@@ -2,10 +2,8 @@ package tv.own.owntv.mobile.ui.screens.settings
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -20,7 +18,6 @@ import androidx.compose.ui.res.stringResource
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
-import tv.own.owntv.mobile.ui.components.SectionHeader
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
@@ -77,15 +74,17 @@ fun SettingsScreen(
                 }
             } else {
                 item(key = "results-header") {
-                    SectionHeader(title = stringResource(R.string.settings_results_title))
+                    SettingsSectionLabel(stringResource(R.string.settings_results_title))
                 }
-                items(results, key = { "${it.route}-${it.title}" }) { entry ->
-                    MobileListRow(
-                        title = entry.title,
-                        subtitle = settingsBreadcrumb(entry),
-                        leading = { Icon(entry.group.icon, contentDescription = null) },
-                        onClick = { onOpenRoute(entry.route) },
-                    )
+                settingsGroup(key = "results") {
+                    results.forEach { entry ->
+                        MobileListRow(
+                            title = entry.title,
+                            subtitle = settingsBreadcrumb(entry),
+                            leading = { Icon(entry.group.icon, contentDescription = null) },
+                            onClick = { onOpenRoute(entry.route) },
+                        )
+                    }
                 }
             }
             return@SettingsPage
@@ -94,30 +93,30 @@ fun SettingsScreen(
         // Quick stays even when nothing is pinned, and says so. The section vanishing was worse: the
         // user who unpinned their last row had no way of telling that Quick still existed.
         item(key = "quick-header") {
-            SectionHeader(title = stringResource(R.string.settings_group_quick))
+            SettingsSectionLabel(stringResource(R.string.settings_group_quick))
         }
-        if (pinned.isEmpty()) {
-            item(key = "quick-empty") {
+        settingsGroup(key = "quick") {
+            if (pinned.isEmpty()) {
                 MobileListRow(
                     title = stringResource(R.string.settings_quick_empty_title),
                     // The television's own hint names the OK button. A phone has none.
                     subtitle = stringResource(R.string.settings_quick_empty_hint_touch),
                 )
+            } else {
+                pinned.forEach { toggle -> QuickSwitchRow(vm = vm, toggle = toggle) }
             }
-        } else {
-            items(pinned, key = { it.key }) { toggle -> QuickSwitchRow(vm = vm, toggle = toggle) }
-        }
-        item(key = "quick-divider") {
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
         }
 
-        items(SettingsGroup.entries, key = { it.route }) { group ->
-            SettingRow(
-                title = stringResource(group.titleRes),
-                subtitle = stringResource(group.summaryRes),
-                showChevron = true,
-                onClick = { onOpenRoute(group.route) },
-            )
+        settingsGroup(key = "groups") {
+            SettingsGroup.entries.forEach { group ->
+                SettingRow(
+                    title = stringResource(group.titleRes),
+                    subtitle = stringResource(group.summaryRes),
+                    leading = { Icon(group.icon, contentDescription = null) },
+                    showChevron = true,
+                    onClick = { onOpenRoute(group.route) },
+                )
+            }
         }
     }
 }

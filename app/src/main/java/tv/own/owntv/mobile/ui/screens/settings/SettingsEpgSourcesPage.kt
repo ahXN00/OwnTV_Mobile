@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -76,17 +75,18 @@ fun SettingsEpgSourcesPage(
         if (sources.isEmpty()) {
             settingsNote(R.string.settings_epg_sources_empty)
         }
-        items(sources, key = { it.id }) { source ->
-            EpgRow(
-                source = source,
-                autoRefresh = autoRefresh[source.id] ?: EpgAutoRefresh.OFF,
-                counts = { vm.counts(source.id) },
-                syncState = vm.observeSync(source.id).collectAsStateWithLifecycle(EpgSyncState.Idle).value,
-                isDeleting = source.id in deleting,
-                onClick = { if (source.id !in deleting) menuSource = source },
-            )
-        }
-        item(key = "add-epg") {
+        settingsGroup(key = "add-epg") {
+            sources.forEach { source ->
+                EpgRow(
+                    source = source,
+                    autoRefresh = autoRefresh[source.id] ?: EpgAutoRefresh.OFF,
+                    counts = { vm.counts(source.id) },
+                    syncState = vm.observeSync(source.id)
+                        .collectAsStateWithLifecycle(EpgSyncState.Idle).value,
+                    isDeleting = source.id in deleting,
+                    onClick = { if (source.id !in deleting) menuSource = source },
+                )
+            }
             MobileListRow(
                 title = stringResource(R.string.settings_epg_sources_add),
                 leading = { Icon(Icons.Filled.Add, contentDescription = null) },

@@ -1,7 +1,7 @@
 package tv.own.owntv.mobile.ui.screens.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +37,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,8 +66,11 @@ import tv.own.owntv.core.launcher.LauncherContinuationItem
 import tv.own.owntv.core.launcher.LauncherWatchNextType
 import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.model.HomeRow
+import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.weather.WeatherInfo
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.ContentActionsMenu
+import tv.own.owntv.mobile.ui.components.ContentTarget
 import tv.own.owntv.mobile.ui.components.PosterCard
 import tv.own.owntv.mobile.ui.components.SectionHeader
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
@@ -93,6 +99,13 @@ fun HomeScreen(
     val feed by vm.feed.collectAsStateWithLifecycle()
     val weather by vm.weather.collectAsStateWithLifecycle()
     val fahrenheit by vm.fahrenheit.collectAsStateWithLifecycle()
+    val favoriteChannels by vm.favoriteChannels.collectAsStateWithLifecycle()
+    val favoriteMovies by vm.favoriteMovies.collectAsStateWithLifecycle()
+    val favoriteSeries by vm.favoriteSeries.collectAsStateWithLifecycle()
+
+    // Every rail on Home plays or opens on a tap, so the menu is what is left for everything else:
+    // favourite it, download it, or take it off the screen.
+    var menuFor by remember { mutableStateOf<ContentTarget?>(null) }
 
     // Coming back from a film is exactly when "continue watching" is out of date.
     LaunchedEffect(Unit) { vm.refresh() }
@@ -119,12 +132,18 @@ fun HomeScreen(
         rows.forEach { row ->
             item(row.name) {
                 when (row) {
-                    HomeRow.TRENDING -> TrendingRow(state.trendingItems, onOpenMovie, onOpenSeries)
+                    HomeRow.TRENDING -> TrendingRow(
+                        items = state.trendingItems,
+                        onOpenMovie = onOpenMovie,
+                        onOpenSeries = onOpenSeries,
+                        onMenu = { menuFor = it },
+                    )
                     HomeRow.HERO -> HeroRow(
                         items = state.heroItems,
                         onOpenChannel = onOpenChannel,
                         onPlayMovie = { id, position -> vm.playMovie(id, position, onPlayerOpened) },
                         onPlayEpisode = { id, position -> vm.playEpisode(id, position, onPlayerOpened) },
+                        onMenu = { menuFor = it },
                     )
                     HomeRow.RECENT_CHANNELS -> LiveRow(
                         title = stringResource(R.string.home_row_recent_channels),
@@ -133,6 +152,7 @@ fun HomeScreen(
                         mode = vm.modeOf(row, state),
                         onToggleMode = { vm.toggleLiveMode(row) },
                         onOpenChannel = onOpenChannel,
+                        onMenu = { menuFor = it },
                     )
                     HomeRow.FAVORITE_CHANNELS -> LiveRow(
                         title = stringResource(R.string.home_row_favorite_channels),
@@ -141,20 +161,40 @@ fun HomeScreen(
                         mode = vm.modeOf(row, state),
                         onToggleMode = { vm.toggleLiveMode(row) },
                         onOpenChannel = onOpenChannel,
+                        onMenu = { menuFor = it },
                     )
                     HomeRow.CONTINUE_MOVIES -> ContinueRow(
                         title = stringResource(R.string.home_row_continue_movies),
                         items = state.continueMovies,
+                        type = MediaType.MOVIE,
                         onPlay = { item -> vm.playMovie(item.sourceItemId, item.positionMs, onPlayerOpened) },
+                        onMenu = { menuFor = it },
                     )
                     HomeRow.CONTINUE_SERIES -> ContinueRow(
                         title = stringResource(R.string.home_row_continue_series),
                         items = state.continueSeries,
+                        type = MediaType.SERIES,
                         onPlay = { item -> vm.playEpisode(item.targetItemId, item.positionMs, onPlayerOpened) },
+                        onMenu = { menuFor = it },
                     )
                 }
             }
         }
+    }
+
+    menuFor?.let { target ->
+        ContentActionsMenu(
+            target = target,
+            isFavorite = target.id in when (target.type) {
+                MediaType.LIVE -> favoriteChannels
+                MediaType.MOVIE -> favoriteMovies
+                else -> favoriteSeries
+            },
+            onToggleFavorite = { vm.toggleFavorite(target.type, target.id) },
+            onDownload = { vm.download(target.type, target.id) },
+            onHide = { vm.hide(target.type, target.id) },
+            onDismiss = { menuFor = null },
+        )
     }
 }
 
@@ -178,6 +218,7 @@ private fun HeroRow(
     onOpenChannel: (Long) -> Unit,
     onPlayMovie: (Long, Long) -> Unit,
     onPlayEpisode: (Long, Long) -> Unit,
+    onMenu: (ContentTarget) -> Unit,
 ) {
     val cardWidth = LocalConfiguration.current.screenWidthDp.dp - MobileDimens.ScreenPaddingH * 2
     val state = rememberLazyListState()
@@ -201,6 +242,7 @@ private fun HeroRow(
                             is HeroItem.SeriesHero -> onPlayEpisode(item.episode.id, item.seekToMs)
                         }
                     },
+                    onLongClick = { onMenu(item.menuTarget()) },
                 )
             }
         }
@@ -208,7 +250,12 @@ private fun HeroRow(
 }
 
 @Composable
-private fun HeroCard(item: HeroItem, onPlay: () -> Unit, modifier: Modifier = Modifier) {
+private fun HeroCard(
+    item: HeroItem,
+    onPlay: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val artwork = when (item) {
         is HeroItem.MovieHero -> item.movie.backdropUrl ?: item.movie.posterUrl
         is HeroItem.SeriesHero -> item.series.backdropUrl ?: item.series.posterUrl
@@ -228,13 +275,30 @@ private fun HeroCard(item: HeroItem, onPlay: () -> Unit, modifier: Modifier = Mo
     // rather than stretched across the card, which is the one place the three variants really differ.
     val live = item is HeroItem.LiveHero
 
+    // Plenty of channels have no logo and plenty of films no backdrop, and at this size a flat fill
+    // reads as a hole in the page rather than as a card. The lit corner gives the empty one a shape.
+    val emptyFill = Brush.linearGradient(
+        listOf(
+            MaterialTheme.colorScheme.surfaceContainerHighest,
+            MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    )
+
     Box(
         modifier = modifier
             .aspectRatio(16f / 9f)
             .clip(MobileCardShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onPlay),
+            .background(emptyFill)
+            .combinedClickable(onClick = onPlay, onLongClick = onLongClick),
     ) {
+        // Underneath the picture, so a channel with no logo and a film with no backdrop are still a
+        // card with a subject rather than an empty rectangle — and so is one whose URL fails to load.
+        Icon(
+            imageVector = if (live) Icons.Filled.LiveTv else Icons.Filled.PlayArrow,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f),
+            modifier = Modifier.align(Alignment.Center).size(HeroLogoSize),
+        )
         if (artwork != null) {
             AsyncImage(
                 model = artwork,
@@ -302,6 +366,13 @@ private fun HeroCard(item: HeroItem, onPlay: () -> Unit, modifier: Modifier = Mo
     }
 }
 
+/** A half-watched episode's menu is its show's: the show is what can be favourited or hidden. */
+private fun HeroItem.menuTarget(): ContentTarget = when (this) {
+    is HeroItem.MovieHero -> ContentTarget(MediaType.MOVIE, movie.id, movie.name)
+    is HeroItem.SeriesHero -> ContentTarget(MediaType.SERIES, series.id, series.name)
+    is HeroItem.LiveHero -> ContentTarget(MediaType.LIVE, channel.id, channel.name)
+}
+
 private fun HeroItem.rowKey(): String = when (this) {
     is HeroItem.MovieHero -> "m${movie.id}"
     is HeroItem.SeriesHero -> "e${episode.id}"
@@ -321,6 +392,7 @@ private fun TrendingRow(
     items: List<TrendingHomeItem>,
     onOpenMovie: (Long) -> Unit,
     onOpenSeries: (Long) -> Unit,
+    onMenu: (ContentTarget) -> Unit,
 ) {
     Column {
         SectionHeader(title = stringResource(R.string.home_row_now_trending))
@@ -334,11 +406,17 @@ private fun TrendingRow(
                         title = item.movie.name,
                         imageUrl = item.movie.posterUrl,
                         onClick = { onOpenMovie(item.movie.id) },
+                        onLongClick = {
+                            onMenu(ContentTarget(MediaType.MOVIE, item.movie.id, item.movie.name))
+                        },
                     )
                     is TrendingHomeItem.Series -> PosterCard(
                         title = item.series.name,
                         imageUrl = item.series.posterUrl,
                         onClick = { onOpenSeries(item.series.id) },
+                        onLongClick = {
+                            onMenu(ContentTarget(MediaType.SERIES, item.series.id, item.series.name))
+                        },
                     )
                 }
             }
@@ -351,7 +429,9 @@ private fun TrendingRow(
 private fun ContinueRow(
     title: String,
     items: List<LauncherContinuationItem>,
+    type: MediaType,
     onPlay: (LauncherContinuationItem) -> Unit,
+    onMenu: (ContentTarget) -> Unit,
 ) {
     Column {
         SectionHeader(title = title)
@@ -371,6 +451,17 @@ private fun ContinueRow(
                         null
                     },
                     onClick = { onPlay(item) },
+                    // The menu is about the film or the show, so a half-watched episode names its
+                    // series: hiding "episode 4" would be a menu that does nothing you can see.
+                    onLongClick = {
+                        onMenu(
+                            ContentTarget(
+                                type = type,
+                                id = item.sourceItemId,
+                                title = item.containerTitle ?: item.title,
+                            ),
+                        )
+                    },
                 )
             }
         }
@@ -390,6 +481,7 @@ private fun LiveRow(
     mode: HomeLiveRowMode,
     onToggleMode: () -> Unit,
     onOpenChannel: (Long) -> Unit,
+    onMenu: (ContentTarget) -> Unit,
 ) {
     Column {
         SectionHeader(
@@ -408,14 +500,20 @@ private fun LiveRow(
         ) {
             items(channels.size, key = { channels[it].id }) { index ->
                 val channel = channels[index]
+                val menu = { onMenu(ContentTarget(MediaType.LIVE, channel.id, channel.name)) }
                 if (mode == HomeLiveRowMode.ON_NOW) {
                     OnNowCard(
                         channel = channel,
                         guide = guide,
                         onClick = { onOpenChannel(channel.id) },
+                        onLongClick = menu,
                     )
                 } else {
-                    ChannelCard(channel = channel, onClick = { onOpenChannel(channel.id) })
+                    ChannelCard(
+                        channel = channel,
+                        onClick = { onOpenChannel(channel.id) },
+                        onLongClick = menu,
+                    )
                 }
             }
         }
@@ -423,12 +521,12 @@ private fun LiveRow(
 }
 
 @Composable
-private fun ChannelCard(channel: ChannelEntity, onClick: () -> Unit) {
+private fun ChannelCard(channel: ChannelEntity, onClick: () -> Unit, onLongClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(ChannelCardWidth)
             .clip(MobileCardShape)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(MobileDimens.GapSmall),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -446,14 +544,19 @@ private fun ChannelCard(channel: ChannelEntity, onClick: () -> Unit) {
 }
 
 @Composable
-private fun OnNowCard(channel: ChannelEntity, guide: GuideSliceState, onClick: () -> Unit) {
+private fun OnNowCard(
+    channel: ChannelEntity,
+    guide: GuideSliceState,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
     val now = guide.programmes[channel.id]?.firstOrNull { guide.now in it.startMs until it.stopMs }
     Row(
         modifier = Modifier
             .width(OnNowCardWidth)
             .clip(MobileCardShape)
             .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(MobileDimens.GapSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {

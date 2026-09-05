@@ -1,7 +1,5 @@
 package tv.own.owntv.mobile.ui.theme
 
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -46,10 +44,10 @@ data class MobileGlassMaterial(
     val shadow: Dp,
     val hasBackdrop: Boolean,
     val elevation: Dp,
-    private val tone: (ColorScheme) -> Color,
+    private val tone: (MobileSurfaceTones) -> Color,
 ) {
     /** This material's colour with the effect off, and the base its glass tint is measured from. */
-    fun tone(scheme: ColorScheme): Color = tone.invoke(scheme)
+    fun tone(tones: MobileSurfaceTones): Color = tone.invoke(tones)
 }
 
 // The four instances. These are the app's design tokens: the TV's numbers are the starting point, but
@@ -61,28 +59,28 @@ data class MobileGlassMaterial(
 val FloatingGlass = MobileGlassMaterial(
     tint = 0.16f, frost = 0.30f, rim = 0.13f, body = 0.34f, sheen = 0.78f, edge = 0.24f, shadow = 12.dp,
     hasBackdrop = true, elevation = 12.dp,
-    tone = { it.surfaceContainerHighest },
+    tone = { it.floating },
 )
 
 /** Bars, rails, the mini player, the player's own controls. Barely there, on purpose. */
 val ChromeGlass = MobileGlassMaterial(
     tint = 0.05f, frost = 0.24f, rim = 0.10f, body = 0f, sheen = 0.55f, edge = 0.18f, shadow = 6.dp,
     hasBackdrop = true, elevation = 6.dp,
-    tone = { it.surfaceContainerHigh },
+    tone = { it.chrome },
 )
 
 /** Page panels and the detail backdrop. Pure frost, no colour: it holds other things. */
 val ContainerGlass = MobileGlassMaterial(
     tint = 0f, frost = 0.20f, rim = 0.08f, body = 0f, sheen = 0.40f, edge = 0.14f, shadow = 2.dp,
     hasBackdrop = true, elevation = 2.dp,
-    tone = { it.surfaceContainer },
+    tone = { it.container },
 )
 
 /** Cards and rows. Negative tint, and no backdrop at all — it groups by darkening. */
 val InlineGlass = MobileGlassMaterial(
     tint = -0.12f, frost = 0.18f, rim = 0.04f, body = 0f, sheen = 0f, edge = 0.11f, shadow = 0.dp,
     hasBackdrop = false, elevation = 0.dp,
-    tone = { it.surfaceContainerLowest },
+    tone = { it.inline },
 )
 
 /** The deepest material's frost, which [MobileGlassMaterial.frost] is a fraction of. */
@@ -149,7 +147,7 @@ fun GlassNest(host: GlassSurface, content: @Composable () -> Unit) {
 @Composable
 @ReadOnlyComposable
 fun tonalFillFor(surface: GlassSurface): Color =
-    materialFor(surface).tone(MaterialTheme.colorScheme)
+    materialFor(surface).tone(LocalSurfaceTones.current)
 
 /** The fill shifted by a material's tint — towards white above zero, towards black below it. */
 internal fun Color.shiftedBy(tint: Float): Color = when {

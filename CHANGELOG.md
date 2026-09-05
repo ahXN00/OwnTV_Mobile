@@ -298,6 +298,20 @@ release automation.
   sheet under your finger, and the keyboard no longer covers a rename field. The dialogs that are
   still true dialogs blur what is behind them on Android 12 and newer, and stop doing it while
   battery saver is on.
+- **One press-and-hold menu, the same everywhere.** A film on Home, a show in the library, a channel
+  in Live TV and a result in Search all open the same menu with the same actions in the same order,
+  instead of four menus that each knew about a few of them.
+- **Settings rows sit on plates now.** Rows that belong together share one rounded panel with the
+  heading above it, so a long page reads as a handful of groups rather than one endless list, and
+  switches and sliders are the app's own rather than three different shapes on three pages.
+- **Full screen really is full screen.** The picture now fills the whole panel in both directions,
+  under the notch and behind the bars, so there is no strip of the background picture along the top
+  or the side when you turn the phone sideways.
+- **Sideways, the top bar lines up with the tab rail.** Held horizontally the bar used to start a
+  little further left than the rail and the page below it, so the three left edges did not agree.
+- **Sound only is a bar, not a page.** Dropping the picture no longer takes over the screen: what is
+  playing collapses into a slim bar with a moving wave where the video was, so you can keep browsing
+  with the sound running and bring the picture back with one tap.
 - **Fonts have a page of their own.** The interface font and size, and — new on the phone — the font
   and size used inside menus and sheets, with a sample that changes as you choose.
 - **Weather has a page of its own, and can use where the phone actually is.** Turn it on and the

@@ -689,12 +689,9 @@ fun Modifier.glassClickable(
         interactionSource = interactionSource,
         indication = null,
         onLongClickLabel = onLongClickLabel,
-        onLongClick = onLongClick?.let {
-            {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                it()
-            }
-        },
+        // No tick of our own here: `combinedClickable` already performs the long-press one, and the
+        // two together buzz twice for a single press.
+        onLongClick = onLongClick,
         onClick = onClick,
     )
 }

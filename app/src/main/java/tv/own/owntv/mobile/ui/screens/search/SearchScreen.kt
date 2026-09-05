@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +38,8 @@ import tv.own.owntv.core.database.entity.MovieEntity
 import tv.own.owntv.core.database.entity.SeriesEntity
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.ContentActionsMenu
+import tv.own.owntv.mobile.ui.components.ContentTarget
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -74,7 +75,7 @@ fun SearchScreen(
     // One playlist needs no attribution; several do, and that is the case the line is there for.
     val showProvider = sources.size > 1
     val listState = rememberLazyListState()
-    var menuFor by remember { mutableStateOf<SearchTarget?>(null) }
+    var menuFor by remember { mutableStateOf<ContentTarget?>(null) }
 
     // The list itself is not a composable scope, so everything it needs from resources is read here.
     val channelsLabel = stringResource(R.string.search_channels)
@@ -123,10 +124,9 @@ fun SearchScreen(
                         trailing = { FavoriteMark(row.channel.id in favoriteChannels) },
                         onClick = { vm.rememberQuery(); onOpenChannel(row.channel.id) },
                         onLongClick = {
-                            menuFor = SearchTarget(MediaType.LIVE, row.channel.id, row.channel.name)
+                            menuFor = ContentTarget(MediaType.LIVE, row.channel.id, row.channel.name)
                         },
                     )
-                    HorizontalDivider()
                 }
                 group(
                     label = moviesLabel,
@@ -142,9 +142,8 @@ fun SearchScreen(
                         ),
                         trailing = { FavoriteMark(movie.id in favoriteMovies) },
                         onClick = { vm.rememberQuery(); onOpenMovie(movie.id) },
-                        onLongClick = { menuFor = SearchTarget(MediaType.MOVIE, movie.id, movie.name) },
+                        onLongClick = { menuFor = ContentTarget(MediaType.MOVIE, movie.id, movie.name) },
                     )
-                    HorizontalDivider()
                 }
                 group(
                     label = seriesLabel,
@@ -160,23 +159,24 @@ fun SearchScreen(
                         ),
                         trailing = { FavoriteMark(show.id in favoriteSeries) },
                         onClick = { vm.rememberQuery(); onOpenSeries(show.id) },
-                        onLongClick = { menuFor = SearchTarget(MediaType.SERIES, show.id, show.name) },
+                        onLongClick = { menuFor = ContentTarget(MediaType.SERIES, show.id, show.name) },
                     )
-                    HorizontalDivider()
                 }
             }
         }
     }
 
     menuFor?.let { target ->
-        SearchMenu(
+        ContentActionsMenu(
             target = target,
             isFavorite = target.id in when (target.type) {
                 MediaType.LIVE -> favoriteChannels
                 MediaType.MOVIE -> favoriteMovies
                 else -> favoriteSeries
             },
-            vm = vm,
+            onToggleFavorite = { vm.toggleFavorite(target.type, target.id) },
+            onDownload = { vm.download(target.type, target.id) },
+            onHide = { vm.hide(target.type, target.id) },
             onDismiss = { menuFor = null },
         )
     }
@@ -266,7 +266,6 @@ private fun RecentSearches(recents: List<String>, onPick: (String) -> Unit, onCl
         LazyColumn(Modifier.fillMaxSize()) {
             items(recents, key = { it }) { term ->
                 MobileListRow(title = term, onClick = { onPick(term) })
-                HorizontalDivider()
             }
         }
     }

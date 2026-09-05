@@ -113,6 +113,11 @@
 - **Player controls on their own glass panes, with the channel logo**
 - **Hold a player tool to see its name**
 - **Glass Effect switches for the player controls and on-screen messages**
+- **One press-and-hold menu, the same on Home, library, Live TV and Search**
+- **Settings rows grouped on plates, with the app's own switches and sliders**
+- **Full screen fills the whole screen, under the notch and behind the bars**
+- **Sound only is a slim bar with a moving wave, not a page**
+- **Sideways, the top bar lines up with the tab rail**
 - **Fonts page, including the font used in menus and sheets**
 - **Weather page, with approximate device location**
 - **Any accent colour by hex code**

@@ -22,7 +22,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,11 +51,13 @@ import tv.own.owntv.core.database.entity.EpgProgrammeEntity
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
+import tv.own.owntv.mobile.ui.components.mobileGroupPlate
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.screens.live.LiveCategory
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -262,7 +263,7 @@ private fun OnNowList(
     val separator = stringResource(R.string.content_epg_bits_separator)
     val nextLabel = stringResource(R.string.content_next_up)
 
-    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().mobileGroupPlate()) {
         items(count = channels.itemCount, key = channels.itemKey { it.id }) { index ->
             val channel = channels[index] ?: return@items
             val slot = onNow[channel.id]
@@ -294,15 +295,17 @@ private fun OnNowList(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        // Lined up under the programme title rather than under the logo, so the bar
+                        // and this line read as the row's own second half instead of a strip
+                        // floating between two channels.
                         modifier = Modifier.padding(
-                            start = MobileDimens.ScreenPaddingH,
+                            start = ROW_TEXT_INSET,
                             end = MobileDimens.ScreenPaddingH,
                             bottom = MobileDimens.GapSmall,
                         ),
                     )
                 }
             }
-            HorizontalDivider()
         }
     }
 }
@@ -316,7 +319,11 @@ private fun NowProgress(programme: EpgProgrammeEntity) {
         progress = { done.coerceIn(0f, 1f) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapTiny),
+            .padding(
+                start = ROW_TEXT_INSET,
+                end = MobileDimens.ScreenPaddingH,
+                bottom = MobileDimens.GapTiny,
+            ),
     )
 }
 
@@ -460,7 +467,7 @@ private fun GuideOptionsSheet(
                     top = MobileDimens.GapSmall,
                 ),
             )
-            Slider(
+            MobileSlider(
                 value = densityPct.toFloat(),
                 onValueChange = { onDensity(it.toInt()) },
                 valueRange = MIN_DENSITY.toFloat()..MAX_DENSITY.toFloat(),
@@ -586,5 +593,9 @@ internal const val MIN_DENSITY = 70
 internal const val MAX_DENSITY = 130
 
 private const val WIDE_DP = 600
+/** Where a row's text column begins — what the bar and the "Next up" line line up with. */
+private val ROW_TEXT_INSET =
+    MobileDimens.ListRowPaddingH + MobileDimens.ListRowIconSize + MobileDimens.ListRowIconGap
+
 private val LOGO_SIZE = 32.dp
 private val TRAILING_ICON = 18.dp

@@ -126,7 +126,7 @@ fun SettingsVideoPlayerPage(
     SettingsPage(modifier) {
         settingsSection(R.string.settings_vp_section_engine)
         settingsNote(R.string.settings_vp_section_engine_summary)
-        item(key = "live-engine") {
+        settingsGroup(key = "live-engine") {
             SettingRow(
                 title = stringResource(R.string.settings_live_tv_player),
                 subtitle = stringResource(R.string.settings_live_player_description),
@@ -135,7 +135,7 @@ fun SettingsVideoPlayerPage(
             )
         }
         if (sources.isNotEmpty()) {
-            item(key = "live-engine-sources") {
+            settingsGroup(key = "live-engine-sources") {
                 SettingRow(
                     title = stringResource(R.string.settings_live_engine_per_playlist),
                     subtitle = stringResource(R.string.settings_live_engine_per_playlist_description),
@@ -144,15 +144,14 @@ fun SettingsVideoPlayerPage(
                 )
             }
         }
-        item(key = "vod-engine") {
+        settingsGroup(key = "vod-engine") {
             SettingRow(
                 title = stringResource(R.string.settings_movies_series_player),
                 subtitle = stringResource(R.string.settings_movies_player_description),
                 value = engineLabel(vodEngine),
                 onClick = { sheet = PlaybackSheet.VOD_ENGINE },
             )
-        }
-        item(key = "reset-pins") {
+
             SettingRow(
                 title = stringResource(R.string.settings_reset_player_choices),
                 subtitle = stringResource(R.string.settings_reset_player_choices_description),
@@ -160,29 +159,25 @@ fun SettingsVideoPlayerPage(
                 enabled = enginePins > 0,
                 onClick = { resetting = ResetTarget.ENGINE_PINS },
             )
-        }
-        item(key = "hw-decoding") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_hw"),
                 subtitle = stringResource(R.string.settings_hardware_decoding_description),
             )
-        }
-        item(key = "deinterlace") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_deinterlace"),
                 subtitle = stringResource(R.string.settings_deinterlace_description),
             )
-        }
-        item(key = "hdr") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_hdr"),
                 subtitle = stringResource(R.string.settings_hdr_description),
             )
-        }
-        item(key = "auto-frame-rate") {
+
             SettingRow(
                 title = stringResource(R.string.settings_auto_frame_rate),
                 subtitle = stringResource(R.string.settings_auto_frame_rate_description),
@@ -194,24 +189,21 @@ fun SettingsVideoPlayerPage(
                     if (on && !afrSafe) afrWarning = true else vm.edit { setAutoFrameRate(on) }
                 },
             )
-        }
-        item(key = "external-player") {
+
             SettingRow(
                 title = stringResource(R.string.settings_external_player),
                 subtitle = stringResource(R.string.settings_external_player_row_description),
                 value = stringResource(if (externalOn) R.string.common_on else R.string.common_off),
                 onClick = { sheet = PlaybackSheet.EXTERNAL_PLAYER },
             )
-        }
-        item(key = "zoom") {
+
             SettingRow(
                 title = stringResource(R.string.settings_default_zoom),
                 subtitle = stringResource(R.string.settings_default_zoom_description),
                 value = stringResource(zoomModeOf(zoom).labelRes),
                 onClick = { sheet = PlaybackSheet.ZOOM },
             )
-        }
-        item(key = "reset-zoom") {
+
             SettingRow(
                 title = stringResource(R.string.settings_reset_saved_zoom),
                 subtitle = stringResource(R.string.settings_reset_saved_zoom_description),
@@ -219,16 +211,14 @@ fun SettingsVideoPlayerPage(
                 enabled = savedZoom > 0,
                 onClick = { resetting = ResetTarget.ZOOM },
             )
-        }
-        item(key = "seek-step") {
+
             SettingRow(
                 title = stringResource(R.string.settings_seek_step),
                 subtitle = stringResource(R.string.settings_seek_step_description),
                 value = stringResource(R.string.settings_live_buffer_seconds, seekStep),
                 onClick = { sheet = PlaybackSheet.SEEK_STEP },
             )
-        }
-        item(key = "rewind-step") {
+
             SettingRow(
                 title = stringResource(R.string.settings_live_rewind_step),
                 subtitle = stringResource(R.string.settings_live_rewind_step_description),
@@ -239,7 +229,7 @@ fun SettingsVideoPlayerPage(
 
         settingsSection(R.string.settings_live_tv)
         settingsNote(R.string.settings_vp_section_live_summary)
-        item(key = "latency") {
+        settingsGroup(key = "latency") {
             SettingRow(
                 title = stringResource(R.string.settings_live_latency),
                 subtitle = stringResource(R.string.settings_live_latency_description),
@@ -252,7 +242,7 @@ fun SettingsVideoPlayerPage(
             )
         }
         if (latency == LiveLatency.CUSTOM) {
-            item(key = "latency-secs") {
+            settingsGroup(key = "latency-secs") {
                 SettingsSlider(
                     title = stringResource(R.string.settings_live_latency_custom),
                     value = latencySecs,
@@ -274,7 +264,7 @@ fun SettingsVideoPlayerPage(
             }
         }
         if (sources.isNotEmpty()) {
-            item(key = "latency-sources") {
+            settingsGroup(key = "latency-sources") {
                 SettingRow(
                     title = stringResource(R.string.settings_live_latency_per_playlist),
                     subtitle = stringResource(R.string.settings_live_latency_per_playlist_description),
@@ -283,7 +273,7 @@ fun SettingsVideoPlayerPage(
                 )
             }
         }
-        item(key = "preroll") {
+        settingsGroup(key = "preroll") {
             SettingsSlider(
                 title = stringResource(R.string.settings_live_preroll),
                 subtitle = stringResource(R.string.settings_live_preroll_description),
@@ -294,7 +284,7 @@ fun SettingsVideoPlayerPage(
             )
         }
         if (sources.isNotEmpty()) {
-            item(key = "preroll-sources") {
+            settingsGroup(key = "preroll-sources") {
                 SettingRow(
                     title = stringResource(R.string.settings_live_preroll_per_playlist),
                     subtitle = stringResource(R.string.settings_live_preroll_per_playlist_description),
@@ -305,7 +295,7 @@ fun SettingsVideoPlayerPage(
                 )
             }
         }
-        item(key = "tune-timeout") {
+        settingsGroup(key = "tune-timeout") {
             SettingsSlider(
                 title = stringResource(R.string.settings_live_tune_timeout),
                 subtitle = stringResource(R.string.settings_live_tune_timeout_description),
@@ -314,8 +304,7 @@ fun SettingsVideoPlayerPage(
                 valueLabel = stringResource(R.string.settings_live_buffer_seconds, tuneTimeout),
                 onValueChange = { secs -> vm.edit { setLiveTuneTimeoutSecs(secs) } },
             )
-        }
-        item(key = "channel-numbers") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_channel_numbers"),
@@ -325,7 +314,7 @@ fun SettingsVideoPlayerPage(
 
         settingsSection(R.string.settings_vp_section_sound)
         settingsNote(R.string.settings_vp_section_sound_summary)
-        item(key = "volume") {
+        settingsGroup(key = "volume") {
             SettingsSlider(
                 title = stringResource(R.string.settings_default_volume),
                 subtitle = stringResource(R.string.settings_default_volume_description),
@@ -333,8 +322,7 @@ fun SettingsVideoPlayerPage(
                 range = 0..150,
                 onValueChange = { pct -> vm.edit { setDefaultVolume(pct) } },
             )
-        }
-        item(key = "reset-volume") {
+
             SettingRow(
                 title = stringResource(R.string.settings_reset_saved_volume),
                 subtitle = stringResource(R.string.settings_reset_saved_volume_description),
@@ -342,23 +330,20 @@ fun SettingsVideoPlayerPage(
                 enabled = savedVolume > 0,
                 onClick = { resetting = ResetTarget.VOLUME },
             )
-        }
-        item(key = "surround") {
+
             SettingRow(
                 title = stringResource(R.string.settings_surround_sound),
                 subtitle = stringResource(R.string.settings_surround_description),
                 value = stringResource(surround.labelRes()),
                 onClick = { sheet = PlaybackSheet.SURROUND },
             )
-        }
-        item(key = "audio-lang") {
+
             SettingRow(
                 title = stringResource(R.string.settings_preferred_audio_language),
                 value = trackLanguageName(audioLang),
                 onClick = { sheet = PlaybackSheet.AUDIO_LANG },
             )
-        }
-        item(key = "audio-sync") {
+
             // 25 ms steps across ±5s: the offset being corrected is a device's picture-processing
             // delay, which lands in the tens of milliseconds — a coarser step could only bracket it.
             SettingsSlider(
@@ -370,8 +355,7 @@ fun SettingsVideoPlayerPage(
                 valueLabel = stringResource(R.string.settings_audio_delay_value, audioDelay),
                 onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
             )
-        }
-        item(key = "reset-audio-delay") {
+
             SettingRow(
                 title = stringResource(R.string.settings_reset_saved_audio_delay),
                 subtitle = stringResource(R.string.settings_reset_saved_audio_delay_description),
@@ -383,15 +367,14 @@ fun SettingsVideoPlayerPage(
 
         settingsSection(R.string.settings_subtitles)
         settingsNote(R.string.settings_vp_section_subtitles_summary)
-        item(key = "sub-style") {
+        settingsGroup(key = "sub-style") {
             SettingRow(
                 title = stringResource(R.string.settings_subtitle_appearance),
                 subtitle = stringResource(R.string.settings_subtitle_appearance_description),
                 value = stringResource(if (subStyleOn) R.string.common_on else R.string.common_off),
                 onClick = { onOpenLeaf(SettingsLeaf.SUBTITLE_APPEARANCE) },
             )
-        }
-        item(key = "sub-lang") {
+
             SettingRow(
                 title = stringResource(R.string.settings_preferred_subtitle_language),
                 subtitle = stringResource(R.string.settings_preferred_language_description),
@@ -402,15 +385,14 @@ fun SettingsVideoPlayerPage(
 
         settingsSection(R.string.settings_vp_section_episodes)
         settingsNote(R.string.settings_vp_section_episodes_summary)
-        item(key = "resume") {
+        settingsGroup(key = "resume") {
             SettingRow(
                 title = stringResource(R.string.settings_resume_playback),
                 subtitle = stringResource(R.string.settings_resume_playback_description),
                 value = stringResource(resume.labelRes()),
                 onClick = { sheet = PlaybackSheet.RESUME },
             )
-        }
-        item(key = "autoplay") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_autoplay"),
@@ -420,14 +402,13 @@ fun SettingsVideoPlayerPage(
 
         settingsSection(R.string.settings_diagnostics)
         settingsNote(R.string.settings_vp_section_diagnostics_summary)
-        item(key = "measured-stats") {
+        settingsGroup(key = "measured-stats") {
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_measured_stats"),
                 subtitle = stringResource(R.string.settings_measured_stats_description),
             )
-        }
-        item(key = "detailed-logging") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_logging"),
@@ -749,7 +730,14 @@ fun SettingsVideoPlayerPage(
             modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { afrWarning = false },
             title = { Text(stringResource(R.string.settings_auto_frame_rate_warning_title)) },
-            text = { Text(stringResource(R.string.settings_auto_frame_rate_warning_description)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.settings_auto_frame_rate_warning_description,
+                        android.os.Build.VERSION.RELEASE,
+                    ),
+                )
+            },
             // Keeping it off is the safe answer, so it is the one that reads as the main button.
             confirmButton = {
                 TextButton(onClick = { afrWarning = false }) {

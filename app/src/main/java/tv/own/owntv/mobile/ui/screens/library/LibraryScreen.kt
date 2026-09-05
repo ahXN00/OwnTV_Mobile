@@ -2,6 +2,7 @@ package tv.own.owntv.mobile.ui.screens.library
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,7 +26,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
@@ -51,10 +52,12 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.mobileGroupPlate
 import tv.own.owntv.mobile.ui.components.PosterCard
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -100,7 +103,9 @@ fun LibraryScreen(
     // in landscape. The user's own number wins whenever they have set one.
     val width = LocalConfiguration.current.screenWidthDp
     val columns = chosenColumns.takeIf { it > 0 } ?: (width / COLUMN_WIDTH_DP).coerceIn(MIN_COLUMNS, MAX_COLUMNS)
-    val posterWidth = ((width - GRID_PADDING_DP * 2) / columns).dp
+    // The gaps between the columns come out of the tiles, or the last one is pushed off the edge.
+    val gaps = MobileDimens.GridGap.value.toInt() * (columns - 1)
+    val posterWidth = ((width - GRID_PADDING_DP * 2 - gaps) / columns).dp
 
     val gridState = rememberLazyGridState()
     val listState = rememberLazyListState()
@@ -119,7 +124,12 @@ fun LibraryScreen(
 
     Column(modifier.fillMaxSize()) {
         if (fixedTab == null) {
-            PrimaryTabRow(selectedTabIndex = tab.ordinal) {
+            // Transparent, or Material's own opaque surface paints a square black band across the
+            // top of the page's rounded glass pane and squares off its two top corners.
+            PrimaryTabRow(
+                selectedTabIndex = tab.ordinal,
+                containerColor = Color.Transparent,
+            ) {
                 LibraryTab.entries.forEach { entry ->
                     Tab(
                         selected = entry == tab,
@@ -171,7 +181,7 @@ fun LibraryScreen(
         if (items.itemCount == 0 && items.loadState.refresh !is LoadState.Loading) {
             EmptyLibrary(tab)
         } else if (viewMode == SettingsRepository.VodViewMode.LIST) {
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize().mobileGroupPlate()) {
                 items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
                     items[index]?.let { item ->
                         MobileListRow(
@@ -180,7 +190,6 @@ fun LibraryScreen(
                             onClick = { onOpenItem(tab, item.id) },
                             onLongClick = { menuFor = item },
                         )
-                        HorizontalDivider()
                     }
                 }
             }
@@ -189,6 +198,8 @@ fun LibraryScreen(
                 columns = GridCells.Fixed(columns),
                 state = gridState,
                 contentPadding = PaddingValues(MobileDimens.GapSmall),
+                horizontalArrangement = Arrangement.spacedBy(MobileDimens.GridGap),
+                verticalArrangement = Arrangement.spacedBy(MobileDimens.GridGap),
                 modifier = Modifier
                     .fillMaxSize()
                     .pinchToResize(columns) { vm.setGridColumns(it) },
@@ -266,7 +277,7 @@ private fun LibraryOptionsSheet(vm: LibraryViewModel, columns: Int, onDismiss: (
                     top = MobileDimens.GapSmall,
                 ),
             )
-            Slider(
+            MobileSlider(
                 // Left is smaller posters, so the slider runs the opposite way to the column count.
                 value = (MAX_COLUMNS + MIN_COLUMNS - columns).toFloat(),
                 onValueChange = { vm.setGridColumns(MAX_COLUMNS + MIN_COLUMNS - it.toInt()) },

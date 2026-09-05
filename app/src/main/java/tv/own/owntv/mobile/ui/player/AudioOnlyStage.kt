@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,19 +18,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -58,33 +48,38 @@ import tv.own.owntv.mobile.playback.SleepTimer
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
-import tv.own.owntv.player.OwnTVPlayer
 
 /** What the sleep timer offers, in minutes. Round numbers, because nobody falls asleep to 37. */
 private val SLEEP_MINUTES = intArrayOf(15, 30, 45, 60, 90)
 
 /** The waveform's bars, and how tall each one gets at the top of its swing. */
+/** The artwork tile, big enough to read a channel logo on and small enough for landscape. */
+private val ARTWORK_SIZE = 132.dp
+
+/** Where the bars sit while the controls are up: between the top bar and the transport buttons. */
+private val COMPACT_TOP_PADDING = 84.dp
+
 private val WAVE_PEAKS = floatArrayOf(0.5f, 0.9f, 0.65f, 1f, 0.45f)
 private val WAVE_HEIGHT = 44.dp
 private val WAVE_BAR_WIDTH = 5.dp
 
 /**
- * The screen for listening without watching.
+ * What the player shows where the picture would be, while there is no picture.
  *
- * Dropping the picture is the single biggest thing a phone can do for its battery and its data
- * allowance, so it is a place to be rather than a warning to dismiss: the artwork, what is playing,
- * the volume, and a timer for the user who is falling asleep to it. The **Video** button brings the
- * picture straight back.
+ * Dropping the video is the single biggest thing a phone can do for its battery and its data
+ * allowance, and it should not cost the user the player they were already in: the controls, the
+ * gestures and the way back to video all stay exactly where they were. Only the black rectangle
+ * changes — into the artwork, what is playing, and something that moves so the stream plainly is
+ * still running.
  *
  * It is told what to say rather than which tuner to ask, for the reason [MiniPlayer] is.
  */
 @Composable
-fun AudioOnlyStage(
-    player: OwnTVPlayer,
+fun AudioOnlyBackdrop(
     title: String,
-    onBack: () -> Unit,
-    /** Null for a stream that has no picture to come back to — a radio channel. */
-    onShowVideo: (() -> Unit)?,
+    playing: Boolean,
+    /** True while the player's own controls are up, which is what the middle of the screen is for. */
+    compact: Boolean,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     artworkUrl: String? = null,
@@ -92,29 +87,28 @@ fun AudioOnlyStage(
     sleepTimer: SleepTimer = koinInject(),
     settings: SettingsRepository = koinInject(),
 ) {
-    val volume by player.volume.collectAsStateWithLifecycle()
-    val playing by player.isPlaying.collectAsStateWithLifecycle()
     val remaining by sleepTimer.remainingMs.collectAsStateWithLifecycle()
     val animations by settings.animationLevel.collectAsStateWithLifecycle(AnimationLevel.FULL)
     var timerSheet by remember { mutableStateOf(false) }
 
-    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        IconButton(onClick = onBack, modifier = Modifier.padding(MobileDimens.GapSmall)) {
-            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
-        }
+    Box(
+        modifier.fillMaxSize().background(Color.Black),
+        // With the controls up the transport buttons own the middle of the screen, so what is playing
+        // moves out from under them rather than being drawn through them.
+        contentAlignment = if (compact) Alignment.TopCenter else Alignment.Center,
+    ) {
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = MobileDimens.ScreenPaddingH),
+            Modifier.padding(
+                horizontal = MobileDimens.ScreenPaddingH,
+                vertical = if (compact) COMPACT_TOP_PADDING else 0.dp,
+            ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            Box(
+            if (!compact) Box(
                 Modifier
-                    .fillMaxWidth(0.7f)
-                    .aspectRatio(1f)
+                    .size(ARTWORK_SIZE)
                     .clip(RoundedCornerShape(MobileDimens.SheetCorner))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    .background(Color.White.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center,
             ) {
                 // A channel logo is the only artwork a live stream has, and plenty of them have none
@@ -122,8 +116,8 @@ fun AudioOnlyStage(
                 Icon(
                     Icons.Default.MusicNote,
                     contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(48.dp),
+                    tint = Color.White.copy(alpha = 0.6f),
                 )
                 AsyncImage(
                     model = artworkUrl,
@@ -132,19 +126,20 @@ fun AudioOnlyStage(
                     modifier = Modifier.fillMaxSize().padding(MobileDimens.GapMedium),
                 )
             }
-            Text(
+            if (!compact) Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = MobileDimens.GapMedium),
             )
-            subtitle?.let { line ->
+            subtitle.takeIf { !compact }?.let { line ->
                 Text(
                     text = line,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -155,73 +150,18 @@ fun AudioOnlyStage(
                 animate = animations == AnimationLevel.FULL,
                 modifier = Modifier.padding(top = MobileDimens.GapMedium),
             )
-            AssistChip(
-                onClick = {},
-                enabled = false,
-                label = { Text(stringResource(R.string.player_audio_only_video_off)) },
-                colors = AssistChipDefaults.assistChipColors(),
-                modifier = Modifier.padding(top = MobileDimens.GapMedium),
-            )
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = MobileDimens.GapLarge),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Default.VolumeUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Slider(
-                    value = volume.toFloat(),
-                    onValueChange = { player.adjustVolumeByUser(it.toInt() - volume) },
-                    // 150 % is the engine's own ceiling, and the boost quiet streams need.
-                    valueRange = 0f..150f,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = MobileDimens.GapSmall),
-                )
+            // The one thing the player's own bar does not already offer, and the reason most people
+            // drop the picture in the first place. The bar itself covers this spot, so it waits for
+            // the controls to go away — which they do on their own after a few seconds.
+            if (!compact) TextButton(onClick = { timerSheet = true }) {
+                Icon(Icons.Default.Bedtime, contentDescription = null, tint = Color.White)
                 Text(
-                    text = stringResource(R.string.player_percent, volume),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            Row(
-                Modifier.padding(top = MobileDimens.GapMedium),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                onShowVideo?.let { showVideo ->
-                    FilledTonalButton(onClick = showVideo) {
-                        Icon(Icons.Default.Videocam, contentDescription = null)
-                        Text(
-                            text = stringResource(R.string.player_audio_only_show_video),
-                            modifier = Modifier.padding(start = MobileDimens.GapSmall),
-                        )
-                    }
-                }
-                TextButton(
-                    onClick = { timerSheet = true },
+                    text = remaining?.let {
+                        stringResource(R.string.player_sleep_timer_remaining, minutesLabel(it))
+                    } ?: stringResource(R.string.player_sleep_timer),
+                    color = Color.White,
                     modifier = Modifier.padding(start = MobileDimens.GapSmall),
-                ) {
-                    Icon(Icons.Default.Bedtime, contentDescription = null)
-                    Text(
-                        text = remaining?.let {
-                            stringResource(R.string.player_sleep_timer_remaining, minutesLabel(it))
-                        } ?: stringResource(R.string.player_sleep_timer),
-                        modifier = Modifier.padding(start = MobileDimens.GapSmall),
-                    )
-                }
-                // Casting arrives with Plan 4 Phase 11A. The button is here and switched off rather
-                // than absent, so the row does not change shape when it starts working.
-                TextButton(onClick = {}, enabled = false) {
-                    Icon(Icons.Default.Cast, contentDescription = null)
-                    Text(
-                        text = stringResource(R.string.common_cast),
-                        modifier = Modifier.padding(start = MobileDimens.GapSmall),
-                    )
-                }
+                )
             }
         }
     }

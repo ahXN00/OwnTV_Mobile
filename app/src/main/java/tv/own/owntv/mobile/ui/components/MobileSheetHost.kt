@@ -14,19 +14,20 @@ import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +45,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -57,19 +59,21 @@ import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.theme.AnimationLevel
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.ui.theme.GlassNest
 import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens
-import tv.own.owntv.mobile.ui.theme.SquircleTopShape
+import tv.own.owntv.mobile.ui.theme.MobileSheetShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
 import kotlin.math.roundToInt
 
@@ -78,6 +82,9 @@ private enum class SheetAnchor { HIDDEN, HALF, EXPANDED }
 
 /** How far the content starts below where it ends up. Enough to read as weight, not as a slide. */
 private const val SETTLE_DP = 18f
+
+/** The grab handle, as faint as the mockup's. */
+private const val GRAB_ALPHA = 0.34f
 
 /** How dark the app goes behind an open sheet. */
 private const val SCRIM_ALPHA = 0.5f
@@ -156,37 +163,50 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
 
     var containerHeight by remember { mutableStateOf(0) }
     var sheetHeight by remember { mutableStateOf(0) }
-    var opened by remember { mutableStateOf(false) }
 
     // Anchors are translations downward from the resting position, so the sheet is simply laid out
     // at the bottom of the screen and pushed off it by its own height.
+    //
+    // Only the anchors are keyed on the measurement. An effect keyed on a size is created before the
+    // size is known, so its first run always carries the pre-measurement zeroes and it is always
+    // restarted once — which would cancel anything longer-lived started here.
     LaunchedEffect(sheetHeight, containerHeight) {
         if (sheetHeight <= 0 || containerHeight <= 0) return@LaunchedEffect
         val full = sheetHeight.toFloat()
         val half = (containerHeight / 2f).coerceAtMost(full)
-        val hasHalf = full - half > 1f
         state.updateAnchors(
             DraggableAnchors {
                 SheetAnchor.EXPANDED at 0f
                 // A sheet shorter than half the screen is already at its half, so it has no middle
                 // rest to fall to — two names for one position would only make the drag stutter.
-                if (hasHalf) SheetAnchor.HALF at full - half
+                if (full - half > 1f) SheetAnchor.HALF at full - half
                 SheetAnchor.HIDDEN at full
             },
             state.targetValue,
         )
-        if (!opened) {
-            opened = true
-            val landing = if (hasHalf) SheetAnchor.HALF else SheetAnchor.EXPANDED
-            if (animations == AnimationLevel.OFF) state.snapTo(landing) else state.animateTo(landing)
-        }
     }
 
-    // Coming to rest on HIDDEN is the dismissal, however it got there — a fling, a drag, the scrim or
-    // the back gesture. One exit, so every route cleans up the same way.
-    LaunchedEffect(state) {
+    // The sheet's whole life, in one coroutine that is never restarted: wait to be measured, come up,
+    // and from then on watch for the way down. Coming to rest on HIDDEN is the dismissal however it
+    // got there — a fling, a drag, the scrim or the back gesture — so every route cleans up the same
+    // way. The watching has to start *after* the opening, because every sheet begins settled at
+    // HIDDEN: armed any earlier it reads its own starting position as a close and the menu is gone in
+    // the frame it appeared.
+    LaunchedEffect(Unit) {
+        snapshotFlow { state.anchors.size }.first { it > 0 }
+        // A short sheet has no HALF anchor at all, and lands fully open instead.
+        val landing = if (state.anchors.positionOf(SheetAnchor.HALF).isNaN()) {
+            SheetAnchor.EXPANDED
+        } else {
+            SheetAnchor.HALF
+        }
+        // A finger on the sheet while it is still rising cancels the animation. That is not a reason
+        // to stop watching for the close.
+        runCatching {
+            if (animations == AnimationLevel.OFF) state.snapTo(landing) else state.animateTo(landing)
+        }
         snapshotFlow { state.settledValue }
-            .collect { if (opened && it == SheetAnchor.HIDDEN) entry.onDismissRequest() }
+            .collect { if (it == SheetAnchor.HIDDEN) entry.onDismissRequest() }
     }
 
     // The back gesture shrinks and fades the sheet under the thumb and lets go of it if the gesture
@@ -221,7 +241,8 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
             ),
     )
 
-    val sheetShape = SquircleTopShape(MobileDimens.SheetCorner)
+    // A sheet stands clear of the screen on all four sides, so all four corners are curved — the
+    // wallpaper running round it is what makes the floating material read as floating.
     val settle = remember { Animatable(if (animations == AnimationLevel.OFF) 0f else SETTLE_DP) }
     LaunchedEffect(Unit) {
         if (animations != AnimationLevel.OFF) settle.animateTo(0f, spring(stiffness = Spring.StiffnessLow))
@@ -233,8 +254,16 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
             .align(Alignment.BottomCenter)
             .widthIn(max = SheetMaxWidth)
             .fillMaxWidth()
-            .imePadding()
+            // Measured with its bottom margin included, so "pushed off by its own height" still
+            // clears the screen now that the sheet rests above the edge rather than on it.
             .onSizeChanged { sheetHeight = it.height }
+            .imePadding()
+            .navigationBarsPadding()
+            .padding(
+                start = MobileDimens.ShellInset,
+                end = MobileDimens.ShellInset,
+                bottom = MobileDimens.ShellInset,
+            )
             .offset { IntOffset(0, offset.roundToInt()) }
             .graphicsLayer {
                 val shrink = lerp(1f, BACK_SCALE, backProgress.value)
@@ -253,39 +282,49 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
                 isTraversalGroup = true
                 entry.title?.let { paneTitle = it }
             }
-            .glassSurface(GlassSurface.DIALOGS, sheetShape),
+            .glassSurface(GlassSurface.DIALOGS, MobileSheetShape)
+            .clip(MobileSheetShape),
     ) {
-        BottomSheetDefaults.DragHandle(Modifier.align(Alignment.CenterHorizontally))
+        // Our own handle, not Material's: theirs pads 22 dp above and below a 4 dp bar, which is a
+        // finger's width of empty sheet before the first word.
+        Box(
+            Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(
+                    top = MobileDimens.GrabPaddingTop,
+                    bottom = MobileDimens.GrabPaddingBottom,
+                )
+                .size(MobileDimens.GrabWidth, MobileDimens.GrabHeight)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = GRAB_ALPHA)),
+        )
         // The settle rides an inner layer, so what catches up is what is inside the pane — put it on
         // the pane itself and the glass slides off its own bottom edge.
         Column(
             Modifier
                 .fillMaxWidth()
+                .padding(
+                    start = MobileDimens.SheetPaddingH,
+                    end = MobileDimens.SheetPaddingH,
+                    bottom = MobileDimens.SheetPaddingBottom,
+                )
                 .graphicsLayer { translationY = settle.value * density },
+            verticalArrangement = Arrangement.spacedBy(MobileDimens.SheetGap),
         ) {
             val column = this
             entry.title?.let {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(
-                        horizontal = MobileDimens.ScreenPaddingH,
-                        vertical = MobileDimens.GapSmall,
-                    ),
+                    modifier = Modifier.padding(horizontal = MobileDimens.GapTiny + 2.dp),
                 )
             }
             // Everything in a sheet is already standing on a pane of glass, so it draws as the layer
             // behind one — no second frost over the first.
             GlassNest(GlassSurface.DIALOGS) { column.body() }
-            // The gesture bar sits over the sheet's last row otherwise.
-            Spacer(
-                Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = MobileDimens.GapSmall),
-            )
         }
     }
 }

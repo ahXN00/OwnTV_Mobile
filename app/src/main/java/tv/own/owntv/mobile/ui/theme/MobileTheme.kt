@@ -79,6 +79,7 @@ fun MobileTheme(
         LocalGlass provides glass,
         LocalAnimations provides animations,
         LocalAccentOnVideo provides accentOnVideo(accent, customAccent),
+        LocalSurfaceTones provides mobileSurfaceTones(isDark),
     ) {
         MaterialTheme(
             colorScheme = mobileColorScheme(isDark, accent, customAccent),
@@ -102,3 +103,11 @@ val LocalAnimations = staticCompositionLocalOf { AnimationLevel.FULL }
  * a dark scene.
  */
 val LocalAccentOnVideo = staticCompositionLocalOf { Color(AccentColor.TEAL.roles(isDark = true).primary) }
+
+/**
+ * What each glass material's surface is when the effect is off — see [MobileSurfaceTones].
+ *
+ * A composition local rather than a lookup on the colour scheme, because three of the four are the
+ * shell's per-region fills and those are not M3 roles.
+ */
+val LocalSurfaceTones = staticCompositionLocalOf { mobileSurfaceTones(isDark = true) }

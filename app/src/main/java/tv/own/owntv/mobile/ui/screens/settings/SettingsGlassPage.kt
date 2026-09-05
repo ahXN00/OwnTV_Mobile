@@ -65,7 +65,7 @@ fun SettingsGlassPage(
         settingsNote(R.string.settings_glass_screen_description)
         item(key = "preview") { GlassPreview() }
 
-        item(key = "master") {
+        settingsGroup(key = "master") {
             SettingRow(
                 title = stringResource(R.string.settings_glass_effect_title),
                 subtitle = stringResource(R.string.settings_glass_master_description),
@@ -84,9 +84,9 @@ fun SettingsGlassPage(
 
         settingsSection(R.string.settings_glass_section_appearance)
         settingsNote(R.string.settings_glass_preset_title)
-        for (preset in GlassPreset.entries) {
-            if (preset == GlassPreset.CUSTOM) continue
-            item(key = "preset-$preset") {
+        settingsGroup(key = "appearance") {
+            GlassPreset.entries.forEach { preset ->
+                if (preset == GlassPreset.CUSTOM) return@forEach
                 SettingRow(
                     title = stringResource(preset.labelRes()),
                     subtitle = stringResource(preset.descriptionRes()),
@@ -94,9 +94,7 @@ fun SettingsGlassPage(
                     onCheckedChange = { vm.edit { setGlassPreset(preset) } },
                 )
             }
-        }
-        if (glass.preset == GlassPreset.CUSTOM) {
-            item(key = "preset-custom") {
+            if (glass.preset == GlassPreset.CUSTOM) {
                 SettingRow(
                     title = stringResource(R.string.settings_glass_preset_custom),
                     subtitle = stringResource(R.string.settings_glass_preset_custom_description),
@@ -104,8 +102,6 @@ fun SettingsGlassPage(
                     onCheckedChange = { },
                 )
             }
-        }
-        item(key = "background") {
             SettingRow(
                 title = stringResource(R.string.settings_glass_background_image),
                 subtitle = if (bgPath.isBlank()) {
@@ -116,9 +112,7 @@ fun SettingsGlassPage(
                 showChevron = true,
                 onClick = { pickImage.launch(arrayOf("image/*")) },
             )
-        }
-        if (bgPath.isNotBlank()) {
-            item(key = "background-clear") {
+            if (bgPath.isNotBlank()) {
                 SettingRow(
                     title = stringResource(R.string.common_clear),
                     onClick = { vm.edit { setBgImagePath("") } },
@@ -128,7 +122,7 @@ fun SettingsGlassPage(
 
         settingsSection(R.string.settings_glass_surfaces)
         settingsNote(R.string.settings_glass_surfaces_description)
-        item(key = "surface-all") {
+        settingsGroup(key = "surfaces") {
             SettingRow(
                 title = stringResource(R.string.settings_glass_surface_all),
                 // "3 of 7" is the one thing a list of seven switches cannot say about itself.
@@ -148,9 +142,7 @@ fun SettingsGlassPage(
                     vm.edit { setGlassScopeBitmask(GlassConfig(scope = scope).toBitmask()) }
                 },
             )
-        }
-        for (surface in GlassSurface.entries) {
-            item(key = "surface-$surface") {
+            GlassSurface.entries.forEach { surface ->
                 SettingRow(
                     title = stringResource(surface.labelRes()),
                     checked = surface in glass.scope,
@@ -162,8 +154,7 @@ fun SettingsGlassPage(
             }
         }
 
-        settingsSection(R.string.settings_glass_section_fine_tuning)
-        item(key = "transparency") {
+        settingsSection(R.string.settings_glass_section_fine_tuning) {
             SettingsSlider(
                 title = stringResource(R.string.settings_transparency_title),
                 subtitle = stringResource(R.string.settings_glass_transparency_short_description),
@@ -174,8 +165,6 @@ fun SettingsGlassPage(
                     vm.edit { setGlassAlphaPercent(100 - pct, blurPct) }
                 },
             )
-        }
-        item(key = "blur") {
             SettingsSlider(
                 title = stringResource(R.string.settings_glass_background_blur_title),
                 subtitle = stringResource(
@@ -186,8 +175,6 @@ fun SettingsGlassPage(
                 range = 0..100,
                 onValueChange = { pct -> vm.edit { setGlassBlurPercent(pct, alphaPct) } },
             )
-        }
-        item(key = "highlight") {
             SettingsSlider(
                 title = stringResource(R.string.settings_glass_highlight_title),
                 subtitle = stringResource(R.string.settings_glass_highlight_short_description),
@@ -197,16 +184,13 @@ fun SettingsGlassPage(
             )
         }
 
-        settingsSection(R.string.settings_glass_section_behavior)
-        item(key = "depth") {
+        settingsSection(R.string.settings_glass_section_behavior) {
             SettingRow(
                 title = stringResource(R.string.settings_glass_depth_effects_short),
                 subtitle = stringResource(R.string.settings_glass_depth_effects_short_description),
                 checked = glass.depthEffects,
                 onCheckedChange = { vm.edit { setGlassDepthEffects(it) } },
             )
-        }
-        item(key = "full-transparency") {
             SettingRow(
                 title = stringResource(R.string.settings_glass_full_transparency_short),
                 subtitle = stringResource(
@@ -215,8 +199,6 @@ fun SettingsGlassPage(
                 checked = glass.allowFullTransparency,
                 onCheckedChange = { vm.edit { setGlassAllowFullTransparency(it) } },
             )
-        }
-        item(key = "reset") {
             SettingRow(
                 title = stringResource(R.string.settings_glass_reset_balanced),
                 onClick = {

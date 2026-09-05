@@ -54,7 +54,7 @@ fun SettingsWeatherPage(
 
     SettingsPage(modifier) {
         settingsNote(R.string.settings_weather_description_root)
-        item(key = "enabled") {
+        settingsGroup(key = "enabled") {
             SettingRow(
                 title = stringResource(R.string.settings_show_weather),
                 subtitle = stringResource(R.string.settings_show_weather_description),
@@ -64,7 +64,7 @@ fun SettingsWeatherPage(
         }
         if (!enabled) return@SettingsPage
 
-        item(key = "device-location") {
+        settingsGroup(key = "device-location") {
             SettingRow(
                 title = stringResource(R.string.settings_use_device_location),
                 subtitle = stringResource(R.string.settings_use_device_location_description),
@@ -80,7 +80,7 @@ fun SettingsWeatherPage(
         if (!usingDeviceLocation) {
             item(key = "location") { WeatherCityField(vm, stored) }
         }
-        item(key = "unit") {
+        settingsGroup(key = "unit") {
             SettingRow(
                 title = stringResource(R.string.settings_temperature_unit),
                 subtitle = stringResource(R.string.settings_temperature_description),

@@ -1,6 +1,5 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
@@ -28,29 +27,30 @@ fun SettingsProfilePage(
     val activeId = vm.settings.activeProfileId.pref(-1L)
 
     SettingsPage(modifier) {
-        settingsSection(R.string.profiles_title)
-        items(profiles, key = { it.id }) { profile ->
-            MobileListRow(
-                title = profile.name,
-                subtitle = when {
-                    profile.isKids -> stringResource(R.string.profiles_kids_tag)
-                    profile.pinHash != null -> stringResource(R.string.profiles_locked_tag)
-                    else -> null
-                },
-                leading = { Icon(Icons.Filled.Person, contentDescription = null) },
-                onClick = { vm.edit { setActiveProfile(profile.id) } },
-                trailing = if (profile.id == activeId) {
-                    {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                } else {
-                    null
-                },
-            )
+        settingsSection(R.string.profiles_title) {
+            profiles.forEach { profile ->
+                MobileListRow(
+                    title = profile.name,
+                    subtitle = when {
+                        profile.isKids -> stringResource(R.string.profiles_kids_tag)
+                        profile.pinHash != null -> stringResource(R.string.profiles_locked_tag)
+                        else -> null
+                    },
+                    leading = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    onClick = { vm.edit { setActiveProfile(profile.id) } },
+                    trailing = if (profile.id == activeId) {
+                        {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                )
+            }
         }
     }
 }

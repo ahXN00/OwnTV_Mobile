@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.glassClickable
@@ -26,9 +25,6 @@ import tv.own.owntv.mobile.ui.theme.glassSurface
 
 /** A chip is a pill, at both settings. */
 private val ChipShape = RoundedCornerShape(percent = 50)
-
-/** Short enough to stay a strip, tall enough to be a comfortable target. */
-private val ChipHeight = 40.dp
 
 /**
  * The horizontal filter strip above a list — categories on Live, genres in the library.
@@ -50,17 +46,19 @@ fun FilterChipRow(
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
             .padding(
-                horizontal = MobileDimens.ScreenPaddingH,
-                vertical = MobileDimens.GapSmall,
+                start = MobileDimens.ChipRowPaddingH,
+                end = MobileDimens.ChipRowPaddingH,
+                top = MobileDimens.ChipRowPaddingTop,
+                bottom = MobileDimens.ChipRowPaddingBottom,
             ),
-        horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
+        horizontalArrangement = Arrangement.spacedBy(MobileDimens.ChipGap),
     ) {
         labels.forEachIndexed { index, label ->
             val chosen = index == selectedIndex
             val press = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
-                    .defaultMinSize(minHeight = ChipHeight)
+                    .defaultMinSize(minHeight = MobileDimens.ChipHeight)
                     .glassSurface(
                         surface = GlassSurface.CARDS,
                         shape = ChipShape,
@@ -69,12 +67,12 @@ fun FilterChipRow(
                     )
                     .clip(ChipShape)
                     .glassClickable(press, onClick = { onSelect(index) })
-                    .padding(horizontal = MobileDimens.GapMedium),
+                    .padding(horizontal = MobileDimens.ChipPaddingH),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     color = if (chosen) {
                         MaterialTheme.colorScheme.primary
                     } else {

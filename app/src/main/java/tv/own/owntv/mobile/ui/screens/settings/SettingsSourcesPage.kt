@@ -41,16 +41,14 @@ fun SettingsSourcesPage(
     SettingsPage(modifier) {
         settingsLeafRows(SettingsGroup.SOURCES, onOpenLeaf)
 
-        settingsSection(R.string.content_epg)
-        item(key = "epg-offset") {
+        settingsSection(R.string.content_epg) {
             SettingRow(
                 title = stringResource(R.string.content_epg_time_offset),
                 subtitle = stringResource(R.string.settings_epg_offset_root_description),
                 value = utcOffsetLabel(vm.settings.epgOffsetMinutes.pref(0)),
                 onClick = { epgOffsetSheet = true },
             )
-        }
-        item(key = "catchup") {
+
             val tz = vm.settings.catchupTimezone.pref(SettingsRepository.CatchupTimezone.DEVICE)
             SettingRow(
                 title = stringResource(R.string.settings_catchup),

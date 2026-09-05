@@ -71,7 +71,7 @@ fun SettingsNetworkPage(
     SettingsPage(modifier) {
         settingsSection(R.string.settings_http_proxy)
         settingsNote(R.string.settings_proxy_description)
-        item(key = "proxy-on") {
+        settingsGroup(key = "proxy-on") {
             SettingRow(
                 title = stringResource(R.string.settings_use_proxy),
                 checked = proxyOn,
@@ -79,7 +79,7 @@ fun SettingsNetworkPage(
             )
         }
         item(key = "proxy-form") {
-            Column(Modifier.padding(horizontal = MobileDimens.ScreenPaddingH)) {
+            Column(Modifier.padding(horizontal = MobileDimens.ListRowPaddingH)) {
                 MobileTextField(
                     value = host,
                     onValueChange = { host = it },
@@ -135,7 +135,7 @@ fun SettingsNetworkPage(
 
         settingsSection(R.string.settings_dns_custom)
         settingsNote(R.string.settings_dns_toggle_description)
-        item(key = "dns-on") {
+        settingsGroup(key = "dns-on") {
             SettingRow(
                 title = stringResource(R.string.settings_dns_use_custom),
                 checked = dnsOn,
@@ -143,7 +143,7 @@ fun SettingsNetworkPage(
             )
         }
         item(key = "dns-form") {
-            Column(Modifier.padding(horizontal = MobileDimens.ScreenPaddingH)) {
+            Column(Modifier.padding(horizontal = MobileDimens.ListRowPaddingH)) {
                 // The three well-known DoH endpoints, so nobody has to type one from memory.
                 Row {
                     DohPresets.all.forEach { (name, url) ->

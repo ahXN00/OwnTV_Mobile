@@ -23,10 +23,12 @@ import tv.own.owntv.core.home.HomeFeed
 import tv.own.owntv.core.home.HomeFeedReader
 import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.model.HomeRow
+import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.network.ConnectivityObserver
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.weather.WeatherInfo
 import tv.own.owntv.core.weather.WeatherRepository
+import tv.own.owntv.mobile.ui.screens.ContentActions
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 
 /**
@@ -43,6 +45,7 @@ class HomeViewModel(
     private val settings: SettingsRepository,
     private val profileDao: ProfileDao,
     private val tuner: VodTuner,
+    private val actions: ContentActions,
     weatherRepository: WeatherRepository,
     connectivity: ConnectivityObserver,
 ) : ViewModel() {
@@ -118,5 +121,33 @@ class HomeViewModel(
 
     fun playEpisode(episodeId: Long, positionMs: Long, onStarted: () -> Unit) {
         viewModelScope.launch { if (tuner.playEpisode(episodeId, positionMs)) onStarted() }
+    }
+
+    // --- The long-press menu ------------------------------------------------------------------------
+
+    val favoriteChannels: StateFlow<Set<Long>> = favoriteIds(MediaType.LIVE)
+    val favoriteMovies: StateFlow<Set<Long>> = favoriteIds(MediaType.MOVIE)
+    val favoriteSeries: StateFlow<Set<Long>> = favoriteIds(MediaType.SERIES)
+
+    private fun favoriteIds(type: MediaType): StateFlow<Set<Long>> = actions.favoriteIds(type)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    /** Favouriting or hiding changes what the rails hold, so the feed is rebuilt after either. */
+    fun toggleFavorite(type: MediaType, itemId: Long) {
+        viewModelScope.launch {
+            actions.toggleFavorite(type, itemId)
+            refresh()
+        }
+    }
+
+    fun hide(type: MediaType, itemId: Long) {
+        viewModelScope.launch {
+            actions.hide(type, itemId)
+            refresh()
+        }
+    }
+
+    fun download(type: MediaType, itemId: Long) {
+        viewModelScope.launch { actions.download(type, itemId) }
     }
 }

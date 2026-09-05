@@ -53,24 +53,19 @@ fun SettingsDataPage(
     var confirming by remember { mutableIntStateOf(-1) }
 
     SettingsPage(modifier) {
-        settingsSection(R.string.settings_group_data)
-        item(key = "download-folder") {
+        settingsSection(R.string.settings_group_data) {
             SettingRow(
                 title = stringResource(R.string.settings_download_folder),
                 subtitle = root.ifBlank { null }?.let { File(it).name },
                 value = if (root.isBlank()) stringResource(R.string.settings_app_storage) else null,
                 onClick = { folderSheet = true },
             )
-        }
-        item(key = "downloads-wifi") {
             SettingRow(
                 title = stringResource(R.string.settings_downloads_wifi_only),
                 subtitle = stringResource(R.string.settings_downloads_wifi_only_description),
                 checked = wifiOnly,
                 onCheckedChange = { on -> vm.edit { setDownloadsWifiOnly(on) } },
             )
-        }
-        item(key = "clear-history") {
             SettingRow(
                 title = stringResource(R.string.settings_clear_history),
                 subtitle = stringResource(R.string.settings_clear_history_description),

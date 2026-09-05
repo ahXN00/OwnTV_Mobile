@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -97,7 +97,7 @@ private fun SliderRow(value: Float, label: String, onChange: (Float) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapMedium),
     ) {
-        Slider(value = value, onValueChange = onChange, modifier = Modifier.weight(1f))
+        MobileSlider(value = value, onValueChange = onChange, modifier = Modifier.weight(1f))
         Text(text = label, style = MaterialTheme.typography.labelLarge)
     }
 }

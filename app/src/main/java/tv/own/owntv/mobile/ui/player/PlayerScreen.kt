@@ -1,6 +1,7 @@
 package tv.own.owntv.mobile.ui.player
 
 import android.content.pm.ActivityInfo
+import android.os.Build
 import android.content.res.Configuration
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
@@ -110,6 +111,20 @@ fun PlayerScreen(
         val window = activity?.window
         val insets = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
         insets?.hide(WindowInsetsCompat.Type.systemBars())
+        // Hiding the bars is not enough: the strip the camera sits in stays outside the window
+        // unless the window is told to lay out into it, and the wallpaper shows through there.
+        val cutoutMode = window?.attributes?.layoutInDisplayCutoutMode
+        if (window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                } else {
+                    // Before Android 11 only the short edges can be drawn into, which is the phone's
+                    // top in portrait — the one that matters on a notched device.
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+            }
+        }
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         pip.playerOnScreen.value = true
         onDispose {
@@ -119,6 +134,7 @@ fun PlayerScreen(
             if (window != null) {
                 window.attributes = window.attributes.apply {
                     screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                    if (cutoutMode != null) layoutInDisplayCutoutMode = cutoutMode
                 }
             }
         }
@@ -210,10 +226,24 @@ fun PlayerScreen(
     ) {
         VideoStage(player = player, modifier = Modifier.fillMaxSize())
 
+        // No picture: the player stays exactly as it is and the rectangle it would fill shows what is
+        // playing instead. Not a screen of its own — the controls and the gestures are still these.
+        val noPicture = (audioOnly || audioOnlyMedia) && !inPip
+        if (noPicture) {
+            AudioOnlyBackdrop(
+                title = channel?.name ?: film?.title.orEmpty(),
+                playing = isPlaying,
+                compact = controlsVisible,
+                subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
+                artworkUrl = channel?.logoUrl ?: film?.posterUrl,
+                programmeEndMs = nowNext?.now?.stopMs,
+            )
+        }
+
         val failure = error
         if (failure != null) {
             ErrorPanel(failure = failure, detailRes = errorInfo?.reason?.messageRes, onRetry = player::retry)
-        } else if (!isPlaying) {
+        } else if (!isPlaying && !noPicture) {
             CircularProgressIndicator(
                 color = Color.White,
                 modifier = Modifier.align(Alignment.Center),
@@ -237,7 +267,10 @@ fun PlayerScreen(
             onScrubLive = tuner::scrubLive,
             onOpenSheet = { sheet = it },
             onDock = onExit,
-            onAudioOnly = { tuner.setAudioOnly(true) },
+            // A stream with no video track has nothing to go back to, so for that one the button
+            // only ever reports the state it is already in.
+            audioOnly = audioOnly || audioOnlyMedia,
+            onAudioOnly = { if (!audioOnlyMedia) tuner.setAudioOnly(!audioOnly) },
         )
 
         hud.takeIf { !inPip }?.let { text ->
@@ -249,21 +282,6 @@ fun PlayerScreen(
                 )
             }
         }
-    }
-
-    // No picture, no player screen: the artwork, the volume and the sleep timer take the whole
-    // screen instead of being drawn over a black rectangle.
-    if ((audioOnly || audioOnlyMedia) && !inPip) {
-        AudioOnlyStage(
-            player = player,
-            title = channel?.name ?: film?.title.orEmpty(),
-            subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
-            artworkUrl = channel?.logoUrl ?: film?.posterUrl,
-            programmeEndMs = nowNext?.now?.stopMs,
-            onBack = onExit,
-            // A radio channel has no video track to come back to, so it gets no button offering one.
-            onShowVideo = { tuner.setAudioOnly(false) }.takeIf { !audioOnlyMedia },
-        )
     }
 
     sheet.takeIf { !inPip }?.let { open ->

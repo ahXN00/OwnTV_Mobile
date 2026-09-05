@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -141,7 +140,13 @@ fun DetailScreen(
                     .glassSurface(GlassSurface.PREVIEW, RectangleShape)
                     .padding(MobileDimens.ScreenPaddingH),
             ) {
-                Text(text = title, style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    // A glass surface is not an M3 container, so nothing on it inherits a content
+                    // colour — unstated, the title came out black on a dark backdrop.
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
                     modifier = Modifier.padding(vertical = MobileDimens.GapSmall),
@@ -180,12 +185,14 @@ fun DetailScreen(
                                 if (favorite) R.string.content_remove_favourite
                                 else R.string.content_add_favourite,
                             ),
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     IconButton(onClick = { vm.download() }) {
                         Icon(
                             imageVector = Icons.Filled.Download,
                             contentDescription = stringResource(R.string.content_download),
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -259,7 +266,6 @@ fun DetailScreen(
                     onClick = { vm.playEpisode(episode.id, watched?.positionMs ?: 0L, onPlay) },
                     onLongClick = { menuFor = episode },
                 )
-                HorizontalDivider()
             }
         }
     }
@@ -304,7 +310,12 @@ private fun NextUpCard(episode: EpisodeEntity, positionMs: Long, onPlay: () -> U
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
-        Text(text = episode.rowTitle(), style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = episode.rowTitle(),
+            style = MaterialTheme.typography.titleSmall,
+            // A tinted background is not a container either, so this line needs its own colour.
+            color = MaterialTheme.colorScheme.onSurface,
+        )
         if (positionMs > 0) {
             Text(
                 text = stringResource(R.string.content_resume_at, formatTimestamp(positionMs)),

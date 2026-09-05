@@ -61,16 +61,14 @@ fun SettingsAppPage(
     val scope = rememberCoroutineScope()
 
     SettingsPage(modifier) {
-        settingsSection(R.string.settings_app_group)
-        item(key = "language") {
+        settingsSection(R.string.settings_app_group) {
             SettingRow(
                 title = stringResource(R.string.settings_language),
                 subtitle = stringResource(R.string.settings_language_description),
                 value = localeLabel(tag),
                 onClick = { languageSheet = true },
             )
-        }
-        item(key = "startup") {
+
             SettingRow(
                 title = stringResource(R.string.settings_app_startup),
                 subtitle = stringResource(R.string.settings_app_startup_description),
@@ -83,8 +81,7 @@ fun SettingsAppPage(
             )
         }
 
-        settingsSection(R.string.settings_about)
-        item(key = "about") {
+        settingsSection(R.string.settings_about) {
             Column(
                 Modifier.padding(
                     horizontal = MobileDimens.ScreenPaddingH,
@@ -102,8 +99,7 @@ fun SettingsAppPage(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        item(key = "error-log") {
+
             SettingRow(
                 title = stringResource(R.string.settings_playback_error_log),
                 subtitle = stringResource(R.string.settings_playback_error_description),

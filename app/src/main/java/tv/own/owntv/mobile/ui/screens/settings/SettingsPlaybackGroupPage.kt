@@ -40,80 +40,69 @@ fun SettingsPlaybackPage(
     SettingsPage(modifier) {
         settingsLeafRows(SettingsGroup.PLAYBACK, onOpenLeaf)
 
-        settingsSection(R.string.settings_playback_mobile)
-        item(key = "background-playback") {
+        settingsSection(R.string.settings_playback_mobile) {
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("background_playback"),
                 subtitle = stringResource(R.string.settings_background_playback_description),
             )
-        }
-        item(key = "mini-style") {
+
             SettingRow(
                 title = stringResource(R.string.settings_mini_player_style),
                 subtitle = stringResource(R.string.settings_mini_player_style_description),
                 value = stringResource(miniStyle.labelRes()),
                 onClick = { sheet = MobilePlaybackSheet.MINI_STYLE },
             )
-        }
-        item(key = "pip") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("pip_enabled"),
                 subtitle = stringResource(R.string.settings_pip_description),
             )
-        }
-        item(key = "pip-on-back") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("pip_on_back"),
                 subtitle = stringResource(R.string.settings_pip_on_back_description),
             )
-        }
-        item(key = "pip-size") {
+
             SettingRow(
                 title = stringResource(R.string.settings_pip_size),
                 subtitle = stringResource(R.string.settings_pip_size_description),
                 value = stringResource(pipSize.labelRes()),
                 onClick = { sheet = MobilePlaybackSheet.PIP_SIZE },
             )
-        }
-        item(key = "pip-snap") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("pip_snap"),
                 subtitle = stringResource(R.string.settings_pip_snap_description),
             )
-        }
-        item(key = "audio-screen-off") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("audio_on_screen_off"),
                 subtitle = stringResource(R.string.settings_audio_on_screen_off_description),
             )
-        }
-        item(key = "audio-mobile-data") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("audio_on_mobile_data"),
                 subtitle = stringResource(R.string.settings_audio_on_mobile_data_description),
             )
-        }
-        item(key = "audio-per-channel") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("audio_per_channel"),
                 subtitle = stringResource(R.string.settings_audio_per_channel_description),
             )
-        }
-        item(key = "data-saver") {
+
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("data_saver"),
                 subtitle = stringResource(R.string.settings_data_saver_description),
             )
-        }
-        item(key = "gesture") {
+
             SettingsSlider(
                 title = stringResource(R.string.settings_gesture_sensitivity),
                 subtitle = stringResource(R.string.settings_gesture_sensitivity_description),

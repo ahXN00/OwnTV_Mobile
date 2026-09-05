@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -95,19 +94,20 @@ fun SettingsPlaylistsPage(
         if (sources.isEmpty()) {
             settingsNote(R.string.settings_sources_empty)
         }
-        items(sources, key = { it.id }) { source ->
-            PlaylistRow(
-                source = source,
-                refresh = playlistRefresh[source.id] ?: PlaylistRefresh(),
-                isDefault = source.id == defaultId,
-                expiry = expiry[source.id],
-                isDeleting = source.id in deleting,
-                counts = vm.contentCounts(source.id).collectAsStateWithLifecycle(null).value,
-                syncState = vm.syncState(source.id).collectAsStateWithLifecycle(CatalogSyncState.Idle).value,
-                onClick = { if (source.id !in deleting) menuSource = source },
-            )
-        }
-        item(key = "add-source") {
+        settingsGroup(key = "add-source") {
+            sources.forEach { source ->
+                PlaylistRow(
+                    source = source,
+                    refresh = playlistRefresh[source.id] ?: PlaylistRefresh(),
+                    isDefault = source.id == defaultId,
+                    expiry = expiry[source.id],
+                    isDeleting = source.id in deleting,
+                    counts = vm.contentCounts(source.id).collectAsStateWithLifecycle(null).value,
+                    syncState = vm.syncState(source.id)
+                        .collectAsStateWithLifecycle(CatalogSyncState.Idle).value,
+                    onClick = { if (source.id !in deleting) menuSource = source },
+                )
+            }
             MobileListRow(
                 title = stringResource(R.string.settings_sources_add),
                 leading = { Icon(Icons.Filled.Add, contentDescription = null) },

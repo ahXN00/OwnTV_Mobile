@@ -2,13 +2,12 @@ package tv.own.owntv.mobile.ui.screens.settings
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Switch
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +27,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.MobileSwitch
 import tv.own.owntv.mobile.ui.components.SettingRow
 
 private const val MIN_DENSITY = 70
@@ -74,57 +74,60 @@ fun SettingsLayoutPage(
         // --- Navigation bar ---
         settingsSection(R.string.settings_nav_bar_customization)
         settingsNote(R.string.settings_sidebar_description_root)
-        item(key = "nav-mode") {
+        settingsGroup(key = "nav") {
             SettingRow(
                 title = stringResource(R.string.settings_nav_bar_customization),
                 value = stringResource(navMode.labelRes()),
                 onClick = { navModeSheet = true },
             )
-        }
-        if (navMode == SettingsRepository.NavMenuMode.STATIC) {
-            // Home is never offered: hiding it would leave a playlist with no channels and no films
-            // with nothing at all in the bar.
-            items(MainSection.browseOrder.filter { it != MainSection.HOME }, key = { it.name }) { section ->
-                SettingRow(
-                    title = stringResource(section.labelRes),
-                    checked = section.name !in navHidden,
-                    onCheckedChange = { show ->
-                        val next = if (show) navHidden - section.name else navHidden + section.name
-                        vm.edit { setNavMenuHidden(next) }
-                    },
-                )
+            if (navMode == SettingsRepository.NavMenuMode.STATIC) {
+                // Home is never offered: hiding it would leave a playlist with no channels and no
+                // films with nothing at all in the bar.
+                MainSection.browseOrder.filter { it != MainSection.HOME }.forEach { section ->
+                    SettingRow(
+                        title = stringResource(section.labelRes),
+                        checked = section.name !in navHidden,
+                        onCheckedChange = { show ->
+                            val next =
+                                if (show) navHidden - section.name else navHidden + section.name
+                            vm.edit { setNavMenuHidden(next) }
+                        },
+                    )
+                }
             }
         }
 
         // --- Browsing & lists ---
         settingsSection(R.string.settings_browsing_title)
         settingsNote(R.string.settings_browsing_description_full)
-        browsingRows(
-            sectionRes = R.string.common_nav_live_tv,
-            category = categoryLive,
-            lastItem = lastLive,
-            onCategory = { on -> vm.edit { setRememberCategoryLive(on) } },
-            onLastItem = { on -> vm.edit { setRememberLastLive(on) } },
-        )
-        browsingRows(
-            sectionRes = R.string.common_nav_movies,
-            category = categoryMovies,
-            lastItem = lastMovies,
-            onCategory = { on -> vm.edit { setRememberCategoryMovies(on) } },
-            onLastItem = { on -> vm.edit { setRememberLastMovies(on) } },
-        )
-        browsingRows(
-            sectionRes = R.string.common_nav_series,
-            category = categorySeries,
-            lastItem = lastSeries,
-            onCategory = { on -> vm.edit { setRememberCategorySeries(on) } },
-            onLastItem = { on -> vm.edit { setRememberLastSeries(on) } },
-        )
+        settingsGroup(key = "browsing") {
+            BrowsingRows(
+                sectionRes = R.string.common_nav_live_tv,
+                category = categoryLive,
+                lastItem = lastLive,
+                onCategory = { on -> vm.edit { setRememberCategoryLive(on) } },
+                onLastItem = { on -> vm.edit { setRememberLastLive(on) } },
+            )
+            BrowsingRows(
+                sectionRes = R.string.common_nav_movies,
+                category = categoryMovies,
+                lastItem = lastMovies,
+                onCategory = { on -> vm.edit { setRememberCategoryMovies(on) } },
+                onLastItem = { on -> vm.edit { setRememberLastMovies(on) } },
+            )
+            BrowsingRows(
+                sectionRes = R.string.common_nav_series,
+                category = categorySeries,
+                lastItem = lastSeries,
+                onCategory = { on -> vm.edit { setRememberCategorySeries(on) } },
+                onLastItem = { on -> vm.edit { setRememberLastSeries(on) } },
+            )
+        }
 
         // --- Home ---
         settingsSection(R.string.settings_home_root)
         settingsNote(R.string.settings_home_description)
-        item(key = "home-trending") {
+        settingsGroup(key = "home") {
             SettingRow(
                 title = stringResource(R.string.home_row_now_trending),
                 subtitle = stringResource(R.string.home_row_trending_description),
@@ -133,50 +136,43 @@ fun SettingsLayoutPage(
                     editHome { it.copy(hidden = if (show) it.hidden - HomeRow.TRENDING else it.hidden + HomeRow.TRENDING) }
                 },
             )
-        }
-        items(home.settingsRows, key = { "home-${it.name}" }) { row ->
-            val order = home.settingsRows
-            val index = order.indexOf(row)
-            ReorderableSwitchRow(
-                title = stringResource(row.titleRes()),
-                subtitle = stringResource(row.descriptionRes()),
-                checked = row !in home.hidden,
-                onCheckedChange = { show ->
-                    editHome { it.copy(hidden = if (show) it.hidden - row else it.hidden + row) }
-                },
-                canMoveUp = index > 0,
-                canMoveDown = index < order.lastIndex,
-                onMove = { delta ->
-                    val moved = order.toMutableList().apply { add(index + delta, removeAt(index)) }
-                    editHome { it.copy(order = listOf(HomeRow.TRENDING) + moved) }
-                },
-            )
-        }
-        item(key = "hero-preview") {
+            home.settingsRows.forEach { row ->
+                val order = home.settingsRows
+                val index = order.indexOf(row)
+                ReorderableSwitchRow(
+                    title = stringResource(row.titleRes()),
+                    subtitle = stringResource(row.descriptionRes()),
+                    checked = row !in home.hidden,
+                    onCheckedChange = { show ->
+                        editHome { it.copy(hidden = if (show) it.hidden - row else it.hidden + row) }
+                    },
+                    canMoveUp = index > 0,
+                    canMoveDown = index < order.lastIndex,
+                    onMove = { delta ->
+                        val moved =
+                            order.toMutableList().apply { add(index + delta, removeAt(index)) }
+                        editHome { it.copy(order = listOf(HomeRow.TRENDING) + moved) }
+                    },
+                )
+            }
             SettingRow(
                 title = stringResource(R.string.settings_hero_preview),
                 subtitle = stringResource(R.string.settings_hero_preview_description),
                 checked = vm.settings.heroPreviewEnabled.pref(vm.settings.heroPreviewDefault),
                 onCheckedChange = { on -> vm.edit { setHeroPreviewEnabled(on) } },
             )
-        }
-        item(key = "hero-live") {
             SettingRow(
                 title = stringResource(R.string.settings_live_keep_watching),
                 subtitle = stringResource(R.string.settings_live_keep_watching_description),
                 checked = home.heroIncludeLive,
                 onCheckedChange = { on -> editHome { it.copy(heroIncludeLive = on) } },
             )
-        }
-        item(key = "hero-movies") {
             SettingRow(
                 title = stringResource(R.string.settings_movies_keep_watching),
                 subtitle = stringResource(R.string.settings_movies_keep_watching_description),
                 checked = home.heroIncludeMovies,
                 onCheckedChange = { on -> editHome { it.copy(heroIncludeMovies = on) } },
             )
-        }
-        item(key = "hero-series") {
             SettingRow(
                 title = stringResource(R.string.settings_series_keep_watching),
                 subtitle = stringResource(R.string.settings_series_keep_watching_description),
@@ -188,17 +184,18 @@ fun SettingsLayoutPage(
         // --- Long-press menus ---
         settingsSection(R.string.settings_content_menus_title)
         settingsNote(R.string.settings_content_menus_description)
-        items(ContentMenu.entries, key = { "menu-${it.name}" }) { menu ->
-            SettingRow(
-                title = stringResource(menu.titleRes()),
-                showChevron = true,
-                onClick = { menuSheet = menu },
-            )
+        settingsGroup(key = "menus") {
+            ContentMenu.entries.forEach { menu ->
+                SettingRow(
+                    title = stringResource(menu.titleRes()),
+                    showChevron = true,
+                    onClick = { menuSheet = menu },
+                )
+            }
         }
 
         // --- Guide ---
-        settingsSection(R.string.content_epg_title)
-        item(key = "guide-density") {
+        settingsSection(R.string.content_epg_title) {
             SettingsSlider(
                 title = stringResource(R.string.settings_size),
                 value = guideDensity,
@@ -226,29 +223,26 @@ fun SettingsLayoutPage(
 }
 
 /** The two "come back to where I was" switches a browse section has, under its own name. */
-private fun androidx.compose.foundation.lazy.LazyListScope.browsingRows(
+@Composable
+private fun BrowsingRows(
     @StringRes sectionRes: Int,
     category: Boolean,
     lastItem: Boolean,
     onCategory: (Boolean) -> Unit,
     onLastItem: (Boolean) -> Unit,
 ) {
-    item(key = "browse-cat-$sectionRes") {
-        SettingRow(
-            title = stringResource(R.string.settings_browsing_last_category),
-            subtitle = stringResource(sectionRes),
-            checked = category,
-            onCheckedChange = onCategory,
-        )
-    }
-    item(key = "browse-item-$sectionRes") {
-        SettingRow(
-            title = stringResource(R.string.settings_browsing_last_item),
-            subtitle = stringResource(sectionRes),
-            checked = lastItem,
-            onCheckedChange = onLastItem,
-        )
-    }
+    SettingRow(
+        title = stringResource(R.string.settings_browsing_last_category),
+        subtitle = stringResource(sectionRes),
+        checked = category,
+        onCheckedChange = onCategory,
+    )
+    SettingRow(
+        title = stringResource(R.string.settings_browsing_last_item),
+        subtitle = stringResource(sectionRes),
+        checked = lastItem,
+        onCheckedChange = onLastItem,
+    )
 }
 
 /**
@@ -273,7 +267,7 @@ private fun ReorderableSwitchRow(
             Row {
                 MoveButton(up = true, enabled = canMoveUp) { onMove(-1) }
                 MoveButton(up = false, enabled = canMoveDown) { onMove(1) }
-                Switch(checked = checked, onCheckedChange = onCheckedChange)
+                MobileSwitch(checked = checked)
             }
         },
     )
@@ -287,6 +281,9 @@ private fun MoveButton(up: Boolean, enabled: Boolean, onClick: () -> Unit) {
             contentDescription = stringResource(
                 if (up) R.string.settings_row_menu_move_up else R.string.settings_row_menu_move_down,
             ),
+            // Without a tint these inherit a content colour meant for a filled surface and come out
+            // almost black on the row, which reads as two stray marks rather than two buttons.
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.38f),
         )
     }
 }

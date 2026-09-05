@@ -96,7 +96,6 @@ fun ChannelDetailScreen(
             DetailTab.CHANNELS -> LazyColumn(Modifier.fillMaxSize()) {
                 items(siblings, key = { it.id }) { sibling ->
                     MobileListRow(title = sibling.name, onClick = { vm.switchTo(sibling) })
-                    HorizontalDivider()
                 }
             }
         }
@@ -157,10 +156,13 @@ private fun GuidePanel(nowNext: tv.own.owntv.core.live.EpgNowNext?) {
         }
         // "Up next" and everything after it — the same list the TV app's guide column shows.
         val upcoming = listOfNotNull(nowNext.next) + nowNext.upcoming.filter { it != nowNext.next }
-        if (upcoming.isNotEmpty()) {
+        val first = upcoming.firstOrNull()
+        if (first != null) {
             item {
                 Text(
-                    text = stringResource(R.string.content_live_next_label),
+                    // The label carries the time the next programme starts; without it the heading
+                    // reads as a raw placeholder.
+                    text = stringResource(R.string.content_live_next_label, times.format(Date(first.startMs))),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(
@@ -172,7 +174,6 @@ private fun GuidePanel(nowNext: tv.own.owntv.core.live.EpgNowNext?) {
         }
         items(upcoming) { entry ->
             MobileListRow(title = entry.title, subtitle = times.format(Date(entry.startMs)))
-            HorizontalDivider()
         }
     }
 }
