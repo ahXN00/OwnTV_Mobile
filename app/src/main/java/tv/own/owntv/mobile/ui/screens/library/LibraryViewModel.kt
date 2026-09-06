@@ -662,11 +662,14 @@ class LibraryViewModel(
         /** The Move sheet holds its list in memory, so a huge folder is cut off — the live list's limit. */
         const val MOVE_LIST_LIMIT = 5_000
 
+        // Placeholders off — see the Guide's pager: a not-yet-loaded item draws a tile with no
+        // height, and a list of those composes the whole catalogue.
         fun pagingConfig() = PagingConfig(
             pageSize = 60,
             prefetchDistance = 30,
             initialLoadSize = 90,
             maxSize = 300,
+            enablePlaceholders = false,
         )
     }
 }

@@ -402,7 +402,7 @@ fun DeleteSubtitlesSheet(
  * it is not. The television has to embed a player because a TV often has neither; a phone always has
  * one, and it will be better than anything embedded here.
  */
-private fun Context.playTrailer(key: String) {
+internal fun Context.playTrailer(key: String) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=$key"))
     runCatching { startActivity(intent) }
 }

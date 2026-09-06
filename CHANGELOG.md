@@ -115,7 +115,17 @@ release automation.
 - **Rows for films and shows you have started**, each poster carrying its own progress bar.
 - **Your favourite and recently watched channels**, either as logos to pick from or as a list of what
   is on each of them right now — tap the switch above the row to change your mind, on either device.
-- **What is trending**, but only the titles your own playlist actually has.
+- **What is trending**, but only the titles your own playlist actually has — and now as the same full
+  card the television shows: the artwork behind it, the poster with its position in the chart, the
+  year, rating and quality, the description, the badges saying which version of the title you have,
+  and a panel that explains **why** it is there if you tap it open. Play it, open its episodes, watch
+  the trailer, read the full details or search for every other version you own. It moves to the next
+  title every ten seconds; hold your finger on the card to stop it, swipe to change it yourself.
+- **Or keep the simple row of posters.** Layout → Home has a *Trending layout* line — *Detailed card*
+  or *Posters only* — so trending can be the big card or just another poster row like the ones under
+  it. The detailed card is what you get unless you change it, and the line only appears while
+  trending is switched on. **The television has the same choice now**, and the two apps share the
+  setting, so picking posters on one picks posters on the other.
 - **When the trending row is missing, Settings says why.** Layout → Home names the actual reason —
   metadata turned off, a playlist with no films or shows, a sync that has not run yet, or too few
   matches to be worth a row — and offers to build it again there and then, instead of leaving a blank
@@ -125,6 +135,13 @@ release automation.
 - **Nothing yet?** Home says so and offers to add a playlist.
 
 ### 📅 The guide
+
+- **The guide refreshes itself after a guide feed changes.** Adding, re-syncing or deleting an EPG
+  source updates the guide straight away, instead of showing the old programmes until the app is
+  restarted.
+- **Leaving the guide no longer kills the app.** Opening the guide and then going anywhere else
+  could run the phone out of memory and close the app outright; the guide's list is now measured
+  properly and it does not happen.
 
 - **Three guides, and the app remembers which one you like.** *On now* is a list of every channel
   with what is playing, a bar showing how far through it is, and what is on next — it is what a

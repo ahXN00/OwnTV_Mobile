@@ -2,7 +2,9 @@ package tv.own.owntv.mobile.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,8 +19,13 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import tv.own.owntv.core.database.dao.MovieDao
 import tv.own.owntv.core.database.dao.ProfileDao
+import tv.own.owntv.core.database.dao.SeriesDao
 import tv.own.owntv.core.database.dao.resolveExistingProfileId
+import tv.own.owntv.core.database.entity.MetadataCacheEntity
+import tv.own.owntv.core.home.TrendingHomeItem
+import tv.own.owntv.core.metadata.MetadataRepository
 import tv.own.owntv.core.home.HomeFeed
 import tv.own.owntv.core.home.HomeFeedReader
 import tv.own.owntv.core.model.HomeLiveRowMode
@@ -46,6 +53,9 @@ class HomeViewModel(
     private val profileDao: ProfileDao,
     private val tuner: VodTuner,
     private val actions: ContentActions,
+    private val movieDao: MovieDao,
+    private val seriesDao: SeriesDao,
+    private val metadata: MetadataRepository,
     weatherRepository: WeatherRepository,
     connectivity: ConnectivityObserver,
 ) : ViewModel() {
@@ -122,6 +132,61 @@ class HomeViewModel(
     fun playEpisode(episodeId: Long, positionMs: Long, onStarted: () -> Unit) {
         viewModelScope.launch { if (tuner.playEpisode(episodeId, positionMs)) onStarted() }
     }
+
+    // --- Now Trending ---------------------------------------------------------------------------
+
+    /**
+     * Act on the trending item: play the film, or open the show's episodes.
+     *
+     * The saved row is re-read first, because the hero is built from a snapshot the worker took and a
+     * sync since then may have replaced or dropped that exact version. [onUnavailable] is the case the
+     * television shows the same message for, and the feed is rebuilt so the dead item goes.
+     */
+    fun activateTrending(
+        item: TrendingHomeItem,
+        onPlayerOpened: () -> Unit,
+        onOpenSeries: (Long) -> Unit,
+        onUnavailable: () -> Unit,
+    ) {
+        viewModelScope.launch {
+            when (val current = revalidateTrendingItem(item)) {
+                is TrendingHomeItem.Movie ->
+                    if (tuner.playMovie(current.movie.id, 0L)) onPlayerOpened() else gone(onUnavailable)
+                is TrendingHomeItem.Series -> onOpenSeries(current.series.id)
+                null -> gone(onUnavailable)
+            }
+        }
+    }
+
+    private fun gone(onUnavailable: () -> Unit) {
+        onUnavailable()
+        refresh()
+    }
+
+    /** Re-resolve the exact saved provider row, in case a sync replaced it since the snapshot. */
+    private suspend fun revalidateTrendingItem(item: TrendingHomeItem): TrendingHomeItem? =
+        withContext(Dispatchers.IO) {
+            when (item) {
+                is TrendingHomeItem.Movie -> movieDao.getById(item.movie.id)
+                    ?.takeIf { it.sourceId == item.snapshot.sourceId }
+                    ?.let { item.copy(movie = it) }
+                is TrendingHomeItem.Series -> seriesDao.getSeriesById(item.series.id)
+                    ?.takeIf { it.sourceId == item.snapshot.sourceId }
+                    ?.let { item.copy(series = it) }
+            }
+        }
+
+    /** The full cached TMDB payload the details sheet shows, fetched under Trending's own TMDB id. */
+    suspend fun resolveTrendingDetails(item: TrendingHomeItem): TrendingDetails =
+        withContext(Dispatchers.IO) {
+            val cache = when (item) {
+                is TrendingHomeItem.Movie -> metadata.resolveKnownMovie(item.movie, item.snapshot.tmdbId)
+                is TrendingHomeItem.Series -> metadata.resolveKnownSeries(item.series, item.snapshot.tmdbId)
+            }
+            TrendingDetails(cache, settings.metadataConfig().mode.tmdbWins)
+        }
+
+    data class TrendingDetails(val cache: MetadataCacheEntity?, val tmdbWins: Boolean)
 
     // --- The long-press menu ------------------------------------------------------------------------
 

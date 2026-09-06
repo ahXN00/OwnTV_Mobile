@@ -1,6 +1,7 @@
 package tv.own.owntv.mobile.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -83,11 +84,16 @@ fun MobileTheme(
         LocalSurfaceTones provides mobileSurfaceTones(isDark),
         LocalMobileMotion provides remember(animations) { MobileMotion(animations) },
     ) {
+        val colors = mobileColorScheme(isDark, accent, customAccent)
         MaterialTheme(
-            colorScheme = mobileColorScheme(isDark, accent, customAccent),
+            colorScheme = colors,
             typography = mobileTypography(fonts.mainFamily.asComposeFamily()),
-            content = content,
-        )
+        ) {
+            // Nothing in this app sits on a Material `Surface` — the shell paints its own glass — so
+            // the content colour is never set for us and stays at Compose's own default of black.
+            // Any text or icon that does not name a colour would then be black on a dark pane.
+            CompositionLocalProvider(LocalContentColor provides colors.onSurface, content = content)
+        }
     }
 }
 

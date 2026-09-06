@@ -69,6 +69,7 @@ import tv.own.owntv.mobile.ui.nav.PLAYER_ROUTE
 import tv.own.owntv.mobile.ui.nav.isChannelRoute
 import tv.own.owntv.mobile.ui.nav.liveChannelRoute
 import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE
+import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE_PATTERN
 import tv.own.owntv.mobile.ui.nav.SETUP_ROUTE
 import tv.own.owntv.mobile.ui.setup.SetupFlow
 import tv.own.owntv.core.epg.displayLogoUrl
@@ -274,7 +275,7 @@ fun MobileShell(
                             // A settings page names itself too, and that name is what "back" leaves.
                             text = stringResource(
                                 settingsTitle
-                                    ?: if (currentRoute == SEARCH_ROUTE) tv.own.owntv.mobile.R.string.search_title
+                                    ?: if (currentRoute == SEARCH_ROUTE_PATTERN) tv.own.owntv.mobile.R.string.search_title
                                     else current?.labelRes ?: offBarTitle ?: MobileDestination.HOME.labelRes,
                             ),
                             maxLines = 1,

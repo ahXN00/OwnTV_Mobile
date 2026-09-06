@@ -1,7 +1,5 @@
 package tv.own.owntv.mobile.ui.screens.home
 
-import tv.own.owntv.mobile.ui.screens.library.LibraryTab
-import tv.own.owntv.mobile.ui.nav.posterKey
 import tv.own.owntv.mobile.ui.components.ChannelLogoImage
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.compose.foundation.background
@@ -54,19 +52,23 @@ import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.home.GuideSliceState
 import tv.own.owntv.core.home.HeroItem
 import tv.own.owntv.core.home.HomeFeed
-import tv.own.owntv.core.home.TrendingHomeItem
 import tv.own.owntv.core.launcher.LauncherContinuationItem
 import tv.own.owntv.core.launcher.LauncherWatchNextType
 import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.model.HomeRow
+import tv.own.owntv.core.model.HomeTrendingStyle
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.weather.WeatherInfo
 import tv.own.owntv.mobile.R
+import tv.own.owntv.core.home.TrendingHomeItem
 import tv.own.owntv.mobile.ui.components.ContentActionsMenu
 import tv.own.owntv.mobile.ui.components.ContentTarget
 import tv.own.owntv.mobile.ui.components.PosterCard
+import tv.own.owntv.mobile.ui.components.PosterCard
 import tv.own.owntv.mobile.ui.components.SectionHeader
+import tv.own.owntv.mobile.ui.nav.posterKey
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
+import tv.own.owntv.mobile.ui.screens.library.LibraryTab
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobilePosterShape
@@ -86,6 +88,7 @@ fun HomeScreen(
     onOpenMovie: (Long) -> Unit,
     onOpenSeries: (Long) -> Unit,
     onPlayerOpened: () -> Unit,
+    onOpenSearch: (String) -> Unit,
     onAddSource: () -> Unit,
     modifier: Modifier = Modifier,
     vm: HomeViewModel = koinViewModel(),
@@ -132,11 +135,24 @@ fun HomeScreen(
         rows.forEach { row ->
             item(row.name) {
                 when (row) {
-                    HomeRow.TRENDING -> TrendingRow(
+                    // Two shapes, the user's choice: the full card, or the strip of posters the
+                    // rest of Home is made of. Both show the same items in the same order.
+                    HomeRow.TRENDING -> if (state.config.trendingStyle == HomeTrendingStyle.POSTERS) {
+                        TrendingRow(
+                            items = state.trendingItems,
+                            onOpenMovie = onOpenMovie,
+                            onOpenSeries = onOpenSeries,
+                            onMenu = { menuFor = it },
+                        )
+                    } else TrendingHero(
                         items = state.trendingItems,
-                        onOpenMovie = onOpenMovie,
-                        onOpenSeries = onOpenSeries,
-                        onMenu = { menuFor = it },
+                        preferredLanguage = state.trendingPreferredLanguage,
+                        seasonCounts = state.trendingSeasonCounts,
+                        onActivate = { trending, onUnavailable ->
+                            vm.activateTrending(trending, onPlayerOpened, onOpenSeries, onUnavailable)
+                        },
+                        onOpenSearch = onOpenSearch,
+                        resolveDetails = { vm.resolveTrendingDetails(it) },
                     )
                     HomeRow.HERO -> HeroRow(
                         items = state.heroItems,

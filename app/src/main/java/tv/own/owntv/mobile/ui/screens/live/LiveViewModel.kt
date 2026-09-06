@@ -217,7 +217,15 @@ class LiveViewModel(
                 if (c.profileId < 0) {
                     flowOf(PagingData.empty())
                 } else {
-                    Pager(PagingConfig(pageSize = PAGE_SIZE, prefetchDistance = PAGE_SIZE / 2)) {
+                    // Placeholders off — see the Guide's pager: a not-yet-loaded channel draws a row
+                    // with no height, and a list of those composes the whole lineup.
+                    Pager(
+                        PagingConfig(
+                            pageSize = PAGE_SIZE,
+                            prefetchDistance = PAGE_SIZE / 2,
+                            enablePlaceholders = false,
+                        ),
+                    ) {
                         livePagingSource(
                             key = key,
                             profileId = c.profileId,

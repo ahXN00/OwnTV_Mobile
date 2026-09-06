@@ -35,6 +35,10 @@
 - **Continue-watching rows for films and shows, with progress**
 - **Favourite and recent channels, as logos or as what is on now**
 - **Trending titles your playlist actually has**
+- **The full trending card: artwork, badges, why it is there, trailer and all versions**
+- **Trending layout choice: detailed card or posters only**
+- **The guide refreshes itself after adding, re-syncing or deleting an EPG source**
+- **Fixed: leaving the guide could close the app**
 - **Weather on Home, in your own °C or °F**
 - **TV guide in three shapes: On now, Grid and Timeline**
 - **Day chips, jump to now, search and category filter in the guide**

@@ -272,7 +272,8 @@ private fun metaLine(year: Int?, rating: Double?, duration: String?): String {
 }
 
 /** Parse a stored JSON array of strings (genres) back to a list; empty on null, blank or bad JSON. */
-private fun jsonList(json: String?): List<String> {
+/** Shared with Home's trending hero, which merges the same TMDB payload. */
+internal fun jsonList(json: String?): List<String> {
     if (json.isNullOrBlank()) return emptyList()
     return runCatching {
         val array = org.json.JSONArray(json)

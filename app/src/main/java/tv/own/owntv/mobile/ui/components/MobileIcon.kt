@@ -285,6 +285,12 @@ object MobileIcons {
     val FastRewind: ImageVector by lazy {
         glyph() { solid(11f, 6f, 4f, 12f, 11f, 18f); solid(20f, 6f, 13f, 12f, 20f, 18f) }
     }
+    val SkipNext: ImageVector by lazy {
+        glyph() { solid(6f, 6f, 15f, 12f, 6f, 18f); bar(16f, 6f, 18.5f, 18f) }
+    }
+    val SkipPrevious: ImageVector by lazy {
+        glyph() { solid(18f, 6f, 9f, 12f, 18f, 18f); bar(5.5f, 6f, 8f, 18f) }
+    }
     val Download: ImageVector by lazy {
         glyph() {
             line(12f, 3f, 12f, 15f); line(7f, 10f, 12f, 15f, 17f, 10f); line(5f, 20f, 19f, 20f)

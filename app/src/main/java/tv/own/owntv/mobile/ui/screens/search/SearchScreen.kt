@@ -53,12 +53,17 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
  */
 @Composable
 fun SearchScreen(
+    initialQuery: String = "",
     onOpenChannel: (Long) -> Unit,
     onOpenMovie: (Long) -> Unit,
     onOpenSeries: (Long) -> Unit,
     modifier: Modifier = Modifier,
     vm: SearchViewModel = koinViewModel(),
 ) {
+    // Arriving with a title already chosen — "All versions" on Home's trending hero. Keyed on the
+    // text, so returning to a search the user has since edited does not type over it again.
+    LaunchedEffect(initialQuery) { if (initialQuery.isNotBlank()) vm.setQuery(initialQuery) }
+
     val query by vm.query.collectAsStateWithLifecycle()
     val intent by vm.intent.collectAsStateWithLifecycle()
     val typed by vm.results.collectAsStateWithLifecycle()

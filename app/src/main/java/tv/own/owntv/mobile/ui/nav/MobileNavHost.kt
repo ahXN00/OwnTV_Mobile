@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.nav
 
+import android.net.Uri
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
@@ -107,6 +108,7 @@ fun MobileNavHost(
                             navController.navigate(detailRoute(destination.route, LibraryTab.SERIES, id))
                         },
                         onPlayerOpened = { navController.navigate(PLAYER_ROUTE) },
+                        onOpenSearch = { query -> navController.navigate(searchRoute(query)) },
                         onAddSource = { navController.navigate(SETUP_ROUTE) },
                     )
                     MobileDestination.GUIDE -> GuideScreen(
@@ -180,8 +182,12 @@ fun MobileNavHost(
                 )
             }
         }
-        composable(SEARCH_ROUTE) {
+        composable(
+            route = SEARCH_ROUTE_PATTERN,
+            arguments = listOf(navArgument(ARG_QUERY) { type = NavType.StringType; defaultValue = "" }),
+        ) { entry ->
             SearchScreen(
+                initialQuery = entry.arguments?.getString(ARG_QUERY).orEmpty(),
                 onOpenChannel = { channelId ->
                     navController.navigate(channelRoute(MobileDestination.LIVE, channelId, false))
                 },
@@ -337,4 +343,14 @@ const val SETUP_ROUTE = "setup"
  * One field over everything. A route rather than a tab, because search is reached from the top bar of
  * whichever screen the user is on, and back should return them to exactly that screen.
  */
+private const val ARG_QUERY = "q"
+
 const val SEARCH_ROUTE = "search"
+
+/**
+ * The same screen with a title already typed into it — Home's trending hero offers "All versions",
+ * which is a search for that title. The argument is optional, so plain [SEARCH_ROUTE] still matches.
+ */
+const val SEARCH_ROUTE_PATTERN = "search?$ARG_QUERY={$ARG_QUERY}"
+
+fun searchRoute(query: String): String = "search?$ARG_QUERY=${Uri.encode(query)}"

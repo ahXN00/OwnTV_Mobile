@@ -139,8 +139,7 @@ fun GuideScreen(
             GuideNotice(stringResource(R.string.content_epg_mismatched_ids))
         }
 
-        // The list gets the height that is left, explicitly. Filling the column instead leaves it
-        // measurable with no ceiling, and a lazy list with no ceiling composes every channel it has.
+        // The list gets the height that is left, explicitly, rather than filling the column.
         Box(Modifier.weight(1f)) {
         if (channels.itemCount == 0) {
             EmptyGuide(query = query, stats = stats, onAddEpg = onAddEpg)

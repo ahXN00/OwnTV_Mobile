@@ -13,6 +13,7 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.model.HomeConfig
 import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.model.HomeRow
+import tv.own.owntv.core.model.HomeTrendingStyle
 import tv.own.owntv.core.trending.TrendingAvailability
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -62,6 +63,24 @@ fun SettingsHomePage(
                     }
                 },
             )
+            // Only worth offering while the row is actually on — with Trending off there is nothing
+            // for the choice to apply to, so it is not shown at all.
+            if (trendingOn) {
+                SettingRow(
+                    title = stringResource(R.string.home_trending_style),
+                    subtitle = stringResource(home.trendingStyle.labelRes()),
+                    onClick = {
+                        editHome {
+                            it.copy(
+                                trendingStyle = when (it.trendingStyle) {
+                                    HomeTrendingStyle.HERO -> HomeTrendingStyle.POSTERS
+                                    HomeTrendingStyle.POSTERS -> HomeTrendingStyle.HERO
+                                },
+                            )
+                        }
+                    },
+                )
+            }
         }
 
         settingsSection(R.string.settings_sections)
@@ -182,6 +201,11 @@ private fun HomeRow.liveMode(config: HomeConfig): HomeLiveRowMode? = when (this)
     HomeRow.RECENT_CHANNELS -> config.recentLiveMode
     HomeRow.FAVORITE_CHANNELS -> config.favoriteLiveMode
     else -> null
+}
+
+private fun HomeTrendingStyle.labelRes() = when (this) {
+    HomeTrendingStyle.HERO -> R.string.home_trending_style_hero
+    HomeTrendingStyle.POSTERS -> R.string.home_trending_style_posters
 }
 
 private fun HomeLiveRowMode.labelRes() = when (this) {

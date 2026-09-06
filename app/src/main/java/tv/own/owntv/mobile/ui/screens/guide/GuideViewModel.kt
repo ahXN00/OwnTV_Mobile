@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -290,7 +291,18 @@ class GuideViewModel(
                 if (c.profileId < 0) {
                     flowOf(PagingData.empty())
                 } else {
-                    Pager(PagingConfig(pageSize = PAGE_SIZE, prefetchDistance = PAGE_SIZE / 2)) {
+                    // Placeholders off, and it is not a preference: a lineup of 50 000 channels
+                    // reports every one of them as an item before a single page has loaded, and the
+                    // row a not-yet-loaded channel draws is nothing at all. A list of items with no
+                    // height never fills its viewport, so it composes the whole lineup looking for
+                    // something to show and takes the heap with it.
+                    Pager(
+                        PagingConfig(
+                            pageSize = PAGE_SIZE,
+                            prefetchDistance = PAGE_SIZE / 2,
+                            enablePlaceholders = false,
+                        ),
+                    ) {
                         livePagingSource(
                             key = key,
                             profileId = c.profileId,
@@ -438,6 +450,22 @@ class GuideViewModel(
     init {
         viewModelScope.launch {
             ctx.collect { if (it.profileId >= 0) loadStats() }
+        }
+        // The guide's own data changing under the screen — a feed added, re-synced or deleted — is
+        // not something the rows can notice by themselves: each one keeps what it read. Room reports
+        // every write to the programme table, so waiting for those writes to stop and redrawing once
+        // covers all four cases without the app having to be restarted to see a new guide.
+        viewModelScope.launch {
+            epgSourceStore.sources
+                .map { sources -> sources.map { it.id } }
+                .distinctUntilChanged()
+                .flatMapLatest { ids ->
+                    if (ids.isEmpty()) flowOf(0)
+                    else combine(ids.map { epgDao.countForSource(it) }) { counts -> counts.sum() }
+                }
+                .debounce(GUIDE_DATA_SETTLE_MS)
+                .drop(1) // The first is the guide as it already stands on screen.
+                .collect { refreshRows() }
         }
     }
 
@@ -670,6 +698,9 @@ class GuideViewModel(
     /** Drop everything read so far and tell the rows on screen to ask again. */
     private suspend fun refreshRows() {
         rowCache.clear()
+        // Which feeds to read is itself cached, and a feed that was just added or deleted is exactly
+        // what changed — keep it and the new guide is never read at all.
+        sourceIds = emptyList()
         // The reader keeps its own now/next for five minutes, keyed by channel — stale the moment a
         // match changes, so it goes too.
         epgReader.clearCache()
@@ -681,6 +712,9 @@ class GuideViewModel(
     private companion object {
         const val PAGE_SIZE = 40
         const val SEARCH_DEBOUNCE_MS = 300L
+        // A sync writes the guide in batches, so every batch is reported. Long enough that one
+        // download redraws once at the end rather than on every batch.
+        const val GUIDE_DATA_SETTLE_MS = 1_500L
         const val MAX_EPG_CANDIDATES = 20_000
         const val MAX_CHANNELS = 20_000
         const val SHIFT_WRITE_TIMEOUT_MS = 1_000L

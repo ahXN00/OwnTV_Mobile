@@ -133,7 +133,11 @@ class CustomizeItemsViewModel(
     }.flatMapLatest { (ci, ordered, cust) ->
         if (ci == null) flowOf(PagingData.empty())
         else {
-            Pager(PagingConfig(pageSize = 60)) { pagingSource(ci.categoryId, ci, ordered) }
+            // Placeholders off — see the Guide's pager: a not-yet-loaded row draws nothing, and a
+            // list of rows with no height composes everything the category holds.
+            Pager(PagingConfig(pageSize = 60, enablePlaceholders = false)) {
+                pagingSource(ci.categoryId, ci, ordered)
+            }
                 .flow
                 .map { pagingData ->
                     pagingData.map { entity ->
