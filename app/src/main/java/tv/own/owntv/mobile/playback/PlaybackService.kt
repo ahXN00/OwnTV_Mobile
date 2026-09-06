@@ -20,11 +20,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.inject
+import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.core.i18n.AppLocale
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.mobile.MainActivity
@@ -50,9 +53,11 @@ import tv.own.owntv.player.PlaybackSession
  * `MediaSession.Token` this app already has, while the compat version needs a `MediaSessionCompat`
  * and a dependency on `androidx.media` to convert one.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlaybackService : Service() {
 
     private val player: OwnTVPlayer by inject()
+    private val cast: CastController by inject()
     private val tuner: LiveTuner by inject()
     private val session: PlaybackSession by inject()
     private val localeStore: LocaleStore by inject()
@@ -70,23 +75,46 @@ class PlaybackService : Service() {
         super.onCreate()
         // Post once, synchronously, before anything can await a network image: a service that has not
         // called startForeground() within a few seconds of being started is killed outright.
-        startForeground(build(player.currentMeta.value, player.isPlaying.value, player.audioOnly.value))
-        combine(player.currentMeta, player.isPlaying, player.audioOnly) { meta, playing, audioOnly ->
-            Triple(meta, playing, audioOnly)
-        }
+        startForeground(build(Shown(player.currentMeta.value, player.isPlaying.value, player.audioOnly.value)))
+        // Whichever engine has the stream. While casting the notification must read the receiver, or
+        // it would sit there saying paused at 00:00 for something playing perfectly well next door.
+        cast.engine
+            .flatMapLatest { remote ->
+                if (remote == null) {
+                    combine(player.currentMeta, player.isPlaying, player.audioOnly) { meta, playing, audioOnly ->
+                        Shown(meta, playing, audioOnly)
+                    }
+                } else {
+                    combine(remote.currentMeta, remote.isPlaying, cast.deviceName) { meta, playing, device ->
+                        Shown(meta, playing, audioOnly = false, castingTo = device)
+                    }
+                }
+            }
             .distinctUntilChanged()
-            .onEach { (meta, playing, audioOnly) ->
-                loadArt(meta.logoUrl)
-                notify(build(meta, playing, audioOnly))
+            .onEach { shown ->
+                loadArt(shown.meta.logoUrl)
+                notify(build(shown))
             }
             .launchIn(scope)
     }
 
+    /** What the notification is currently saying, from whichever engine is playing. */
+    private data class Shown(
+        val meta: MediaMeta,
+        val playing: Boolean,
+        val audioOnly: Boolean,
+        /** The receiver's name while casting, null while playing here. */
+        val castingTo: String? = null,
+    )
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // The buttons drive the receiver when there is one: they are the same three transport
+        // controls, and which box is decoding is not something the user should have to think about.
+        val remote = cast.engine.value
         when (intent?.action) {
-            ACTION_TOGGLE -> player.togglePlayPause()
-            ACTION_BACK -> player.seekBy(-SEEK_MS)
-            ACTION_FORWARD -> player.seekBy(SEEK_MS)
+            ACTION_TOGGLE -> remote?.togglePlayPause() ?: player.togglePlayPause()
+            ACTION_BACK -> remote?.seekBy(-SEEK_MS) ?: player.seekBy(-SEEK_MS)
+            ACTION_FORWARD -> remote?.seekBy(SEEK_MS) ?: player.seekBy(SEEK_MS)
             ACTION_AUDIO_ONLY -> player.enterAudioOnly()
             ACTION_STOP -> tuner.stop() // which stops this service in turn
         }
@@ -110,13 +138,18 @@ class PlaybackService : Service() {
      *  notification follows. */
     private fun localized(): Context = AppLocale.wrap(this, localeStore.currentTag.value)
 
-    private fun build(meta: MediaMeta, playing: Boolean, audioOnly: Boolean): Notification {
+    private fun build(shown: Shown): Notification {
+        val (meta, playing, audioOnly, castingTo) = shown
         val ctx = localized()
         ensureChannel(ctx)
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(meta.title ?: ctx.getString(R.string.app_name))
-            .setContentText(meta.subtitle.orEmpty())
+            // Where it is playing beats what is on next: the second line is the one place outside the
+            // app that can say the sound is coming out of another room.
+            .setContentText(
+                castingTo?.let { ctx.getString(R.string.player_cast_playing_on, it) } ?: meta.subtitle.orEmpty(),
+            )
             // Tapping the notification means "show me what I am listening to", so it opens the player
             // rather than wherever the app happened to be left — and after the PiP window was closed
             // the activity is gone entirely, so there is no "wherever" to go back to.
@@ -155,8 +188,9 @@ class PlaybackService : Service() {
                 ),
             )
         // Nothing to offer once the picture is already off, and a chip that does nothing is worse
-        // than one fewer chip.
-        if (!audioOnly) {
+        // than one fewer chip. Casting is the same case: the picture is on the television, and there
+        // is no local video output to drop.
+        if (!audioOnly && castingTo == null) {
             builder.addAction(
                 action(
                     R.drawable.ic_audio_only,

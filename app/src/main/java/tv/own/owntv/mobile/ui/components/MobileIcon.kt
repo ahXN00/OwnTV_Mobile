@@ -330,14 +330,9 @@ object MobileIcons {
     val PictureInPictureAlt: ImageVector by lazy {
         glyph() { box(3f, 5f, 21f, 19f, 2.5f); bar(12.5f, 12f, 19f, 17f) }
     }
-    val Cast: ImageVector by lazy {
-        glyph() {
-            box(7f, 4f, 21f, 17f, 2f)
-            dot(3.6f, 18.6f, 1.5f)
-            arc(3.6f, 18.6f, 5f, 0f, -90f)
-            arc(3.6f, 18.6f, 9f, 0f, -90f)
-        }
-    }
+    // No Cast glyph: the cast button is the platform's own MediaRouteButton, which the Cast SDK
+    // drives — see CastRouteButton.kt. Drawing our own would leave it not knowing when a receiver
+    // is in range, which is the only interesting thing about that button.
 
     // ---- Settings -----------------------------------------------------------------------------
 

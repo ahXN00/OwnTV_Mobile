@@ -22,3 +22,7 @@
 #     EpgAutoRefresh, PlaylistAutoRefresh, ...) round-trip through Enum.name/valueOf.
 #     Renaming a constant would silently reset settings and break old backups. ---
 -keep enum tv.own.owntv.** { *; }
+
+# --- Cast: the SDK reads the OptionsProvider's class name out of the manifest and instantiates it
+#     reflectively, so neither the name nor the no-argument constructor may be touched. ---
+-keep class tv.own.owntv.mobile.cast.CastOptionsProvider { *; }

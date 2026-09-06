@@ -1,5 +1,8 @@
 package tv.own.owntv.mobile.ui.shell
 
+import androidx.compose.ui.graphics.luminance
+import tv.own.owntv.mobile.cast.CastController
+import tv.own.owntv.mobile.cast.CastRouteButton
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import android.widget.Toast
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -190,8 +193,14 @@ fun MobileShell(
     // and the transport buttons, the only things left to show.
     val audioOnly by tuner.player.audioOnly.collectAsStateWithLifecycle()
     val audioOnlyMedia by tuner.player.audioOnlyMedia.collectAsStateWithLifecycle()
+    // Casting has the same shape of problem as sound only: the picture is on the television, so a
+    // floating window here would be an empty black square following the user around.
+    val cast: CastController = koinInject()
+    val castEngine by cast.engine.collectAsStateWithLifecycle()
     // OFF is not offered in Settings any more, but an older install may still have it stored.
-    val miniStyle = if (audioOnly || audioOnlyMedia || chosenMiniStyle == SettingsRepository.MiniPlayerStyle.OFF) {
+    val miniStyle = if (castEngine != null || audioOnly || audioOnlyMedia ||
+        chosenMiniStyle == SettingsRepository.MiniPlayerStyle.OFF
+    ) {
         SettingsRepository.MiniPlayerStyle.DOCKED
     } else {
         chosenMiniStyle
@@ -346,14 +355,12 @@ fun MobileShell(
                                 contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_nav_search),
                             )
                         }
-                        // Cast is Phase 5's, when there is a session to hand over. The slot is here so
-                        // the bar's layout is the final one and nothing shifts when it starts working.
-                        IconButton(onClick = { }, enabled = false) {
-                            Icon(
-                                imageVector = MobileIcons.Cast,
-                                contentDescription = stringResource(tv.own.owntv.mobile.R.string.common_cast),
-                            )
-                        }
+                        // Which way round the icon is drawn follows the app's own theme, not the
+                        // phone's night mode: OwnTV's light/dark is a setting, and the two can
+                        // disagree. It appears only when there is a receiver to send to.
+                        CastRouteButton(
+                            light = MaterialTheme.colorScheme.onSurface.luminance() > 0.5f,
+                        )
                         IconButton(onClick = { navController.navigateToTab(MobileDestination.MORE) }) {
                             Icon(
                                 imageVector = MobileIcons.Person,
@@ -388,6 +395,7 @@ fun MobileShell(
                             artworkUrl = live?.displayLogoUrl ?: film?.posterUrl,
                             onExpand = { navController.navigate(PLAYER_ROUTE) },
                             onStop = { if (live != null) tuner.stop() else vodTuner.stop() },
+                            remote = castEngine,
                             modifier = Modifier.padding(horizontal = MobileDimens.ShellInset),
                         )
                     }

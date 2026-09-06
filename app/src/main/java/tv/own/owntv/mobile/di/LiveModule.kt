@@ -37,6 +37,7 @@ val liveModule = module {
             session = get(),
             dataSaver = get(),
             audioOnlyStore = get(),
+            cast = get(),
             player = get(),
         )
     }

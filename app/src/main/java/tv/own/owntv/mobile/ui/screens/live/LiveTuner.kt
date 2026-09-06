@@ -40,6 +40,9 @@ import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.StreamUrlResolver
+import tv.own.owntv.mobile.cast.CastController
+import tv.own.owntv.mobile.cast.CastHandoff
+import tv.own.owntv.mobile.cast.CastRequest
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
 import tv.own.owntv.player.LiveProgramme
@@ -75,8 +78,9 @@ class LiveTuner(
     private val session: PlaybackSession,
     private val dataSaver: DataSaverGate,
     private val audioOnlyStore: AudioOnlyStore,
+    private val cast: CastController,
     val player: OwnTVPlayer,
-) {
+) : CastHandoff {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -185,6 +189,10 @@ class LiveTuner(
 
     private var loadedId: Long? = null
 
+    /** The programme a replay is showing, so ending a cast can start the same one again rather than
+     *  dropping the user at the live edge. Null whenever a replay is not what is playing. */
+    private var lastCatchup: EpgProgrammeEntity? = null
+
     /** Open [channelId]: read the row, start it, and fill the guide and the channel list around it. */
     fun tune(channelId: Long) {
         if (loadedId == channelId && player.hasActiveStream) return
@@ -224,6 +232,7 @@ class LiveTuner(
         }
         timeshift.clear() // a new channel is never still rewound into the old one's archive
         _replaying.value = false
+        lastCatchup = null
         // A renamed channel keeps its new name on this screen too — the row the user tapped had it.
         val named = custom.value.itemNames[CustomizeKeys.channel(channel)]?.let { channel.copy(name = it) } ?: channel
         _channel.value = named
@@ -240,16 +249,30 @@ class LiveTuner(
         } else {
             channel.streamUrl
         }
-        player.play(
-            url = url,
-            title = named.name,
-            logoUrl = named.displayLogoUrl,
-            isLive = true,
-            userAgent = source?.userAgent,
-            httpHeaders = channel.httpHeaders,
+        // The television first, if one has been picked. It plays the stream itself, so nothing below
+        // about engines, sound-only or the local session applies to it.
+        val handedOver = cast.offer(
+            this,
+            CastRequest(
+                url = url,
+                title = named.name,
+                logoUrl = named.displayLogoUrl,
+                isLive = true,
+                httpHeaders = channel.httpHeaders,
+            ),
         )
-        publishToSystem()
-        applyAudioOnlyDefault(channel)
+        if (!handedOver) {
+            player.play(
+                url = url,
+                title = named.name,
+                logoUrl = named.displayLogoUrl,
+                isLive = true,
+                userAgent = source?.userAgent,
+                httpHeaders = channel.httpHeaders,
+            )
+            publishToSystem()
+            applyAudioOnlyDefault(channel)
+        }
         recordHistory(pid, channel.id)
         _nowNext.value = epgReader.nowNext(channel, custom.value, settings.epgOffsetMinutes.first())
         _timelineProgrammes.value = catchupProgrammes()
@@ -345,20 +368,36 @@ class LiveTuner(
             val source = withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
             // isArchive: providers cut archive segments mid-GOP, and the engine needs to tolerate it.
             _replaying.value = true
-            player.play(
-                url = url,
-                title = channel.name,
-                subtitle = programme.title,
-                logoUrl = channel.displayLogoUrl,
-                isLive = false,
-                isArchive = true,
-                userAgent = source?.userAgent,
-                httpHeaders = channel.httpHeaders,
+            lastCatchup = programme
+            val handedOver = cast.offer(
+                this@LiveTuner,
+                CastRequest(
+                    url = url,
+                    title = channel.name,
+                    subtitle = programme.title,
+                    logoUrl = channel.displayLogoUrl,
+                    isLive = false,
+                    httpHeaders = channel.httpHeaders,
+                ),
             )
-            publishToSystem()
+            if (!handedOver) {
+                player.play(
+                    url = url,
+                    title = channel.name,
+                    subtitle = programme.title,
+                    logoUrl = channel.displayLogoUrl,
+                    isLive = false,
+                    isArchive = true,
+                    userAgent = source?.userAgent,
+                    httpHeaders = channel.httpHeaders,
+                )
+                publishToSystem()
+            }
             recordHistory(pid, channel.id)
             // The clock over a replay says yesterday 13:00, not now — same as on the television.
-            timeshift.followArchiveFrom(programme.startMs)
+            // Not while casting: the timeshift follows the LOCAL player's position, and there is no
+            // local player to follow.
+            if (!handedOver) timeshift.followArchiveFrom(programme.startMs)
         }
     }
 
@@ -369,13 +408,15 @@ class LiveTuner(
      * stay. That is why it goes through the timeshift rather than through [playCatchup].
      */
     fun jumpBackTo(offsetSec: Int) {
+        if (casting()) return
         val ch = _channel.value?.takeIf { it.catchup } ?: return
         _replaying.value = false
         timeshift.beginAt(ch, offsetSec)
     }
 
     /** Offsets worth offering in the catch-up sheet, nearest first; empty without an archive. */
-    fun jumpOptions(): List<Int> = _channel.value?.let { timeshift.jumpOptions(it) } ?: emptyList()
+    fun jumpOptions(): List<Int> =
+        if (casting()) emptyList() else _channel.value?.let { timeshift.jumpOptions(it) } ?: emptyList()
 
     /**
      * Tune the channel carrying provider number [number] — the numeric entry in the channel sheet.
@@ -413,12 +454,24 @@ class LiveTuner(
 
     /** Drag back into the archive (+) or toward live (−), in seconds. */
     fun scrubLive(deltaSec: Int) {
+        if (casting()) return
         val ch = _channel.value ?: return
         timeshift.scrub(ch, deltaSec)
     }
 
-    /** How deep this channel's archive goes, in seconds — the length of the rewind bar. */
-    fun archiveWindowSec(): Int = _channel.value?.let { timeshift.windowSec(it) } ?: 0
+    /**
+     * How deep this channel's archive goes, in seconds — the length of the rewind bar.
+     *
+     * **Zero while casting**, which is what takes the rewind bar off the screen. Live rewind works by
+     * loading one archive URL after another and watching the local player's position to know when to
+     * load the next; on a receiver there is no such position, so offering the bar would give the user
+     * a control that quietly does nothing.
+     */
+    fun archiveWindowSec(): Int =
+        if (casting()) 0 else _channel.value?.let { timeshift.windowSec(it) } ?: 0
+
+    /** Whether the stream is on a receiver rather than on this phone. */
+    private fun casting(): Boolean = cast.engine.value != null
 
     /** Back to the real-time edge, off the archive stream. */
     fun goToLive() {
@@ -454,14 +507,41 @@ class LiveTuner(
     fun stop() {
         timeshift.clear()
         loadedId = null
+        lastCatchup = null
         _channel.value = null
         _nowNext.value = null
         _timelineProgrammes.value = emptyList()
         // Withdraw first: a session left published after the sound stops keeps answering the
         // lockscreen and the headphone button for a stream that no longer exists.
+        cast.release(this)
         session.attach(null)
         PlaybackService.stop(context)
         player.stop()
+    }
+
+    /**
+     * The television is taking the channel. Live has no position worth carrying — the receiver joins
+     * at the edge, which is where the phone was too — so the number is only there for the interface.
+     */
+    override fun releaseToCast(): Long {
+        timeshift.clear()
+        val position = player.position.value
+        session.attach(null)
+        player.stop()
+        return position
+    }
+
+    /**
+     * The cast ended, so the channel comes back here. Restarted rather than resumed: a live stream
+     * has no position to return to, and re-tuning is what puts the phone back at the edge.
+     */
+    override fun resumeFromCast(positionMs: Long) {
+        val channel = _channel.value ?: return
+        // A replay is a programme, not a channel, so coming back to the live edge would be the wrong
+        // thing entirely — it is started again instead. From its beginning: the receiver's position
+        // is not a place the archive URL can be re-entered at.
+        val replay = lastCatchup.takeIf { _replaying.value }
+        if (replay != null) playCatchup(replay, channel) else scope.launch { start(channel) }
     }
 
     private suspend fun recordHistory(profileId: Long, channelId: Long) {

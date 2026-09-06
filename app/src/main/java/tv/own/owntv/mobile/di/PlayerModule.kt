@@ -4,6 +4,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import tv.own.owntv.core.subtitles.SubtitleController
+import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.mobile.playback.SleepTimer
@@ -44,6 +45,10 @@ val playerModule = module {
             pauseWhenOutputDisconnects = true,
         )
     }
+    // Casting. Built with the session, because a cast session takes the lock screen and the audio
+    // focus exactly as the local engine does — it is another PlaybackEngine, and nothing else about
+    // the media session had to learn what a Chromecast is.
+    single { CastController(context = androidContext(), session = get()) }
     single {
         OwnTVPlayer(
             context = androidContext(),

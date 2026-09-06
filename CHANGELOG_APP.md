@@ -161,6 +161,11 @@
 - **Nudge subtitle timing and audio delay, and remember the delay**
 - **Next episode counts itself in, with Play now and Cancel**
 - **Tune straight to a channel number**
+- **Cast to a Chromecast, from the top bar or the player**
+- **Casting picks up where the phone was, and gives it back where the television got to**
+- **A cast screen with the television's own play, skip, scrub and volume**
+- **"Playing on your television" on the notification and the lock screen**
+- **A plain message when a Chromecast cannot play the stream**
 - **The failure panel names the format, size and decoder**
 - **Episode sorting and hiding moved to their own button at the top of a show**
 - **Stream information scrolls**

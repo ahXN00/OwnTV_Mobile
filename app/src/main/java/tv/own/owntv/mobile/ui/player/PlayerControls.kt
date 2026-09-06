@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.own.owntv.core.live.EpgNowNext
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.cast.CastRouteButton
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -224,11 +225,10 @@ private fun TopRow(
                 modifier = Modifier.padding(horizontal = MobileDimens.GapTiny),
             )
         }
-        // Cast belongs to Phase 5, when there is a session to hand over. The slot is here so the bar
-        // does not shift sideways the day it starts working.
-        IconButton(onClick = { }, enabled = false) {
-            Icon(MobileIcons.Cast, stringResource(R.string.common_cast), tint = Color.White.copy(alpha = 0.4f))
-        }
+        // Always light: this one sits over the picture, and the picture is never a light surface.
+        // It shows itself only when a receiver is actually within reach — the SDK's own behaviour,
+        // and the reason the bar does not carry a permanently dead button.
+        CastRouteButton(light = true)
     }
 }
 

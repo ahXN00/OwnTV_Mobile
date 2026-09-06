@@ -77,6 +77,12 @@
             </intent-filter>
         </activity>
 
+        <!-- How the Cast SDK finds its configuration. It is instantiated reflectively by name, which
+             is why the class is kept out of R8's reach in proguard-rules.pro. -->
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="tv.own.owntv.mobile.cast.CastOptionsProvider" />
+
         <!-- Keeps the stream alive and puts it on the lockscreen. Not exported: it is driven by
              LiveTuner and by its own notification buttons, never by another app. -->
         <service

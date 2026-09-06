@@ -34,6 +34,9 @@ import tv.own.owntv.core.stalker.ReconnectUrlProvider
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.core.subtitles.SubtitleController
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.cast.CastController
+import tv.own.owntv.mobile.cast.CastHandoff
+import tv.own.owntv.mobile.cast.CastRequest
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
@@ -82,8 +85,9 @@ class VodTuner(
     private val session: PlaybackSession,
     private val liveTuner: LiveTuner,
     private val dataSaver: DataSaverGate,
+    private val cast: CastController,
     val player: OwnTVPlayer,
-) {
+) : CastHandoff {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val engine by lazy { MpvPlaybackEngine(player) }
@@ -162,19 +166,33 @@ class VodTuner(
         val url = resolve(source, movie.streamUrl) ?: return false
         saveProgress()
         liveTuner.stop()
-        player.play(
-            url = url,
-            title = movie.name,
-            year = movie.year?.toString(),
-            isLive = false,
-            startPositionMs = startPositionMs,
-            userAgent = source?.userAgent,
-            httpHeaders = movie.httpHeaders,
-            drmConfig = movie.drmConfig,
-            contentKey = enginePinKey(movie.sourceId, "MOVIE", movie.remoteId),
-            reconnectProvider = reconnectFor(source, movie.streamUrl),
+        val handedOver = cast.offer(
+            this,
+            CastRequest(
+                url = url,
+                title = movie.name,
+                logoUrl = movie.posterUrl,
+                isLive = false,
+                startPositionMs = startPositionMs,
+                httpHeaders = movie.httpHeaders,
+                drm = movie.drmConfig != null,
+            ),
         )
-        began(pid, VodPlayback(MediaType.MOVIE, movie.id, movie.name, posterUrl = movie.posterUrl))
+        if (!handedOver) {
+            player.play(
+                url = url,
+                title = movie.name,
+                year = movie.year?.toString(),
+                isLive = false,
+                startPositionMs = startPositionMs,
+                userAgent = source?.userAgent,
+                httpHeaders = movie.httpHeaders,
+                drmConfig = movie.drmConfig,
+                contentKey = enginePinKey(movie.sourceId, "MOVIE", movie.remoteId),
+                reconnectProvider = reconnectFor(source, movie.streamUrl),
+            )
+        }
+        began(pid, VodPlayback(MediaType.MOVIE, movie.id, movie.name, posterUrl = movie.posterUrl), handedOver)
         playingQueue = null
         // Turns on the player's "Add subtitles" search for this film. The TMDB id is a precision
         // boost when the metadata cache has one, never a requirement.
@@ -208,7 +226,25 @@ class VodTuner(
             .ifEmpty { listOf(episode) }
         val startIndex = episodes.indexOfFirst { it.id == episode.id }.coerceAtLeast(0)
         val needsResolve = streamUrlResolver.needsResolve(source)
-        player.playEpisodes(
+
+        // The receiver takes one item, not the season. Auto-advance to the next episode is one of the
+        // things casting costs, along with the fallback ladder and the subtitle rendering — there is
+        // no queue on a default receiver to hand the rest of the series to.
+        val castUrl = resolve(source, episode.streamUrl)
+        val handedOver = castUrl != null && cast.offer(
+            this,
+            CastRequest(
+                url = castUrl,
+                title = title,
+                subtitle = subtitle,
+                logoUrl = show.posterUrl,
+                isLive = false,
+                startPositionMs = startPositionMs,
+                httpHeaders = episode.httpHeaders,
+                drm = episode.drmConfig != null,
+            ),
+        )
+        if (!handedOver) player.playEpisodes(
             items = episodes.map { ep ->
                 PlaylistItem(
                     url = ep.streamUrl,
@@ -235,10 +271,12 @@ class VodTuner(
             startPositionMs = startPositionMs,
             userAgent = source?.userAgent,
         )
-        began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl, show.id))
+        began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl, show.id), handedOver)
         val parentTmdbId = runCatching { metadata.resolveSeries(show)?.tmdbId?.toLong() }.getOrNull()
         subtitleController.setEpisode(pid, show, episode, parentTmdbId)
-        playingQueue = PlayingQueue(show, episodes, pid, parentTmdbId)
+        // Nothing follows a cast episode, so there is no queue to follow either — and a queue kept
+        // here would have the player's advance callback re-pointing a stream it is not driving.
+        playingQueue = if (handedOver) null else PlayingQueue(show, episodes, pid, parentTmdbId)
         return true
     }
 
@@ -264,6 +302,10 @@ class VodTuner(
         }
         saveProgress()
         liveTuner.stop()
+        // A file on this phone is not reachable from a receiver — it would be asked for a path that
+        // exists on the handset and nowhere else — so starting a download ends the cast rather than
+        // leaving the television on the previous item.
+        cast.release(this)
         val resume = withContext(Dispatchers.IO) { progressDao.get(pid, mediaType, itemId) }
         player.play(
             url = filePath,
@@ -334,17 +376,43 @@ class VodTuner(
         scope.launch {
             saveProgress()
             clearPlaying()
+            cast.release(this@VodTuner)
             session.attach(null)
             PlaybackService.stop(context)
             player.stop()
         }
     }
 
+    /** The television is taking the film; the phone keeps only where it had got to. */
+    override fun releaseToCast(): Long {
+        val position = player.position.value
+        session.attach(null)
+        player.stop()
+        return position
+    }
+
+    /**
+     * The cast ended, so the film comes back here — at the position the receiver had reached, which
+     * is the whole point of the handover being a handover rather than a restart.
+     */
+    override fun resumeFromCast(positionMs: Long) {
+        val current = _playing.value ?: return
+        scope.launch {
+            when (current.mediaType) {
+                MediaType.EPISODE -> playEpisode(current.itemId, positionMs)
+                else -> playMovie(current.itemId, positionMs)
+            }
+        }
+    }
+
     /** Write the resume position now — on the timer, when another item starts, and when the user stops. */
     suspend fun saveProgress() {
         val current = _playing.value ?: return
-        val position = player.position.value
-        val duration = player.duration.value
+        // Whichever engine actually has the film. Casting for an hour and coming back to a resume
+        // position of zero would be the same bug as never writing one at all.
+        val remote = cast.engine.value
+        val position = remote?.position?.value ?: player.position.value
+        val duration = remote?.duration?.value ?: player.duration.value
         if (position <= 0 || duration <= 0) return
         if (currentProfileId() != playingProfileId) return
         runCatching {
@@ -362,12 +430,16 @@ class VodTuner(
         }
     }
 
-    private suspend fun began(profileId: Long, what: VodPlayback) {
-        // A new film starts with its picture on, whatever the last thing playing was doing. The engine
-        // holds the sound-only flag across a change of stream, so without this a channel watched
-        // without a picture handed the next film the same fate.
-        player.exitAudioOnly()
-        session.attach(engine)
+    /** [onCast] = the receiver took it, so none of the local engine's housekeeping applies and the
+     *  session is already pointed at the remote one. */
+    private suspend fun began(profileId: Long, what: VodPlayback, onCast: Boolean = false) {
+        if (!onCast) {
+            // A new film starts with its picture on, whatever the last thing playing was doing. The
+            // engine holds the sound-only flag across a change of stream, so without this a channel
+            // watched without a picture handed the next film the same fate.
+            player.exitAudioOnly()
+            session.attach(engine)
+        }
         PlaybackService.start(context)
         playingProfileId = profileId
         _playing.value = what

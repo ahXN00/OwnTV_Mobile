@@ -336,6 +336,11 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // Casting. The sender half only: the Chromecast decodes the stream itself, so nothing of the
+    // playback engine crosses over — see tv.own.owntv.mobile.cast.
+    implementation(libs.play.services.cast.framework)
+    implementation(libs.androidx.mediarouter)
+
     // Dependency injection
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)

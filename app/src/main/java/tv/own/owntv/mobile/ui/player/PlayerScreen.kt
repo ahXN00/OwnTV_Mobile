@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.MainActivity
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.model.MediaType
@@ -98,8 +99,11 @@ fun PlayerScreen(
     settings: SettingsRepository = koinInject(),
     actions: ContentActions = koinInject(),
     subtitles: SubtitleController = koinInject(),
+    cast: CastController = koinInject(),
 ) {
     val player = tuner.player
+    val castEngine by cast.engine.collectAsStateWithLifecycle()
+    val castDevice by cast.deviceName.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
     val inPip by pip.inPip.collectAsStateWithLifecycle()
     val res = LocalResources.current
@@ -289,6 +293,23 @@ fun PlayerScreen(
         onExit()
     }
     BackHandler(onBack = stopAndExit)
+
+    // Casting replaces the screen rather than decorating it. Everything below this point drives the
+    // engine on this phone — the surface, the gestures, the track pickers — and while the television
+    // has the stream there is no such engine to drive.
+    val remote = castEngine
+    if (remote != null) {
+        CastStage(
+            engine = remote,
+            deviceName = castDevice,
+            title = channel?.name ?: film?.title.orEmpty(),
+            subtitle = if (channel != null) nowNext?.now?.title else film?.subtitle,
+            artworkUrl = channel?.displayLogoUrl ?: film?.posterUrl,
+            onBack = stopAndExit,
+            modifier = modifier,
+        )
+        return
+    }
 
     Box(
         modifier

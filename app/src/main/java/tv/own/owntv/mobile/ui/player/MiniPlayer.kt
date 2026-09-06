@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.cast.CastPlaybackEngine
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobileNavShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
@@ -59,15 +60,18 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     artworkUrl: String? = null,
+    /** The receiver, when the stream is on a television: the bar then reports and drives that one. */
+    remote: CastPlaybackEngine? = null,
 ) {
-    val playing by player.isPlaying.collectAsStateWithLifecycle()
-    val position by player.position.collectAsStateWithLifecycle()
-    val duration by player.duration.collectAsStateWithLifecycle()
+    val playing by (remote?.isPlaying ?: player.isPlaying).collectAsStateWithLifecycle()
+    val position by (remote?.position ?: player.position).collectAsStateWithLifecycle()
+    val duration by (remote?.duration ?: player.duration).collectAsStateWithLifecycle()
     // Two ways to have no picture — the user turned it off, or the stream never had one — and the bar
-    // has the same black rectangle to fill either way.
+    // has the same black rectangle to fill either way. Casting is a third: the picture exists, it is
+    // simply on the television, so this bar has nothing to draw either.
     val noVideoTrack by player.audioOnlyMedia.collectAsStateWithLifecycle()
     val chosenSoundOnly by player.audioOnly.collectAsStateWithLifecycle()
-    val audioOnly = noVideoTrack || chosenSoundOnly
+    val audioOnly = remote != null || noVideoTrack || chosenSoundOnly
 
     Column(
         modifier
@@ -138,7 +142,7 @@ fun MiniPlayer(
                     )
                 }
             }
-            IconButton(onClick = { player.togglePlayPause() }) {
+            IconButton(onClick = { if (remote != null) remote.togglePlayPause() else player.togglePlayPause() }) {
                 Icon(
                     imageVector = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
                     contentDescription = stringResource(R.string.settings_remote_action_play_pause),

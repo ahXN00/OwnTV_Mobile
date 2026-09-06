@@ -275,6 +275,30 @@ release automation.
 - **A fling inside any pop-up sheet no longer crashes the app.** Flicking a long list — the catch-up
   times were the first long enough to flick — could close the app outright.
 
+### 📡 Casting to a Chromecast
+
+- **The cast button is live**, in the app's top bar and over the picture in the player. It appears
+  only when there is something to cast to, and it is the phone's own standard button, so the list of
+  devices and the way to stop casting are the ones every other app uses.
+- **Casting takes over from wherever you are.** Pick a television mid-film and the phone stops
+  playing and the television picks it up at the same second. End the cast and the film comes back to
+  the phone at the point the television had reached. A live channel comes back at the live edge,
+  which is where a live channel always is.
+- **The player screen becomes the cast screen** while the television has the stream: the artwork,
+  what is playing, which television it is playing on, and controls that drive that television —
+  play and pause, ten seconds back and forward, the scrub bar for a film, and its volume.
+- **The notification and the lock screen follow it too.** They say "Playing on <your television>"
+  and their buttons control the television, so you are never left tapping a phone that is not
+  playing anything.
+- **A stream a Chromecast cannot play says so, in your language.** A Chromecast decodes the stream
+  itself, and it cannot decode everything an IPTV playlist contains — so instead of a black screen
+  or a spinner that never ends, you get a plain message. Three cases are known before anything is
+  sent: a channel that needs custom headers, a raw MPEG-TS stream, and a protected film.
+- **Casting does not hijack the phone's sound.** Unplugging your headphones, or a notification
+  arriving, no longer pauses something playing in another room.
+- **No floating window while casting**, and no picture-in-picture: the picture is on the television,
+  so the phone shows the docked bar instead of an empty black square that follows you around.
+
 ### 🔍 Search
 
 - **One field searches everything.** Channels, films and shows at the same time, from the magnifying

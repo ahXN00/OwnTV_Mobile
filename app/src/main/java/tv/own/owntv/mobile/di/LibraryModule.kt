@@ -32,6 +32,7 @@ val libraryModule = module {
             session = get(),
             liveTuner = get(),
             dataSaver = get(),
+            cast = get(),
             player = get(),
         )
     }

@@ -15,12 +15,12 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Rational
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -30,6 +30,7 @@ import org.koin.android.ext.android.inject
 import tv.own.owntv.core.i18n.AppLocale
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.components.MobileSheetHost
@@ -37,11 +38,19 @@ import tv.own.owntv.mobile.ui.shell.MobileShell
 import tv.own.owntv.mobile.ui.theme.GlassBackdropRoot
 import tv.own.owntv.mobile.ui.theme.MobileTheme
 
-/** The single activity the whole app runs in. */
-class MainActivity : ComponentActivity() {
+/**
+ * The single activity the whole app runs in.
+ *
+ * A `FragmentActivity` rather than a bare `ComponentActivity` for exactly one reason: the Cast
+ * button's device chooser is a dialog fragment, and it looks for a `FragmentManager` on whatever
+ * activity hosts it. Nothing in this app draws a fragment; this is the base class the platform's own
+ * cast picker requires in order to open at all.
+ */
+class MainActivity : FragmentActivity() {
 
     private val tuner: LiveTuner by inject()
     private val pip: PipController by inject()
+    private val cast: CastController by inject()
     private val localeStore: LocaleStore by inject()
     private val settings: SettingsRepository by inject()
 
@@ -121,6 +130,9 @@ class MainActivity : ComponentActivity() {
         super.onUserLeaveHint()
         if (!pipEnabled) return
         if (!pip.playerOnScreen.value) return
+        // Nothing to float while casting: the picture is on the television, and a little window here
+        // would show a black rectangle with the receiver's transport buttons under it.
+        if (cast.engine.value != null) return
         if (!player.isPlaying.value || player.audioOnly.value || player.audioOnlyMedia.value) return
         runCatching { enterPictureInPictureMode(pipParams()) }
     }
