@@ -91,7 +91,8 @@ jobs:
           # The other file the bump touches. It is duplicated into every consumer because Gradle
           # reads it at configure time to build localeFilters, and core's own copy never reaches
           # here. A stale copy silently strips a language out of the APK with a green build.
-          curl -fsSL -o /tmp/locales.core.json \n            "https://raw.githubusercontent.com/ahXN00/OwnTV_Core/core-$PIN/tools/i18n/locales.json"
+          curl -fsSL -o /tmp/locales.core.json \
+            "https://raw.githubusercontent.com/ahXN00/OwnTV_Core/core-$PIN/tools/i18n/locales.json"
           if ! diff -u /tmp/locales.core.json tools/i18n/locales.json; then
             echo "::error::tools/i18n/locales.json differs from core's copy at core-$PIN."
             exit 1
