@@ -527,6 +527,26 @@ release automation.
   through the phone's own file picker, so the app never asks for access to all your storage.
 - **Restoring adds to what is there rather than replacing it**, and tells you how much came back.
 
+### 🔄 Sync with your television over your own Wi-Fi
+
+- **Local sync**, under Data in Settings. It pairs this phone with the OwnTV app on your television —
+  or with another phone or tablet — over your home Wi-Fi. No account, no cloud, nothing leaving the
+  house.
+- **Turn Sync mode on at both ends, tap Connect, type the PIN once.** A badge at the top right shows
+  while sync mode is on, and it switches itself off the moment you leave the screen, so nothing is
+  listening the rest of the time. The other device is found on the network, or by scanning the QR
+  code it shows, or by typing its address.
+- **Either device can start it, and the direction is always named** — *Send to*, *Receive from* or
+  *Merge with*. There is no bare "sync" button whose meaning you have to guess.
+- **You choose what travels**: the same tick-list Backup & Restore uses — playlists, favourites, watch
+  history, resume points, your customisations, your manual ordering and your settings. Add a password
+  and your playlist logins travel with it.
+- **You see what will change before it does.** A summary counts what would be added and what would be
+  removed, and nothing is written until you confirm.
+- **A deletion now stays deleted.** Unfavourite something here, sync, and the television does not
+  hand it back on the next sync.
+- **As many devices as you like.** Each one you pair is listed with when you last synced with it.
+
 ### ⏳ A large playlist can finish in the background
 
 - **"Run in background" while a playlist is importing.** A provider with a hundred thousand films

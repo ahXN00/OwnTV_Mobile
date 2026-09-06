@@ -433,7 +433,7 @@ private fun OutcomeSheet(outcome: BackupViewModel.Outcome, onDismiss: () -> Unit
 
 /** A tick, its label and the line that says what it covers — the whole row toggles it. */
 @Composable
-private fun CheckRow(
+internal fun CheckRow(
     label: String,
     description: String?,
     checked: Boolean,
@@ -459,7 +459,7 @@ private fun CheckRow(
 
 /** Cancel and confirm, right-aligned under a sheet's body — the shape these sheets end in. */
 @Composable
-private fun SheetButtons(
+internal fun SheetButtons(
     confirm: String,
     confirmEnabled: Boolean,
     onConfirm: () -> Unit,
@@ -482,7 +482,7 @@ private fun SheetButtons(
 }
 
 @Composable
-private fun Label(text: String) {
+internal fun Label(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
@@ -492,7 +492,7 @@ private fun Label(text: String) {
 }
 
 @Composable
-private fun Note(text: String) {
+internal fun Note(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
@@ -500,7 +500,7 @@ private fun Note(text: String) {
     )
 }
 
-private fun BackupManager.Section.labelRes() = when (this) {
+internal fun BackupManager.Section.labelRes() = when (this) {
     BackupManager.Section.SOURCES -> R.string.settings_backup_section_sources
     BackupManager.Section.CUSTOMIZE -> R.string.settings_backup_section_customize
     BackupManager.Section.FAVORITES -> R.string.settings_backup_section_favorites
@@ -510,7 +510,7 @@ private fun BackupManager.Section.labelRes() = when (this) {
     BackupManager.Section.SETTINGS -> R.string.settings_backup_section_settings
 }
 
-private fun BackupManager.Section.descriptionRes() = when (this) {
+internal fun BackupManager.Section.descriptionRes() = when (this) {
     BackupManager.Section.SOURCES -> R.string.settings_backup_section_sources_desc
     BackupManager.Section.CUSTOMIZE -> R.string.settings_backup_section_customize_desc
     BackupManager.Section.FAVORITES -> R.string.settings_backup_section_favorites_desc

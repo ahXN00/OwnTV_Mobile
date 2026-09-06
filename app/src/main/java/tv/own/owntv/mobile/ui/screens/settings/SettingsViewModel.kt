@@ -82,8 +82,7 @@ class SettingsViewModel(
     private val sourceDao: SourceDao,
     private val sourceRepository: SourceRepository,
     private val profileDao: ProfileDao,
-    private val historyDao: HistoryDao,
-    private val progressDao: ProgressDao,
+    private val userDataWriter: tv.own.owntv.core.backup.UserDataWriter,
     private val catalogSync: CatalogSyncScheduler,
     private val categoryDao: CategoryDao,
     private val channelDao: ChannelDao,
@@ -339,19 +338,11 @@ class SettingsViewModel(
         viewModelScope.launch {
             val profileId = settings.activeProfileId.first()
             if (profileId < 0) return@launch
-            if (type == null) {
-                historyDao.clear(profileId)
-                progressDao.clearProfile(profileId)
-            } else {
-                historyDao.clearType(profileId, type)
-                // Continue-watching comes from the resume table, not from history, and an episode's
-                // progress is stored under EPISODE. Live has no resume position to clear.
-                when (type) {
-                    MediaType.MOVIE -> progressDao.clearProfileType(profileId, MediaType.MOVIE)
-                    MediaType.SERIES -> progressDao.clearProfileType(profileId, MediaType.EPISODE)
-                    else -> Unit
-                }
-            }
+            // Continue-watching comes from the resume table, not from history, and an episode's
+            // progress is stored under EPISODE — both go with it; Live has no resume position to
+            // clear. That, and recording each deletion so a local sync does not hand the cleared
+            // history straight back, is what userDataWriter does.
+            userDataWriter.clearHistory(profileId, type)
         }
     }
 

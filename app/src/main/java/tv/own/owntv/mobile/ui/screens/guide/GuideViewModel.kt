@@ -108,6 +108,7 @@ class GuideViewModel(
     private val customCategoryDao: CustomCategoryDao,
     private val contentOrderDao: ContentOrderDao,
     private val favoriteDao: FavoriteDao,
+    private val userDataWriter: tv.own.owntv.core.backup.UserDataWriter,
     private val profileDao: ProfileDao,
     private val sourceDao: SourceDao,
     private val settings: SettingsRepository,
@@ -423,7 +424,7 @@ class GuideViewModel(
     fun toggleFavorite(channel: ChannelEntity) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
-            if (channel.id in favoriteIds.value) favoriteDao.remove(pid, MediaType.LIVE, channel.id)
+            if (channel.id in favoriteIds.value) userDataWriter.removeFavorite(pid, MediaType.LIVE, channel.id)
             else favoriteDao.add(FavoriteEntity(profileId = pid, mediaType = MediaType.LIVE, itemId = channel.id))
         }
     }

@@ -341,6 +341,13 @@ dependencies {
     implementation(libs.play.services.cast.framework)
     implementation(libs.androidx.mediarouter)
 
+    // Local sync pairing: the camera reads the QR code the other device shows. zxing decodes it —
+    // the same library core uses to draw one.
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.zxing.core)
+
     // Dependency injection
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)

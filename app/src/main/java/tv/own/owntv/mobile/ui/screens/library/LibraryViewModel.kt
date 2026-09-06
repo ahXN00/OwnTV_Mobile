@@ -98,6 +98,7 @@ class LibraryViewModel(
     private val favoriteDao: FavoriteDao,
     private val historyDao: HistoryDao,
     private val progressDao: ProgressDao,
+    private val userDataWriter: tv.own.owntv.core.backup.UserDataWriter,
     private val profileDao: ProfileDao,
     private val sourceDao: SourceDao,
     private val settings: SettingsRepository,
@@ -389,7 +390,7 @@ class LibraryViewModel(
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
             val type = mediaType.value
-            if (itemId in favoriteIds.value) favoriteDao.remove(pid, type, itemId)
+            if (itemId in favoriteIds.value) userDataWriter.removeFavorite(pid, type, itemId)
             else favoriteDao.add(FavoriteEntity(profileId = pid, mediaType = type, itemId = itemId))
         }
     }
@@ -417,7 +418,7 @@ class LibraryViewModel(
                     ),
                 )
             } else {
-                progressDao.clear(pid, MediaType.MOVIE, movieId)
+                userDataWriter.clearProgress(pid, MediaType.MOVIE, movieId)
             }
         }
     }
@@ -440,7 +441,7 @@ class LibraryViewModel(
     fun removeFromHistory(itemId: Long) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
-            historyDao.remove(pid, mediaType.value, itemId)
+            userDataWriter.removeHistory(pid, mediaType.value, itemId)
         }
     }
 
@@ -574,8 +575,8 @@ class LibraryViewModel(
             customCategoryDao.appendItem(pid, type, targetId, itemId)
             if (!keepInOrigin) {
                 when {
-                    originKey == ContentOrderEntity.FAV_CONTEXT -> favoriteDao.remove(pid, type, itemId)
-                    CustomizeKeys.isCustom(originKey) -> customCategoryDao.deleteItem(pid, type, originKey, itemId)
+                    originKey == ContentOrderEntity.FAV_CONTEXT -> userDataWriter.removeFavorite(pid, type, itemId)
+                    CustomizeKeys.isCustom(originKey) -> userDataWriter.removeCustomCategoryMember(pid, type, originKey, itemId)
                     else -> customize.setItemMovedFromOrigin(pid, type, itemKey, originKey, moved = true)
                 }
             }

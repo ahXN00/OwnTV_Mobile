@@ -215,6 +215,8 @@
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/EpgSourcesViewModel.kt	add
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/EpgSourcesViewModel.kt	manual_resync
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/EpgSourcesViewModel.kt	update
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/LocalSyncViewModel.kt	Local sync failed
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/LocalSyncViewModel.kt	LocalSyncViewModel
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/NetworkTest.kt	Network is unreachable
 2	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/NetworkTest.kt	Proxy-Authorization
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/NetworkTest.kt	UnknownHostException
@@ -228,6 +230,9 @@
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/OpenSubtitlesViewModel.kt	manual refresh failed: ${it.javaClass.simpleName}: ${it.message}
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/OpenSubtitlesViewModel.kt	sign-in failed: ${e.javaClass.simpleName}: ${e.message}
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/OpenSubtitlesViewModel.kt	user-info refresh failed: ${it.message}
+1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/QrScanSheet.kt	\0
+2	url	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/QrScanSheet.kt	http://
+2	url	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/QrScanSheet.kt	https://
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsAppPage.kt	\0
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsAppPage.kt	exo
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsAppPage.kt	exoplayer
@@ -292,12 +297,17 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	glass
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	home
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	language
+1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	localsync
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	metadata
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	opensubtitles
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	playlists
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	subtitles
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	video
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	weather
+4	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLocalSyncPage.kt	\0
+1	url	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLocalSyncPage.kt	http://
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLocalSyncPage.kt	local-sync-busy
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLocalSyncPage.kt	local-sync-pill
 10	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsMetadataPage.kt	\0
 1	locale	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsMetadataPage.kt	ar
 1	locale	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsMetadataPage.kt	bg

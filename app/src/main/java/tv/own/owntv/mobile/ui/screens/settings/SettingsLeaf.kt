@@ -105,6 +105,13 @@ enum class SettingsLeaf(
         MobileIcons.Save,
     ),
 
+    LOCAL_SYNC(
+        SettingsGroup.DATA, "localsync",
+        R.string.local_sync_title, R.string.local_sync_search_keywords,
+        R.string.local_sync_description,
+        MobileIcons.Sync,
+    ),
+
     LANGUAGE(
         SettingsGroup.APP, "language",
         R.string.settings_language, R.string.settings_search_keywords_language,

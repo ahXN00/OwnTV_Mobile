@@ -35,6 +35,7 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsAppearancePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsContentPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsCustomizePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsBackupPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsLocalSyncPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsDataPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsErrorLogPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsFontsPage
@@ -244,6 +245,7 @@ fun MobileNavHost(
                     SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
                     SettingsLeaf.HOME -> SettingsHomePage()
                     SettingsLeaf.BACKUP -> SettingsBackupPage()
+                    SettingsLeaf.LOCAL_SYNC -> SettingsLocalSyncPage()
                     SettingsLeaf.LANGUAGE -> SettingsLanguagePage()
                     SettingsLeaf.ERROR_LOG -> SettingsErrorLogPage()
                 }

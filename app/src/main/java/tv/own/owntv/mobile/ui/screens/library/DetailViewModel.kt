@@ -54,6 +54,7 @@ class DetailViewModel(
     private val categoryDao: CategoryDao,
     private val favoriteDao: FavoriteDao,
     private val progressDao: ProgressDao,
+    private val userDataWriter: tv.own.owntv.core.backup.UserDataWriter,
     private val profileDao: ProfileDao,
     private val settings: SettingsRepository,
     private val seriesRepository: SeriesRepository,
@@ -235,7 +236,7 @@ class DetailViewModel(
         val t = target.value ?: return
         viewModelScope.launch {
             val pid = profileId.value.takeIf { it >= 0 } ?: return@launch
-            if (isFavorite.value) favoriteDao.remove(pid, t.tab.mediaType(), t.id)
+            if (isFavorite.value) userDataWriter.removeFavorite(pid, t.tab.mediaType(), t.id)
             else favoriteDao.add(FavoriteEntity(profileId = pid, mediaType = t.tab.mediaType(), itemId = t.id))
         }
     }
@@ -254,7 +255,7 @@ class DetailViewModel(
                     ),
                 )
             } else {
-                progressDao.clear(pid, MediaType.EPISODE, episode.id)
+                userDataWriter.clearProgress(pid, MediaType.EPISODE, episode.id)
             }
         }
     }

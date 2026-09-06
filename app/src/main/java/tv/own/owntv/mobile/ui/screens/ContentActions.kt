@@ -43,6 +43,7 @@ class ContentActions(
     private val movieDao: MovieDao,
     private val seriesDao: SeriesDao,
     private val favoriteDao: FavoriteDao,
+    private val userDataWriter: tv.own.owntv.core.backup.UserDataWriter,
     private val customize: CustomizationStore,
     private val downloadManager: DownloadManager,
 ) {
@@ -56,7 +57,7 @@ class ContentActions(
 
     suspend fun toggleFavorite(type: MediaType, itemId: Long) {
         val pid = profileId() ?: return
-        if (favoriteDao.isFavorite(pid, type, itemId).first()) favoriteDao.remove(pid, type, itemId)
+        if (favoriteDao.isFavorite(pid, type, itemId).first()) userDataWriter.removeFavorite(pid, type, itemId)
         else favoriteDao.add(FavoriteEntity(profileId = pid, mediaType = type, itemId = itemId))
     }
 

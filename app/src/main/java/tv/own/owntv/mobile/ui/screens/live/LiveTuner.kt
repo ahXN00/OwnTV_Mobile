@@ -69,6 +69,7 @@ class LiveTuner(
     private val historyDao: HistoryDao,
     private val profileDao: ProfileDao,
     private val favoriteDao: FavoriteDao,
+    private val userDataWriter: tv.own.owntv.core.backup.UserDataWriter,
     private val sourceDao: SourceDao,
     private val settings: SettingsRepository,
     private val customize: CustomizationStore,
@@ -160,7 +161,7 @@ class LiveTuner(
         val channel = _channel.value ?: return
         val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return
         scope.launch {
-            if (isFavorite.value) favoriteDao.remove(pid, MediaType.LIVE, channel.id)
+            if (isFavorite.value) userDataWriter.removeFavorite(pid, MediaType.LIVE, channel.id)
             else favoriteDao.add(FavoriteEntity(profileId = pid, mediaType = MediaType.LIVE, itemId = channel.id))
         }
     }

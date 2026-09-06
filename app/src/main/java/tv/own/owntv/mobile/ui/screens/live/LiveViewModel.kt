@@ -81,6 +81,7 @@ class LiveViewModel(
     private val contentOrderDao: ContentOrderDao,
     private val favoriteDao: FavoriteDao,
     private val historyDao: HistoryDao,
+    private val userDataWriter: tv.own.owntv.core.backup.UserDataWriter,
     private val profileDao: ProfileDao,
     private val sourceDao: SourceDao,
     private val settings: SettingsRepository,
@@ -299,7 +300,7 @@ class LiveViewModel(
     fun toggleFavorite(channel: ChannelEntity) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
-            if (channel.id in favoriteIds.value) favoriteDao.remove(pid, MediaType.LIVE, channel.id)
+            if (channel.id in favoriteIds.value) userDataWriter.removeFavorite(pid, MediaType.LIVE, channel.id)
             else favoriteDao.add(FavoriteEntity(profileId = pid, mediaType = MediaType.LIVE, itemId = channel.id))
         }
     }
@@ -378,7 +379,7 @@ class LiveViewModel(
     fun removeFromHistory(channelId: Long) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
-            historyDao.remove(pid, MediaType.LIVE, channelId)
+            userDataWriter.removeHistory(pid, MediaType.LIVE, channelId)
         }
     }
 
@@ -452,8 +453,8 @@ class LiveViewModel(
             customCategoryDao.appendItem(pid, MediaType.LIVE, targetId, channel.id)
             if (!keepInOrigin) {
                 when {
-                    originKey == ContentOrderEntity.FAV_CONTEXT -> favoriteDao.remove(pid, MediaType.LIVE, channel.id)
-                    CustomizeKeys.isCustom(originKey) -> customCategoryDao.deleteItem(pid, MediaType.LIVE, originKey, channel.id)
+                    originKey == ContentOrderEntity.FAV_CONTEXT -> userDataWriter.removeFavorite(pid, MediaType.LIVE, channel.id)
+                    CustomizeKeys.isCustom(originKey) -> userDataWriter.removeCustomCategoryMember(pid, MediaType.LIVE, originKey, channel.id)
                     else -> customize.setItemMovedFromOrigin(pid, MediaType.LIVE, itemKey, originKey, moved = true)
                 }
             }

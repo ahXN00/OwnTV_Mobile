@@ -21,6 +21,11 @@
 - **Add your playlist from the phone: Xtream, M3U or MAG portal**
 - **Pick an M3U file with the phone's file picker**
 - **Restore a backup made on the TV app, encrypted ones included**
+- **Local sync: swap your data with your TV over your own Wi-Fi**
+- **Send, receive or merge — you pick the direction and what travels**
+- **See exactly what a sync will change before it changes anything**
+- **A deletion now stays deleted on both devices**
+- **Scan the QR code to pair, or find the device on the network**
 - **Movies and Series, with categories, sorting and grid or list**
 - **Pinch to resize the posters**
 - **Press and hold a film or show for its full menu**

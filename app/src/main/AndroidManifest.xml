@@ -33,6 +33,13 @@
          collected for no reason. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- One screen, one purpose: reading the QR code the television shows while pairing for local
+         sync. Asked for at that moment and never held otherwise, and the whole feature still works
+         without it — the address can be picked from the discovery list or typed in. Optional as a
+         feature so a tablet without a camera can still install the app. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application
         android:name=".OwnTVMobileApp"
         android:allowBackup="false"

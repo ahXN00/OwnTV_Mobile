@@ -38,6 +38,13 @@ playServicesCast = "22.3.1"
 # transitively, because MediaRouteButton is constructed by name in CastRouteButton.kt.
 mediarouter = "1.8.1"
 
+# CameraX, for one screen only: reading the QR code the television shows when pairing for local
+# sync. Phone-only by nature — a television has no camera, so it shows the code and never reads one.
+camerax = "1.5.1"
+# The decoder itself is zxing, which core already carries for GENERATING these codes. Same library,
+# other direction; no ML Kit, no Play-services dependency, nothing extra to ship.
+zxing = "3.5.4"
+
 # --- Test ---
 junit = "4.13.2"
 junitExt = "1.3.0"
@@ -112,6 +119,12 @@ koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compos
 # Casting
 play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "playServicesCast" }
 androidx-mediarouter = { group = "androidx.mediarouter", name = "mediarouter", version.ref = "mediarouter" }
+
+# QR scanning for local sync pairing
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 # Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }
