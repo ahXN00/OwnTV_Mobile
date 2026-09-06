@@ -192,6 +192,12 @@ fun SettingsGlassPage(
                 onCheckedChange = { vm.edit { setGlassDepthEffects(it) } },
             )
             SettingRow(
+                title = stringResource(R.string.settings_glass_shine_short),
+                subtitle = stringResource(R.string.settings_glass_shine_short_description),
+                checked = glass.glint,
+                onCheckedChange = { vm.edit { setGlassGlint(it) } },
+            )
+            SettingRow(
                 title = stringResource(R.string.settings_glass_full_transparency_short),
                 subtitle = stringResource(
                     R.string.settings_glass_full_transparency_short_description,
@@ -209,6 +215,7 @@ fun SettingsGlassPage(
                         )
                         setGlassAllowFullTransparency(false)
                         setGlassDepthEffects(true)
+                        setGlassGlint(true)
                     }
                 },
             )

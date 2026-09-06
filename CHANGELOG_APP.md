@@ -133,6 +133,8 @@
 - **Closing the system floating window stops the sound too**
 - **Hold a player tool to see its name**
 - **Glass Effect switches for the player controls and on-screen messages**
+- **A switch for the shine that sweeps across a glass panel**
+- **The background picture turns off with the Glass Effect**
 - **One press-and-hold menu, the same on Home, library, Live TV and Search**
 - **Settings rows grouped on plates, with the app's own switches and sliders**
 - **Full screen fills the whole screen, under the notch and behind the bars**

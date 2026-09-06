@@ -392,6 +392,14 @@ release automation.
   sit further back; and a poster or a row inside a panel is only a whisper of glass, because glass
   inside glass on top of glass is mud. Layers nested inside each other lighten as they go in, so a
   sheet on a panel on a background is still three readable steps and not one grey block.
+- **The shine is yours to keep or drop.** A glass panel arrives with a narrow band of light
+  travelling across it once. Under *Behavior* on the Glass Effect page there is now a switch for it,
+  so a screen that should simply appear can. It is on to begin with, and **Reduce animations** still
+  removes it whatever the switch says.
+- **The background picture belongs to the Glass Effect.** Turning the Glass Effect off now takes the
+  picture with it and gives you the plain theme back, instead of leaving a wallpaper behind panels
+  that no longer have anything to do with it. Turning glass back on brings the picture back — it is
+  never deleted, only hidden.
 - **Glass reacts to your finger.** Press a card, a row or a chip and its pane brightens and settles
   under the touch instead of only changing colour, and lets go when you do. With **Reduce
   animations** on, the change is instant rather than removed, so nothing becomes invisible.

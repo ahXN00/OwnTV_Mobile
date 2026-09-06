@@ -362,8 +362,10 @@ fun GlassBackdropRoot(content: @Composable () -> Unit) {
     val settings: SettingsRepository = koinInject()
     val bgImagePath by settings.bgImagePath.collectAsStateWithLifecycle("")
     val glass = LocalGlass.current
-    val hasImage = bgImagePath.isNotBlank()
-    val frosted = hasImage && supportsBackdropBlur && glass.enabled && glass.blurStrength > 0f
+    // The wallpaper belongs to the Glass Effect, so it goes away with it: switching glass off and
+    // being left with a picture the panels no longer sample is the wrong half of the feature.
+    val hasImage = bgImagePath.isNotBlank() && glass.enabled
+    val frosted = hasImage && supportsBackdropBlur && glass.blurStrength > 0f
 
     // Ten full-screen textures is real memory even though only the rungs actually drawn are ever
     // rasterized, so a low-RAM phone gets half the rungs — a coarser ladder over the same range,
@@ -388,7 +390,7 @@ fun GlassBackdropRoot(content: @Composable () -> Unit) {
 
     var rootOffset by remember { mutableStateOf(Offset.Zero) }
     var rootSize by remember { mutableStateOf(Size.Zero) }
-    val analysis by produceState(EmptyWallpaper, bgImagePath, rootSize) {
+    val analysis by produceState(EmptyWallpaper, bgImagePath, rootSize, hasImage) {
         value = if (hasImage && rootSize != Size.Zero) analyseWallpaper(bgImagePath, rootSize) else EmptyWallpaper
     }
     val backdrop = remember(frosted, radiiPx, analysis) {
@@ -570,7 +572,7 @@ fun Modifier.glassSurface(
     var position by remember { mutableStateOf(Offset.Zero) }
     var inWindow by remember { mutableStateOf(Offset.Zero) }
     val windowSize = LocalWindowInfo.current.containerSize
-    val arrival = rememberGlassArrival()
+    val arrival = rememberGlassArrival(glass.glint)
 
     return this
         .then(sink)
@@ -689,11 +691,12 @@ fun Modifier.glassSurface(
  *
  * One `Animatable` per *surface*, never per element — that is the whole reason this is cheap. It runs
  * once, on the pane's first composition, and a settled pane holds 1 forever after. With animations off
- * it is 1 from the first frame, so nothing is drawn at all rather than being drawn quickly.
+ * — or with [enabled] false, the user's own switch — it is 1 from the first frame, so nothing is drawn
+ * at all rather than being drawn quickly.
  */
 @Composable
-private fun rememberGlassArrival(): Float {
-    val instant = LocalAnimations.current == AnimationLevel.OFF
+private fun rememberGlassArrival(enabled: Boolean): Float {
+    val instant = !enabled || LocalAnimations.current == AnimationLevel.OFF
     val progress = remember { Animatable(if (instant) 1f else 0f) }
     LaunchedEffect(instant) {
         if (instant) progress.snapTo(1f) else if (progress.value < 1f) {
