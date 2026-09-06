@@ -114,6 +114,7 @@ fun SetupFlow(
                 state = state,
                 progressText = progress?.importProgressDisplay(),
                 onContinue = { vm.finish(onDone) },
+                onRunInBackground = { vm.continueInBackground(onDone) },
                 onRetry = { vm.reset(); step = Step.FORM },
                 onCancel = { vm.cancelImport(); step = Step.FORM },
             )
@@ -170,6 +171,7 @@ private fun ImportProgress(
     state: SourceImporter.ImportState,
     progressText: tv.own.owntv.core.sync.SyncProgressDisplay?,
     onContinue: () -> Unit,
+    onRunInBackground: () -> Unit,
     onRetry: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -224,10 +226,19 @@ private fun ImportProgress(
                     progressText?.detailText(resources)
                         ?: stringResource(R.string.setup_preparing_catalog),
                 )
+                // A full catalog takes minutes, and nobody should have to watch a spinner for them.
+                // Leaving is the first-class action here; Cancel is the quiet one, because it throws
+                // the import away.
+                Detail(stringResource(R.string.setup_watching_during_import))
+                MobileButton(
+                    text = stringResource(R.string.setup_run_in_background),
+                    onClick = onRunInBackground,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 MobileButton(
                     text = stringResource(R.string.common_cancel),
                     onClick = onCancel,
-                    style = MobileButtonStyle.SECONDARY,
+                    style = MobileButtonStyle.TEXT,
                 )
             }
         }

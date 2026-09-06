@@ -34,6 +34,7 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsAppPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsAppearancePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsContentPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsCustomizePage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsBackupPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsDataPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsErrorLogPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsFontsPage
@@ -216,7 +217,7 @@ fun MobileNavHost(
                     SettingsGroup.CONTENT -> SettingsContentPage(onOpenLeaf = openLeaf)
                     SettingsGroup.PLAYBACK -> SettingsPlaybackPage(onOpenLeaf = openLeaf)
                     SettingsGroup.NETWORK -> SettingsNetworkPage()
-                    SettingsGroup.DATA -> SettingsDataPage()
+                    SettingsGroup.DATA -> SettingsDataPage(onOpenLeaf = openLeaf)
                     SettingsGroup.APP -> SettingsAppPage(
                         onOpenLanguage = { navController.navigate(SettingsLeaf.LANGUAGE.route) },
                         onOpenErrorLog = { navController.navigate(SettingsLeaf.ERROR_LOG.route) },
@@ -242,6 +243,7 @@ fun MobileNavHost(
                     )
                     SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
                     SettingsLeaf.HOME -> SettingsHomePage()
+                    SettingsLeaf.BACKUP -> SettingsBackupPage()
                     SettingsLeaf.LANGUAGE -> SettingsLanguagePage()
                     SettingsLeaf.ERROR_LOG -> SettingsErrorLogPage()
                 }

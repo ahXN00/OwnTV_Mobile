@@ -71,6 +71,11 @@ import tv.own.owntv.mobile.ui.nav.liveChannelRoute
 import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE
 import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE_PATTERN
 import tv.own.owntv.mobile.ui.nav.SETUP_ROUTE
+import tv.own.owntv.core.profile.profileGateRequired
+import tv.own.owntv.core.profile.shellMayCompose
+import tv.own.owntv.mobile.ui.profiles.ProfileGate
+import tv.own.owntv.mobile.ui.profiles.ProfileGateSession
+import tv.own.owntv.mobile.ui.profiles.ProfilesViewModel
 import tv.own.owntv.mobile.ui.setup.SetupFlow
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.mobile.ui.player.FloatingMiniPlayer
@@ -111,6 +116,40 @@ fun MobileShell(
     // IS the app until one exists. No cancel — there is nowhere to cancel to.
     if (needsSetup == true) {
         SetupFlow(onDone = { }, modifier = modifier)
+        return
+    }
+
+    // Who is watching. The chooser is shown INSTEAD of the app rather than over it, so there is no
+    // back gesture out of it and nothing of the locked profile is on screen behind it. Both the
+    // profile list and the active id have to have arrived before anything is drawn: an active id
+    // that lands first, while Room is still deciding whether that profile is PIN-locked, would be
+    // enough to walk straight into it.
+    val profilesViewModel: ProfilesViewModel = koinViewModel()
+    val gateSession: ProfileGateSession = koinViewModel()
+    val profiles by profilesViewModel.profiles.collectAsStateWithLifecycle()
+    val activeProfileId by profilesViewModel.activeProfileId.collectAsStateWithLifecycle()
+    LaunchedEffect(activeProfileId) {
+        gateSession.invalidateIfNotProfile(activeProfileId.takeIf { it >= 0L })
+    }
+    // Nothing at all until Room answers — a frame of blank is the price of never showing the wrong
+    // person's library.
+    val loadedProfiles = profiles ?: return
+    if (!shellMayCompose(
+            profiles = loadedProfiles,
+            activeProfileId = activeProfileId,
+            authenticatedProfileId = gateSession.unlockedProfileId,
+            gateRequired = profileGateRequired(loadedProfiles),
+        )
+    ) {
+        // An empty list is a database still being restored, not a chooser with nothing in it.
+        if (loadedProfiles.isNotEmpty()) {
+            ProfileGate(
+                profiles = loadedProfiles,
+                onEntered = { gateSession.unlock(it.id) },
+                modifier = modifier,
+                vm = profilesViewModel,
+            )
+        }
         return
     }
 

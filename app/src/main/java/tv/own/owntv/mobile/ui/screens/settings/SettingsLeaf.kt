@@ -98,6 +98,13 @@ enum class SettingsLeaf(
         MobileIcons.Home,
     ),
 
+    BACKUP(
+        SettingsGroup.DATA, "backup",
+        R.string.settings_backup_title, R.string.settings_search_keywords_backup,
+        R.string.settings_backup_restore_description,
+        MobileIcons.Save,
+    ),
+
     LANGUAGE(
         SettingsGroup.APP, "language",
         R.string.settings_language, R.string.settings_search_keywords_language,

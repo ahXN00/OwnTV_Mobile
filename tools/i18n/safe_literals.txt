@@ -108,6 +108,8 @@
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/player/SubtitleSearchViewModel.kt	movie_name
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/player/SubtitleSearchViewModel.kt	release
 1	locale	app/src/main/java/tv/own/owntv/mobile/ui/player/TrackOptionText.kt	und
+4	empty	app/src/main/java/tv/own/owntv/mobile/ui/profiles/ProfileSheets.kt	\0
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/profiles/ProfileGate.kt	add
 1	file-path	app/src/main/java/tv/own/owntv/mobile/ui/screens/ContentActions.kt	${StorageAccess.sanitize(movie.name)}.
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Dev harness
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Rebuild Now Trending
@@ -185,6 +187,8 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchScreen.kt	m${it.id}
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchScreen.kt	s${it.id}
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchViewModel.kt	\0
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/BackupViewModel.kt	backup target unavailable
+1	file-path	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/BackupViewModel.kt	backup-export
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/DeleteSubtitlesPage.kt	delete-section
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/DeleteSubtitlesPage.kt	header
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/DeleteSubtitlesPage.kt	sections
@@ -223,6 +227,9 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsAppearancePage.kt	preview
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsAppearancePage.kt	theme
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsAppearancePage.kt	zoom
+3	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsBackupPage.kt	\0
+1	mime	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsBackupPage.kt	application/octet-stream
+1	file-path	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsBackupPage.kt	owntv-backup.own
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsCommon.kt	group-$titleRes
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsCommon.kt	leaves-${group.route}
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsCommon.kt	note-$textRes
@@ -259,6 +266,7 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPage.kt	menus
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPage.kt	nav
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	${group.route}/$slug
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	backup
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	customize
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	epg
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLeaf.kt	errorlog

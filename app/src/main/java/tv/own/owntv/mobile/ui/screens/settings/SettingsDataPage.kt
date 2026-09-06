@@ -38,6 +38,7 @@ private val HISTORY_SCOPES: List<MediaType?> =
  */
 @Composable
 fun SettingsDataPage(
+    onOpenLeaf: (SettingsLeaf) -> Unit,
     modifier: Modifier = Modifier,
     vm: SettingsViewModel = koinViewModel(),
 ) {
@@ -53,6 +54,7 @@ fun SettingsDataPage(
     var confirming by remember { mutableIntStateOf(-1) }
 
     SettingsPage(modifier) {
+        settingsLeafRows(SettingsGroup.DATA, onOpenLeaf)
         settingsSection(R.string.settings_group_data) {
             SettingRow(
                 title = stringResource(R.string.settings_download_folder),

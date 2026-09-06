@@ -37,6 +37,11 @@
 - **Trending titles your playlist actually has**
 - **The full trending card: artwork, badges, why it is there, trailer and all versions**
 - **Trending layout choice: detailed card or posters only**
+- **Who's watching? A profile chooser before the app opens**
+- **Locked profiles, kids profiles, and add/rename/delete from Settings**
+- **Backup & Restore on the phone, with a password and your own file picker**
+- **Choose which profiles and which parts of your data a backup carries**
+- **Run a large playlist import in the background**
 - **The guide refreshes itself after adding, re-syncing or deleting an EPG source**
 - **Fixed: leaving the guide could close the app**
 - **Weather on Home, in your own °C or °F**

@@ -459,6 +459,48 @@ release automation.
 - **Clearing history asks what to clear** — live, films, shows, or all of it — instead of taking the
   lot, and uses the same wording as the television.
 
+### 👤 Profiles
+
+- **The app asks who is watching before it shows anything.** When more than one profile exists, or a
+  profile is locked, a "Who's watching?" screen comes first, with each profile's picture, its name
+  and a tag for a kids profile or a locked one. Nothing of anybody's library is drawn until a
+  profile has been chosen and, if it is locked, unlocked.
+- **Every prompt here rises from the bottom of the screen**, frosted like the rest of the app, so it is
+  where your thumb is and the keyboard does not cover it — the PIN, the profile editor, and every
+  choice on the way into and out of a backup.
+- **A locked profile asks for its PIN**, and a wrong PIN says so and clears the field rather than
+  letting you through.
+- **Add, rename, re-picture, lock, unlock and delete a profile**, from the chooser or from the
+  Profile page in Settings. A profile can be marked as a kids profile, and the last remaining
+  profile cannot be deleted.
+- **Unlocking lasts for as long as the app is open**, so rotating the phone or coming back from
+  another app does not ask again — but closing the app does.
+- **Switching profile is a tap on the Profile settings page**, and a locked one asks for its PIN
+  before it switches.
+
+### 💾 Backup and restore, from the phone
+
+- **A Backup & Restore page of its own**, under Data in Settings, doing everything the television's
+  does.
+- **You choose whose data goes in.** Every profile is listed, the one you are using is ticked, and a
+  locked profile that is not yours has to be unlocked with its PIN before it can be included.
+- **You choose what goes in** — playlists, your Customize layout, favourites, history, resume
+  points, your manual ordering and your settings — and the same choice again when restoring, out of
+  what the file actually holds.
+- **A password encrypts the whole file**, so nothing in it — not your playlist addresses, not your
+  history, not even the list of what is inside — can be read without it. Without a password the file
+  is still written, but your playlist passwords are simply left out and you re-enter them after a
+  restore.
+- **The backup goes wherever you keep files** — the downloads folder, a cloud drive, an SD card —
+  through the phone's own file picker, so the app never asks for access to all your storage.
+- **Restoring adds to what is there rather than replacing it**, and tells you how much came back.
+
+### ⏳ A large playlist can finish in the background
+
+- **"Run in background" while a playlist is importing.** A provider with a hundred thousand films
+  takes a while; the button leaves the sync running and lets you use the app while it finishes,
+  instead of holding you on the progress screen.
+
 ### 📱 It behaves like a phone, not a television
 
 - **The settings that a phone does not have say so.** The Playback page ends with one line

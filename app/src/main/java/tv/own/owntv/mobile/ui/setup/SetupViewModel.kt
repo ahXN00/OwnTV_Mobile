@@ -2,7 +2,7 @@ package tv.own.owntv.mobile.ui.setup
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.database.dao.ProfileDao
@@ -20,11 +20,17 @@ import java.io.File
  * [SourceImporter], shared with the television. What is this app's own is the job the import runs in
  * and the profile it attaches to: on a phone that is already set up there is an active profile to
  * add to, and only a first run creates one.
+ *
+ * The import runs in [appScope], not in this ViewModel's own scope. "Run in background" leaves the
+ * wizard, and leaving it here means popping a navigation entry — which clears the ViewModel that
+ * entry owns and would cancel the very sync the button promised to keep running. The job is still
+ * cancelled explicitly by Cancel; it is only the screen going away that no longer stops it.
  */
 class SetupViewModel(
     private val importer: SourceImporter,
     private val profileDao: ProfileDao,
     private val settings: SettingsRepository,
+    private val appScope: CoroutineScope,
     private val context: Context,
 ) : ViewModel() {
 
@@ -79,17 +85,27 @@ class SetupViewModel(
     /** Restore everything from a backup file; an encrypted one asks for its password first. */
     fun importBackup(file: File) {
         importJob?.cancel()
-        importJob = viewModelScope.launch { importer.importBackup(file) }
+        importJob = appScope.launch { importer.importBackup(file) }
     }
 
     fun restoreWithPassword(file: File, password: String?) {
         importJob?.cancel()
-        importJob = viewModelScope.launch { importer.restoreWithPassword(file, password) }
+        importJob = appScope.launch { importer.restoreWithPassword(file, password) }
+    }
+
+    /**
+     * "Run in background": enter the app now and let the import finish on its own. It deliberately
+     * does not cancel — cancelling would undo the playlist the user just added — and the sync pill
+     * on the shell is what tells them it is still going.
+     */
+    fun continueInBackground(onDone: () -> Unit) {
+        importer.backgroundHandoff = true
+        finish(onDone)
     }
 
     /** Ends the flow: the profile the content landed on becomes the active one. */
     fun finish(onDone: () -> Unit) {
-        viewModelScope.launch {
+        appScope.launch {
             importer.finish()
             onDone()
         }
@@ -105,7 +121,7 @@ class SetupViewModel(
 
     private fun runImport(block: suspend () -> Unit) {
         importJob?.cancel()
-        val job = viewModelScope.launch {
+        val job = appScope.launch {
             attachToProfile()
             block()
         }
