@@ -13,48 +13,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.flow.flowOf
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.menu.applyMenuOrder
 import tv.own.owntv.core.menu.catalogue
 import tv.own.owntv.core.model.ContentMenu
-import tv.own.owntv.core.model.HomeConfig
-import tv.own.owntv.core.model.HomeRow
 import tv.own.owntv.core.nav.MainSection
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
-import tv.own.owntv.mobile.ui.components.MobileSwitch
 import tv.own.owntv.mobile.ui.components.SettingRow
 
 private const val MIN_DENSITY = 70
 private const val MAX_DENSITY = 130
 
 /**
- * Where things sit: the navigation bar, what a browse section returns to, the Home rows, the order
- * of the long-press menus and how tall a guide row is.
+ * Where things sit: the navigation bar, what a browse section returns to, the order of the long-press
+ * menus and how tall a guide row is. Home has enough of its own to be a screen rather than a block.
  *
  * Every one of these is stored where the TV app stores it, so a user who hides Downloads or moves
  * "Download" to the top of the movie menu here finds the television already agreeing with them.
  */
 @Composable
 fun SettingsLayoutPage(
+    onOpenLeaf: (SettingsLeaf) -> Unit,
     modifier: Modifier = Modifier,
     vm: SettingsViewModel = koinViewModel(),
 ) {
     val navMode = vm.settings.navMenuMode.pref(SettingsRepository.NavMenuMode.STATIC)
     val navHidden = vm.settings.navMenuHidden.pref(emptySet())
     var navModeSheet by remember { mutableStateOf(false) }
-
-    val profileId = vm.settings.activeProfileId.pref(-1L)
-    val home = remember(profileId) {
-        if (profileId < 0) flowOf(HomeConfig()) else vm.settings.homeConfig(profileId)
-    }.pref(HomeConfig())
-    fun editHome(transform: (HomeConfig) -> HomeConfig) {
-        if (profileId < 0) return
-        vm.edit { updateHomeConfig(profileId, transform) }
-    }
 
     var menuSheet by remember { mutableStateOf<ContentMenu?>(null) }
 
@@ -69,6 +57,8 @@ fun SettingsLayoutPage(
     val guideDensity = vm.settings.guideDensityPct.pref(100)
 
     SettingsPage(modifier) {
+        settingsLeafRows(SettingsGroup.LAYOUT, onOpenLeaf)
+
         // --- Navigation bar ---
         settingsSection(R.string.settings_nav_bar_customization)
         settingsNote(R.string.settings_sidebar_description_root)
@@ -119,63 +109,6 @@ fun SettingsLayoutPage(
                 lastItem = lastSeries,
                 onCategory = { on -> vm.edit { setRememberCategorySeries(on) } },
                 onLastItem = { on -> vm.edit { setRememberLastSeries(on) } },
-            )
-        }
-
-        // --- Home ---
-        settingsSection(R.string.settings_home_root)
-        settingsNote(R.string.settings_home_description)
-        settingsGroup(key = "home") {
-            SettingRow(
-                title = stringResource(R.string.home_row_now_trending),
-                subtitle = stringResource(R.string.home_row_trending_description),
-                checked = HomeRow.TRENDING !in home.hidden,
-                onCheckedChange = { show ->
-                    editHome { it.copy(hidden = if (show) it.hidden - HomeRow.TRENDING else it.hidden + HomeRow.TRENDING) }
-                },
-            )
-            home.settingsRows.forEach { row ->
-                val order = home.settingsRows
-                val index = order.indexOf(row)
-                ReorderableSwitchRow(
-                    title = stringResource(row.titleRes()),
-                    subtitle = stringResource(row.descriptionRes()),
-                    checked = row !in home.hidden,
-                    onCheckedChange = { show ->
-                        editHome { it.copy(hidden = if (show) it.hidden - row else it.hidden + row) }
-                    },
-                    canMoveUp = index > 0,
-                    canMoveDown = index < order.lastIndex,
-                    onMove = { delta ->
-                        val moved =
-                            order.toMutableList().apply { add(index + delta, removeAt(index)) }
-                        editHome { it.copy(order = listOf(HomeRow.TRENDING) + moved) }
-                    },
-                )
-            }
-            SettingRow(
-                title = stringResource(R.string.settings_hero_preview),
-                subtitle = stringResource(R.string.settings_hero_preview_description),
-                checked = vm.settings.heroPreviewEnabled.pref(vm.settings.heroPreviewDefault),
-                onCheckedChange = { on -> vm.edit { setHeroPreviewEnabled(on) } },
-            )
-            SettingRow(
-                title = stringResource(R.string.settings_live_keep_watching),
-                subtitle = stringResource(R.string.settings_live_keep_watching_description),
-                checked = home.heroIncludeLive,
-                onCheckedChange = { on -> editHome { it.copy(heroIncludeLive = on) } },
-            )
-            SettingRow(
-                title = stringResource(R.string.settings_movies_keep_watching),
-                subtitle = stringResource(R.string.settings_movies_keep_watching_description),
-                checked = home.heroIncludeMovies,
-                onCheckedChange = { on -> editHome { it.copy(heroIncludeMovies = on) } },
-            )
-            SettingRow(
-                title = stringResource(R.string.settings_series_keep_watching),
-                subtitle = stringResource(R.string.settings_series_keep_watching_description),
-                checked = home.heroIncludeSeries,
-                onCheckedChange = { on -> editHome { it.copy(heroIncludeSeries = on) } },
             )
         }
 
@@ -243,36 +176,8 @@ private fun BrowsingRows(
     )
 }
 
-/**
- * A row that can be both switched off and moved. The TV app picks a row up with OK and walks it with
- * the D-pad; a thumb gets two arrows instead, because there is nothing to hold on a touch screen.
- */
 @Composable
-private fun ReorderableSwitchRow(
-    title: String,
-    subtitle: String?,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
-    onMove: (Int) -> Unit,
-) {
-    MobileListRow(
-        title = title,
-        subtitle = subtitle,
-        onClick = { onCheckedChange(!checked) },
-        trailing = {
-            Row {
-                MoveButton(up = true, enabled = canMoveUp) { onMove(-1) }
-                MoveButton(up = false, enabled = canMoveDown) { onMove(1) }
-                MobileSwitch(checked = checked)
-            }
-        },
-    )
-}
-
-@Composable
-private fun MoveButton(up: Boolean, enabled: Boolean, onClick: () -> Unit) {
+internal fun MoveButton(up: Boolean, enabled: Boolean, onClick: () -> Unit) {
     IconButton(onClick = onClick, enabled = enabled) {
         Icon(
             imageVector = if (up) MobileIcons.KeyboardArrowUp else MobileIcons.KeyboardArrowDown,
@@ -323,24 +228,6 @@ private fun SettingsRepository.NavMenuMode.labelRes() = when (this) {
 private fun SettingsRepository.NavMenuMode.descriptionRes() = when (this) {
     SettingsRepository.NavMenuMode.DYNAMIC -> R.string.settings_nav_dynamic_description
     SettingsRepository.NavMenuMode.STATIC -> R.string.settings_nav_static_description
-}
-
-private fun HomeRow.titleRes() = when (this) {
-    HomeRow.TRENDING -> R.string.home_row_now_trending
-    HomeRow.HERO -> R.string.settings_keep_watching
-    HomeRow.RECENT_CHANNELS -> R.string.home_row_recent_channels
-    HomeRow.FAVORITE_CHANNELS -> R.string.home_row_favorite_channels
-    HomeRow.CONTINUE_MOVIES -> R.string.home_row_continue_movies
-    HomeRow.CONTINUE_SERIES -> R.string.home_row_continue_series
-}
-
-private fun HomeRow.descriptionRes() = when (this) {
-    HomeRow.TRENDING -> R.string.home_row_trending_description
-    HomeRow.HERO -> R.string.home_row_hero_description
-    HomeRow.RECENT_CHANNELS -> R.string.home_row_recent_description
-    HomeRow.FAVORITE_CHANNELS -> R.string.home_row_favorite_description
-    HomeRow.CONTINUE_MOVIES -> R.string.home_row_continue_movies_description
-    HomeRow.CONTINUE_SERIES -> R.string.home_row_continue_series_description
 }
 
 private fun ContentMenu.titleRes() = when (this) {

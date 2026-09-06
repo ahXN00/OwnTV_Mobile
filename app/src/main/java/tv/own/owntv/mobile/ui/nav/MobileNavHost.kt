@@ -37,6 +37,8 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsDataPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsErrorLogPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsFontsPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsGlassPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsHomePage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsLanguagePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsGroup
 import tv.own.owntv.mobile.ui.screens.settings.SettingsLayoutPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsLeaf
@@ -204,12 +206,13 @@ fun MobileNavHost(
                     SettingsGroup.PROFILE -> SettingsProfilePage()
                     SettingsGroup.SOURCES -> SettingsSourcesPage(onOpenLeaf = openLeaf)
                     SettingsGroup.APPEARANCE -> SettingsAppearancePage(onOpenLeaf = openLeaf)
-                    SettingsGroup.LAYOUT -> SettingsLayoutPage()
+                    SettingsGroup.LAYOUT -> SettingsLayoutPage(onOpenLeaf = openLeaf)
                     SettingsGroup.CONTENT -> SettingsContentPage(onOpenLeaf = openLeaf)
                     SettingsGroup.PLAYBACK -> SettingsPlaybackPage(onOpenLeaf = openLeaf)
                     SettingsGroup.NETWORK -> SettingsNetworkPage()
                     SettingsGroup.DATA -> SettingsDataPage()
                     SettingsGroup.APP -> SettingsAppPage(
+                        onOpenLanguage = { navController.navigate(SettingsLeaf.LANGUAGE.route) },
                         onOpenErrorLog = { navController.navigate(SettingsLeaf.ERROR_LOG.route) },
                     )
                 }
@@ -232,6 +235,8 @@ fun MobileNavHost(
                         onOpenLeaf = { target -> navController.navigate(target.route) },
                     )
                     SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
+                    SettingsLeaf.HOME -> SettingsHomePage()
+                    SettingsLeaf.LANGUAGE -> SettingsLanguagePage()
                     SettingsLeaf.ERROR_LOG -> SettingsErrorLogPage()
                 }
             }
@@ -263,6 +268,9 @@ fun MobileNavHost(
  */
 private fun channelRoute(parent: MobileDestination, channelId: Long, openCatchup: Boolean) =
     "${parent.route}/$CHANNEL_SEGMENT/$channelId/$openCatchup"
+
+/** A channel opened from outside the graph — the profile's "Start on a channel" setting. */
+fun liveChannelRoute(channelId: Long) = channelRoute(MobileDestination.LIVE, channelId, false)
 
 /** A channel screen draws the picture itself, under whichever tab it was opened from. */
 fun isChannelRoute(route: String?): Boolean = route?.contains("/$CHANNEL_SEGMENT/") == true

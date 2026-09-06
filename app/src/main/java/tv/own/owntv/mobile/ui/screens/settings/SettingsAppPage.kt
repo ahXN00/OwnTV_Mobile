@@ -1,8 +1,17 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,16 +21,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import tv.own.owntv.core.database.entity.ChannelEntity
+import tv.own.owntv.core.companion.CompanionLink
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.i18n.SupportedLocales
 import tv.own.owntv.core.settings.StartupMode
@@ -46,6 +61,7 @@ import java.util.Date
  */
 @Composable
 fun SettingsAppPage(
+    onOpenLanguage: () -> Unit,
     onOpenErrorLog: () -> Unit,
     modifier: Modifier = Modifier,
     vm: SettingsViewModel = koinViewModel(),
@@ -55,7 +71,7 @@ fun SettingsAppPage(
     val mode = vm.startupMode.pref(StartupMode.HOME)
     val channel = vm.startupChannel.pref(null)
 
-    var languageSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     var startupSheet by remember { mutableStateOf(false) }
     var channelSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -66,7 +82,8 @@ fun SettingsAppPage(
                 title = stringResource(R.string.settings_language),
                 subtitle = stringResource(R.string.settings_language_description),
                 value = localeLabel(tag),
-                onClick = { languageSheet = true },
+                showChevron = true,
+                onClick = onOpenLanguage,
             )
 
             SettingRow(
@@ -94,11 +111,38 @@ fun SettingsAppPage(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
+                    text = stringResource(R.string.settings_about_description_full_mobile),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = MobileDimens.GapSmall),
+                )
+                Text(
                     text = stringResource(R.string.settings_about_license),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Text(
+                    text = stringResource(R.string.settings_contributions),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = MobileDimens.GapSmall),
+                )
             }
+
+            SettingRow(
+                title = stringResource(R.string.settings_about),
+                subtitle = GITHUB_REPO,
+                onClick = { openLink(context, "https://$GITHUB_REPO") },
+            )
+
+            // The link is what a phone user taps; the QR is for the person sitting next to them, and
+            // it is drawn from the address rather than shipped as an image so the two cannot drift.
+            SettingRow(
+                title = stringResource(R.string.settings_join_telegram),
+                subtitle = TELEGRAM_LINK,
+                onClick = { openLink(context, "https://$TELEGRAM_LINK") },
+            )
+            TelegramQr()
 
             SettingRow(
                 title = stringResource(R.string.settings_playback_error_log),
@@ -107,16 +151,6 @@ fun SettingsAppPage(
                 onClick = onOpenErrorLog,
             )
         }
-    }
-
-    if (languageSheet) {
-        SettingsChoiceSheet(
-            title = stringResource(R.string.settings_language),
-            choices = LOCALE_TAGS.map { SettingsChoice(it, localeLabel(it)) },
-            selected = tag,
-            onSelect = { picked -> scope.launch { runCatching { localeStore.set(picked) } } },
-            onDismiss = { languageSheet = false },
-        )
     }
 
     if (startupSheet) {
@@ -301,9 +335,47 @@ private fun LogEntry(entry: PlaybackErrorLog.Entry, when_: String) {
     }
 }
 
-/** The picker's rows: "follow the device" first, then every packaged language in its own name. */
-private val LOCALE_TAGS: List<String> =
-    listOf("") + SupportedLocales.pickerRows.map { it.languageTag }.filter { it.isNotBlank() }
+private const val GITHUB_REPO = "github.com/ahXN00/OwnTV"
+private const val TELEGRAM_LINK = "t.me/owntvplayer"
+
+/** The group's address as a code to point a camera at, with the line that says what to do with it. */
+@Composable
+private fun TelegramQr() {
+    val qr = remember { CompanionLink.renderQr("https://$TELEGRAM_LINK") } ?: return
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MobileDimens.ScreenPaddingH),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White)
+                .padding(8.dp),
+        ) {
+            Image(
+                bitmap = qr.asImageBitmap(),
+                contentDescription = stringResource(R.string.settings_telegram_qr),
+                modifier = Modifier.size(160.dp),
+            )
+        }
+        Text(
+            text = stringResource(R.string.settings_telegram_scan),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = MobileDimens.GapSmall),
+        )
+    }
+}
+
+private fun openLink(context: Context, url: String) {
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+}
 
 @Composable
 private fun localeLabel(tag: String): String =

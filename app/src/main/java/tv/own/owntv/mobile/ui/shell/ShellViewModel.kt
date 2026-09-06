@@ -7,15 +7,31 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import tv.own.owntv.core.content.AdultCategoryClassifier
+import tv.own.owntv.core.database.dao.CategoryDao
+import tv.own.owntv.core.database.dao.ChannelDao
+import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.SourceDao
+import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.nav.MainSection
 import tv.own.owntv.core.nav.NavVisibility
+import tv.own.owntv.core.repository.activeProfileSources
+import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.settings.StartupMode
 
 /** Shell state: which destinations the active playlist offers, and the tap that sends a list home. */
-class ShellViewModel(navVisibility: NavVisibility, sourceDao: SourceDao) : ViewModel() {
+class ShellViewModel(
+    navVisibility: NavVisibility,
+    private val sourceDao: SourceDao,
+    private val channelDao: ChannelDao,
+    private val categoryDao: CategoryDao,
+    private val profileDao: ProfileDao,
+    private val settings: SettingsRepository,
+) : ViewModel() {
 
     /**
      * Whether the app has nothing to show yet. Null until the database has answered, so the shell
@@ -37,4 +53,70 @@ class ShellViewModel(navVisibility: NavVisibility, sourceDao: SourceDao) : ViewM
     fun requestScrollToTop(route: String) {
         viewModelScope.launch { _scrollToTop.emit(route) }
     }
+
+    /**
+     * Where this launch should land, from the profile's own "Start on" setting.
+     *
+     * A stored channel is looked up three ways because a re-sync gives every channel a new row id:
+     * the provider's own id first, then the name, then the old row id. Losing the channel is not a
+     * reason to refuse to start, so anything unresolved lands on Home and says so.
+     */
+    suspend fun resolveStartup(): StartupTarget {
+        val ctx = activeProfileSources(settings, sourceDao).first { it.profileId >= 0L }
+        return when (settings.startupMode(ctx.profileId).first()) {
+            StartupMode.HOME -> StartupTarget.Home
+            StartupMode.FAVORITES -> StartupTarget.Favorites
+            StartupMode.LAST_CHANNEL -> {
+                val channel = channelDao.recentlyWatched(ctx.profileId, 1).first().firstOrNull()
+                if (channel != null && isVisible(channel, ctx.profileId, ctx.sources.map { it.id }.toSet())) {
+                    StartupTarget.Channel(channel.id)
+                } else {
+                    StartupTarget.Home
+                }
+            }
+            StartupMode.SPECIFIC_CHANNEL -> {
+                val ref = settings.startupChannel(ctx.profileId).first()
+                val channel = ref?.let {
+                    (it.remoteId?.takeIf(String::isNotBlank)?.let { id -> channelDao.findByRemote(it.sourceId, id) })
+                        ?: channelDao.findByName(it.sourceId, it.name)
+                        ?: it.itemId.takeIf { id -> id > 0L }?.let { id -> channelDao.getById(id) }
+                }
+                if (channel != null && isVisible(channel, ctx.profileId, ctx.sources.map { it.id }.toSet())) {
+                    StartupTarget.Channel(channel.id)
+                } else {
+                    StartupTarget.ChannelUnavailable
+                }
+            }
+        }
+    }
+
+    /** A channel the profile cannot reach must not be opened by a setting the profile did not set. */
+    private suspend fun isVisible(channel: ChannelEntity, profileId: Long, sourceIds: Set<Long>): Boolean =
+        channel.sourceId in sourceIds &&
+            AdultCategoryClassifier.allows(profileId, channel.categoryId, profileDao, categoryDao)
+}
+
+/** Where a launch lands. */
+sealed interface StartupTarget {
+    data object Home : StartupTarget
+    data object Favorites : StartupTarget
+    data class Channel(val id: Long) : StartupTarget
+
+    /** The chosen channel is gone — the playlist dropped it, or a re-sync renamed it. */
+    data object ChannelUnavailable : StartupTarget
+}
+
+/**
+ * "Start on: Favorites", handed to Live TV.
+ *
+ * The shell decides it and the Live TV screen acts on it, and the two are built at different moments
+ * on different screens, so it is a one-shot the shell sets and Live TV takes exactly once — a second
+ * visit to Live TV in the same session is an ordinary visit.
+ */
+class StartupLiveSelection {
+    private var pendingFavorites = false
+
+    fun requestFavorites() { pendingFavorites = true }
+
+    fun consumeFavorites(): Boolean = pendingFavorites.also { pendingFavorites = false }
 }

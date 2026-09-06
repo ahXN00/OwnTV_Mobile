@@ -19,6 +19,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +32,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -110,10 +115,16 @@ internal class SheetEntry(
     var content by mutableStateOf(content)
 }
 
-/** The one place an open sheet lives. Sheets are modal, so there is only ever one. */
+/**
+ * The one place open sheets live — a stack, not a single slot.
+ *
+ * Only the topmost is drawn, but a sheet opened *from* a sheet has to find its parent still standing
+ * when it closes. Held in one slot, the child overwrote the parent and closing the child left nothing
+ * behind: picking a playlist in "Fill from playlist" simply shut both sheets and did nothing.
+ */
 @Stable
 class SheetHostState internal constructor() {
-    internal var entry by mutableStateOf<SheetEntry?>(null)
+    internal val entries = mutableStateListOf<SheetEntry>()
 }
 
 internal val LocalSheetHost = staticCompositionLocalOf<SheetHostState?> { null }
@@ -129,7 +140,7 @@ internal val LocalSheetHost = staticCompositionLocalOf<SheetHostState?> { null }
 @Composable
 fun MobileSheetHost(content: @Composable () -> Unit) {
     val host = remember { SheetHostState() }
-    val entry = host.entry
+    val entry = host.entries.lastOrNull()
     Box(Modifier.fillMaxSize()) {
         Box(
             Modifier
@@ -155,7 +166,7 @@ fun MobileSheetHost(content: @Composable () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun BoxScope.SheetLayer(entry: SheetEntry) {
     val animations = LocalAnimations.current
@@ -208,6 +219,22 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
         }
         snapshotFlow { state.settledValue }
             .collect { if (it == SheetAnchor.HIDDEN) entry.onDismissRequest() }
+    }
+
+    // The keyboard takes the bottom half of the screen, which is exactly where a half-open sheet
+    // rests: the field being typed into ends up behind the keys. Opening the keyboard therefore
+    // opens the sheet all the way, and `imePadding` above keeps it clear of the keys.
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(imeVisible) {
+        if (!imeVisible) return@LaunchedEffect
+        snapshotFlow { state.anchors.size }.first { it > 0 }
+        runCatching {
+            if (animations == AnimationLevel.OFF) {
+                state.snapTo(SheetAnchor.EXPANDED)
+            } else {
+                state.animateTo(SheetAnchor.EXPANDED)
+            }
+        }
     }
 
     // Going away is the same journey as coming up, and obeys the same setting: with animations off a
@@ -269,6 +296,9 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
             // clears the screen now that the sheet rests above the edge rather than on it.
             .onSizeChanged { sheetHeight = it.height }
             .imePadding()
+            // A tall sheet with the keyboard up is the one case that reaches the top of the screen,
+            // and its title must not end up printed across the clock.
+            .statusBarsPadding()
             .navigationBarsPadding()
             .padding(
                 start = MobileDimens.ShellInset,

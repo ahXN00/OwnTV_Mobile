@@ -37,6 +37,9 @@ release automation.
   again if it is wrong.
 - **The import shows what it is doing** while it runs, counts what it found, and cleans up after
   itself if it fails, so a failed attempt never leaves half a playlist behind.
+- **Building the trending row shows its progress in detail.** That one job can spend minutes on a
+  single stage, so the strip at the top names the stage and the numbers moving through it — the only
+  sign it is working rather than stuck.
 
 ### 📺 Live TV
 
@@ -113,6 +116,11 @@ release automation.
 - **Your favourite and recently watched channels**, either as logos to pick from or as a list of what
   is on each of them right now — tap the switch above the row to change your mind, on either device.
 - **What is trending**, but only the titles your own playlist actually has.
+- **When the trending row is missing, Settings says why.** Layout → Home names the actual reason —
+  metadata turned off, a playlist with no films or shows, a sync that has not run yet, or too few
+  matches to be worth a row — and offers to build it again there and then, instead of leaving a blank
+  space with nothing to act on. The television and the phone read the same rows, so they can never
+  give you two different answers.
 - **The weather at the top**, in °C or °F, exactly as you set it on the television.
 - **Nothing yet?** Home says so and offers to add a playlist.
 
@@ -389,6 +397,14 @@ release automation.
   sheet under your finger, and the keyboard no longer covers a rename field. The dialogs that are
   still true dialogs blur what is behind them on Android 12 and newer, and stop doing it while
   battery saver is on.
+- **Anything you type into rises above the keyboard.** Every sheet with a text field — adding a
+  playlist, adding an EPG address, renaming, searching for subtitles — now lifts itself and scrolls
+  the field you are in into view when the keyboard opens, so you can see what you are typing instead
+  of typing underneath it. A sheet opened at full height also stops short of the status bar rather
+  than running under the clock.
+- **"Fill from playlist" fills the address in.** Adding an EPG source and picking one of your
+  playlists used to close the picker and do nothing at all; it now puts that playlist's guide address
+  into the field, ready to save.
 - **One press-and-hold menu, the same everywhere.** A film on Home, a show in the library, a channel
   in Live TV and a result in Search all open the same menu with the same actions in the same order,
   instead of four menus that each knew about a few of them.
@@ -413,6 +429,18 @@ release automation.
   type.
 - **Everything is stored where the TV app stores it**, so a setting changed on the phone and backed
   up arrives on the television when you restore it there.
+- **The language picker is a page you can search.** All 26 languages, each in its own script with the
+  language's own name beside the English one, how complete its translation is, and a search field —
+  type "de", "Deutsch" or "German" and you land on the same row. Following the system language is
+  still the top choice.
+- **Help translate, from inside the app.** The language page offers a link to the translation site,
+  a QR code for anyone with a second device, a way to copy the address, and a way to ask for a
+  language that is not there yet.
+- **About tells you what the app is**, with the version, what it does and does not do, the licence,
+  who has contributed, a link to the source code and a link to the Telegram group with a QR code
+  drawn from the address itself, so the code and the link can never disagree.
+- **Clearing history asks what to clear** — live, films, shows, or all of it — instead of taking the
+  lot, and uses the same wording as the television.
 
 ### 📱 It behaves like a phone, not a television
 

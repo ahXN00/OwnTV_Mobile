@@ -111,7 +111,13 @@ fun HomeScreen(
     val rows = state.config.visibleOrder.filter { state.hasContent(it) }
 
     if (rows.isEmpty()) {
-        EmptyHome(onAddSource = onAddSource, modifier = modifier)
+        // Two different empty screens: nothing to show yet, and nothing left switched on. Offering
+        // "add a playlist" to a user who simply hid every row sends them to fix the wrong thing.
+        EmptyHome(
+            allRowsHidden = state.config.visibleOrder.isEmpty(),
+            onAddSource = onAddSource,
+            modifier = modifier,
+        )
         return
     }
 
@@ -660,20 +666,28 @@ private fun WeatherInfo.conditionIcon(): ImageVector = when {
 }
 
 @Composable
-private fun EmptyHome(onAddSource: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyHome(
+    allRowsHidden: Boolean,
+    onAddSource: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxSize().padding(MobileDimens.GapLarge),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.content_epg_add_playlist_first),
+            text = stringResource(
+                if (allRowsHidden) R.string.home_no_rows else R.string.content_epg_add_playlist_first,
+            ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onAddSource, modifier = Modifier.padding(top = MobileDimens.GapMedium)) {
-            Text(stringResource(R.string.setup_add_playlist))
+        if (!allRowsHidden) {
+            Button(onClick = onAddSource, modifier = Modifier.padding(top = MobileDimens.GapMedium)) {
+                Text(stringResource(R.string.setup_add_playlist))
+            }
         }
     }
 }

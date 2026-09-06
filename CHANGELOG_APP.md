@@ -155,6 +155,16 @@
 - **Stream information scrolls**
 - **Fixed: flicking a long list inside a pop-up sheet closed the app**
 - **The Playback page says which settings are television-only**
+- **Home settings page: why the trending row is missing, and a button to build it again**
+- **Language page with search, each language in its own script and how complete it is**
+- **Help translate, with a link, a QR code and a way to ask for a new language**
+- **About: version, licence, contributors, source code and the Telegram group with a QR code**
+- **Clear history by kind: live, films, shows or all of it**
+- **Building the trending row shows its stage and counts**
+- **Fixed: Detailed logging in settings search now lands on the page that has it**
+- **Fixed: "Fill from playlist" when adding an EPG source now fills the address in**
+- **Fixed: a pop-up you type into rises above the keyboard instead of hiding behind it**
+- **Fixed: a full-height sheet no longer runs under the status bar**
 - **Picture-in-Picture, with pause and channel +/− buttons**
 - **Phone and emulator builds from one signing key, shared with the TV app**
 - **26 languages on day one, inherited from the core library**

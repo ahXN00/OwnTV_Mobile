@@ -67,6 +67,7 @@ import tv.own.owntv.mobile.ui.nav.MobileNavHost
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.mobile.ui.nav.PLAYER_ROUTE
 import tv.own.owntv.mobile.ui.nav.isChannelRoute
+import tv.own.owntv.mobile.ui.nav.liveChannelRoute
 import tv.own.owntv.mobile.ui.nav.SEARCH_ROUTE
 import tv.own.owntv.mobile.ui.nav.SETUP_ROUTE
 import tv.own.owntv.mobile.ui.setup.SetupFlow
@@ -167,6 +168,30 @@ fun MobileShell(
         }
     }
 
+    // "Start on" — Home, the last channel watched, the Favorites folder, or one chosen channel. Once
+    // per launch, and only once the database has said there is something to open: on a first run the
+    // setup flow is the app, and a channel resolved against an empty database is not a missing
+    // channel. A channel opens its own screen rather than the full screen player, because a phone is
+    // picked up in places where sound arriving unannounced is not welcome.
+    val context = LocalContext.current
+    val startupLive: StartupLiveSelection = koinInject()
+    val startupUnavailable = stringResource(tv.own.owntv.mobile.R.string.settings_startup_channel_unavailable)
+    var startupHandled by remember { mutableStateOf(false) }
+    LaunchedEffect(needsSetup) {
+        if (needsSetup != false || startupHandled) return@LaunchedEffect
+        startupHandled = true
+        when (val target = shellViewModel.resolveStartup()) {
+            StartupTarget.Home -> Unit
+            StartupTarget.Favorites -> {
+                startupLive.requestFavorites()
+                navController.navigateToTab(MobileDestination.LIVE)
+            }
+            is StartupTarget.Channel -> navController.navigate(liveChannelRoute(target.id))
+            StartupTarget.ChannelUnavailable ->
+                Toast.makeText(context, startupUnavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
     val favorite by tuner.isFavorite.collectAsStateWithLifecycle()
     var windowMenu by remember { mutableStateOf(false) }
     var sleepSheet by remember { mutableStateOf(false) }
@@ -193,7 +218,6 @@ fun MobileShell(
     val metadataBudget: MetadataBudget = koinInject()
     val budgetRefusedAt by metadataBudget.refusedAt.collectAsStateWithLifecycle()
     var budgetNoticeShown by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     LaunchedEffect(budgetRefusedAt) {
         if (budgetRefusedAt > 0L && !budgetNoticeShown) {
             budgetNoticeShown = true
@@ -405,6 +429,15 @@ fun MobileShell(
                         navController = navController,
                         scrollToTop = shellViewModel.scrollToTop,
                         onNavigate = { navController.navigateToTab(it) },
+                    )
+                }
+                // Low over the page, under the mini player: a sync running while the user browses is
+                // news, but it is never what they came to the screen for.
+                if (!fullscreen) {
+                    SyncStatusPill(
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding(),
                     )
                 }
                 // Over the content rather than beside it, because that is what a floating window is.

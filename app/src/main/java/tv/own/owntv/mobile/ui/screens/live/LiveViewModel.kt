@@ -56,6 +56,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.core.sync.work.CatalogSyncScheduler
 import tv.own.owntv.mobile.ui.components.ReorderItem
+import tv.own.owntv.mobile.ui.shell.StartupLiveSelection
 
 /** One chip in the strip above the channel list. [builtIn] labels are translated; the rest are the
  *  user's or the provider's own names, so they are carried as text. */
@@ -88,6 +89,7 @@ class LiveViewModel(
     private val externalPlayerLauncher: ExternalPlayerLauncher,
     private val streamUrlResolver: StreamUrlResolver,
     private val syncScheduler: CatalogSyncScheduler,
+    startupSelection: StartupLiveSelection,
     epgDao: EpgDao,
     epgSourceStore: EpgSourceStore,
     xtreamClient: XtreamClient,
@@ -259,6 +261,9 @@ class LiveViewModel(
             if (settings.rememberCategoryLive.first()) {
                 parseLiveKey(settings.lastLiveCategory.first())?.let { _selected.value = it }
             }
+            // "Start on: Favorites" outranks the remembered folder — it is what the user asked this
+            // launch to open on, and it applies to this launch only.
+            if (startupSelection.consumeFavorites()) _selected.value = LiveKey.Favorites
         }
     }
 

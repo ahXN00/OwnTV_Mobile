@@ -144,8 +144,8 @@ private fun StorageAccess.RootKind.labelRes() = when (this) {
 }
 
 private fun MediaType?.scopeLabelRes() = when (this) {
-    MediaType.LIVE -> R.string.common_nav_live_tv
-    MediaType.MOVIE -> R.string.common_nav_movies
-    MediaType.SERIES -> R.string.common_nav_series
+    MediaType.LIVE -> R.string.settings_history_live
+    MediaType.MOVIE -> R.string.settings_history_movies
+    MediaType.SERIES -> R.string.settings_history_series
     else -> R.string.settings_all_history
 }

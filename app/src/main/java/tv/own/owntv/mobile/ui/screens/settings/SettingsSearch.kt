@@ -75,7 +75,9 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.DATA, null, R.string.settings_clear_history, R.string.settings_search_keywords_history),
 
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_app_startup, R.string.settings_search_keywords_startup),
-        SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_diagnostics, R.string.settings_search_keywords_detailed_logging),
+        // Detailed logging sits in the video player's own diagnostics block, not on the App page —
+        // a result that lands somewhere the row is not is worse than no result at all.
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_diagnostics, R.string.settings_search_keywords_detailed_logging),
     )
 
     val leaves = SettingsLeaf.entries.map {

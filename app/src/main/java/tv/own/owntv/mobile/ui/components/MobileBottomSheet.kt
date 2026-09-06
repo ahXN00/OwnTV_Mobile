@@ -43,7 +43,7 @@ fun MobileBottomSheet(
         entry.content = content
     }
     DisposableEffect(host) {
-        host.entry = entry
-        onDispose { if (host.entry === entry) host.entry = null }
+        host.entries.add(entry)
+        onDispose { host.entries.remove(entry) }
     }
 }

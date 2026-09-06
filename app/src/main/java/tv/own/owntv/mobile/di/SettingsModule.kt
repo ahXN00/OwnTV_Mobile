@@ -42,6 +42,8 @@ val settingsModule = module {
             stalkerAuth = get(),
             sourceTester = get(),
             importFinalizer = get(),
+            trendingDao = get(),
+            trendingActivity = get(),
         )
     }
     viewModel {

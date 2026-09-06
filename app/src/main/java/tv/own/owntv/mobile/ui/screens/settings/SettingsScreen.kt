@@ -62,7 +62,9 @@ fun SettingsScreen(
             if (results.isEmpty()) {
                 item(key = "no-results") {
                     Text(
-                        text = stringResource(R.string.search_no_results, query),
+                        // The settings' own "nothing matched", not the catalogue's: this list is
+                        // rows, not titles, and the television answers an unmatched query the same way.
+                        text = stringResource(R.string.settings_no_settings_match, query.trim()),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(
@@ -75,6 +77,7 @@ fun SettingsScreen(
                 item(key = "results-header") {
                     SettingsSectionLabel(stringResource(R.string.settings_results_title))
                 }
+                settingsNote(R.string.settings_results_summary)
                 settingsGroup(key = "results") {
                     results.forEach { entry ->
                         MobileListRow(

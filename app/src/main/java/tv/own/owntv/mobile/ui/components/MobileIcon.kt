@@ -445,6 +445,15 @@ object MobileIcons {
     val Bolt: ImageVector by lazy {
         glyph() { solid(13.5f, 2f, 6f, 13.5f, 11f, 13.5f, 10.5f, 22f, 18f, 10.5f, 13f, 10.5f) }
     }
+    /** A globe: the language picker. Meridians drawn as polylines — the grid has no ellipse. */
+    val Translate: ImageVector by lazy {
+        glyph() {
+            ring(12f, 12f, 8.6f)
+            line(3.4f, 12f, 20.6f, 12f)
+            line(12f, 3.4f, 8.4f, 7f, 7.4f, 12f, 8.4f, 17f, 12f, 20.6f)
+            line(12f, 3.4f, 15.6f, 7f, 16.6f, 12f, 15.6f, 17f, 12f, 20.6f)
+        }
+    }
     val AutoAwesome: ImageVector by lazy {
         glyph() {
             solid(

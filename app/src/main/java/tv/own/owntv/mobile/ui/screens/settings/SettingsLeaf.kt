@@ -15,9 +15,9 @@ import tv.own.owntv.mobile.R
  * read this list, so a leaf can never be reachable by one and invisible to another.
  *
  * A leaf is registered when its screen exists. The remaining television screens — the navigation bar,
- * Home, the long-press menus, DNS, Language and About — are still rows on their group pages, and each
- * moves here in the phase that builds it out; registering an empty one now would put a dead row above
- * content that already works.
+ * the long-press menus, DNS and About — are still rows on their group pages, and each moves here in
+ * the phase that builds it out; registering an empty one now would put a dead row above content that
+ * already works.
  */
 enum class SettingsLeaf(
     val group: SettingsGroup,
@@ -91,10 +91,24 @@ enum class SettingsLeaf(
         MobileIcons.ClosedCaption,
     ),
 
+    HOME(
+        SettingsGroup.LAYOUT, "home",
+        R.string.settings_home_root, R.string.settings_search_keywords_home,
+        R.string.settings_home_root_description,
+        MobileIcons.Home,
+    ),
+
+    LANGUAGE(
+        SettingsGroup.APP, "language",
+        R.string.settings_language, R.string.settings_search_keywords_language,
+        R.string.settings_language_description,
+        MobileIcons.Translate,
+    ),
     ERROR_LOG(
         SettingsGroup.APP, "errorlog",
         R.string.settings_playback_error_log, R.string.settings_search_keywords_errors,
-        icon = MobileIcons.BugReport,
+        R.string.settings_playback_error_description,
+        MobileIcons.BugReport,
     ),
     ;
 

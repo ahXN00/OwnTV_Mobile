@@ -11,9 +11,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -29,10 +31,12 @@ import tv.own.owntv.core.database.dao.HistoryDao
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.ProgressDao
 import tv.own.owntv.core.database.dao.SourceDao
+import tv.own.owntv.core.database.dao.TrendingDao
 import tv.own.owntv.core.database.entity.CategoryEntity
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.ProfileEntity
 import tv.own.owntv.core.database.entity.SourceEntity
+import tv.own.owntv.core.database.entity.TrendingSnapshotEntity
 import tv.own.owntv.core.metadata.MetadataBudget
 import tv.own.owntv.core.metadata.MetadataBudgetStatus
 import tv.own.owntv.core.metadata.MetadataConfig
@@ -58,8 +62,11 @@ import tv.own.owntv.core.storage.StorageAccess
 import tv.own.owntv.core.sync.ImportFinalizer
 import tv.own.owntv.core.sync.SyncContentTypes
 import tv.own.owntv.core.sync.SyncCounts
+import tv.own.owntv.core.sync.TrendingActivityTracker
 import tv.own.owntv.core.sync.work.CatalogSyncScheduler
 import tv.own.owntv.core.sync.work.CatalogSyncState
+import tv.own.owntv.core.trending.TrendingAvailability
+import tv.own.owntv.core.trending.trendingAvailability
 
 /**
  * The one view model behind every settings page.
@@ -91,6 +98,8 @@ class SettingsViewModel(
     private val stalkerAuth: StalkerAuthManager,
     private val sourceTester: SourceTester,
     private val importFinalizer: ImportFinalizer,
+    private val trendingDao: TrendingDao,
+    private val trendingActivity: TrendingActivityTracker,
 ) : ViewModel() {
 
     /** Run a setter on a scope that survives the row being scrolled off the screen. */
@@ -109,6 +118,41 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun syncState(sourceId: Long): Flow<CatalogSyncState> = catalogSync.observeSync(sourceId)
+
+    private data class TrendingSettingsData(
+        val sourceIds: Set<Long> = emptySet(),
+        val states: List<TrendingSnapshotEntity> = emptyList(),
+        val metadataEnabled: Boolean = true,
+    )
+
+    /**
+     * Why the Now Trending row is, or is not, on Home — core's own rule, so the sentence under the
+     * row here is the sentence the television shows for the same playlist.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val trendingAvailability: StateFlow<TrendingAvailability> =
+        combine(settings.activeProfileId, settings.metadataConfigFlow) { profileId, metadata ->
+            profileId to metadata.enabled
+        }.flatMapLatest { (profileId, metadataEnabled) ->
+            flow {
+                val sourceIds = if (profileId < 0) emptyList() else sourceDao.sourceIdsForProfile(profileId)
+                if (sourceIds.isEmpty()) {
+                    emit(TrendingSettingsData(metadataEnabled = metadataEnabled))
+                } else {
+                    emitAll(
+                        trendingDao.observeStatesForSources(sourceIds).map { states ->
+                            TrendingSettingsData(sourceIds.toSet(), states, metadataEnabled)
+                        },
+                    )
+                }
+            }
+        }.combine(trendingActivity.active) { data, active ->
+            trendingAvailability(
+                states = data.states,
+                metadataEnabled = data.metadataEnabled,
+                building = active.keys.any { it in data.sourceIds },
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrendingAvailability.WaitingForSync)
 
     /** The playlist the rest of the app is filtered to, or -1 when every playlist is shown. */
     val defaultSourceId: StateFlow<Long> = settings.defaultSourceId

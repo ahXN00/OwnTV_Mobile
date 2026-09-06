@@ -22,6 +22,9 @@ import androidx.graphics.shapes.toPath
  * panels against a photograph. The maths is AndroidX's; a hand-rolled approximation goes visibly
  * wrong at small radii, which is the one place a corner is looked at closely.
  */
+/** Below this, a corner is a rectangle to the eye and a division by nothing to the maths. */
+private const val MIN_RADIUS_PX = 0.5f
+
 class SquircleShape(
     private val corner: Dp,
     // 0 is an ordinary rounded corner, 1 spreads the curve as far along the edge as it will go.
@@ -29,12 +32,20 @@ class SquircleShape(
 ) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         // A collapsing top bar passes through zero height on its way out, and a polygon with no area
-        // has no corners to round — asking for one throws and takes the app with it.
-        if (size.minDimension <= 0f) return Outline.Rectangle(size.toRect())
+        // has no corners to round — asking for one throws and takes the app with it. A size can also
+        // arrive infinite or NaN from a layer mid-animation, which `<= 0f` lets straight through and
+        // which reaches the same crash ("Can't get the direction of a 0-length vector") one step
+        // later, so both are turned away here.
+        if (!size.width.isFinite() || !size.height.isFinite() || size.minDimension <= 0f) {
+            return Outline.Rectangle(size.toRect())
+        }
         val radius = with(density) { corner.toPx() }
             // A corner cannot be deeper than half the shorter side, and a squircle's curve reaches
             // further than its radius, so leave the smoothing its room too.
             .coerceAtMost(minOf(size.width, size.height) / 2f / (1f + smoothing))
+        // A corner that rounds to nothing is a plain rectangle, and asking the rounding maths for one
+        // is what produces the zero-length vector.
+        if (radius < MIN_RADIUS_PX) return Outline.Rectangle(size.toRect())
         val polygon = RoundedPolygon.rectangle(
             width = size.width,
             height = size.height,
