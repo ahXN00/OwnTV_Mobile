@@ -97,6 +97,7 @@ fun MobileNavHost(
                         onNavigate = onNavigate,
                         onDevRoute = { navController.navigate(it.route) },
                         onAddSource = { navController.navigate(SETUP_ROUTE) },
+                        onOpenProfiles = { navController.navigate(SettingsGroup.PROFILE.route) },
                     )
                     MobileDestination.HOME -> HomeScreen(
                         scrollToTop = scrollToTop,

@@ -42,6 +42,7 @@ fun MoreScreen(
     onNavigate: (MobileDestination) -> Unit,
     onDevRoute: (DevRoute) -> Unit,
     onAddSource: () -> Unit,
+    onOpenProfiles: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -70,7 +71,7 @@ fun MoreScreen(
                 }
             }
             MobileGroup {
-                MoreRow(R.string.profiles_title, MobileIcons.People)
+                MoreRow(R.string.profiles_title, MobileIcons.People, onOpenProfiles)
                 MoreRow(R.string.content_category_favorites, MobileIcons.Favorite)
                 MoreRow(R.string.content_category_history, MobileIcons.History)
             }

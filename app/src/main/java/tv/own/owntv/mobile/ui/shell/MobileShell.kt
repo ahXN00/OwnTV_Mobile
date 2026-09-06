@@ -5,8 +5,16 @@ import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.cast.CastRouteButton
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
+import tv.own.owntv.core.database.entity.SourceEntity
+import tv.own.owntv.mobile.ui.screens.settings.SettingsChoice
+import tv.own.owntv.mobile.ui.screens.settings.SettingsChoiceSheet
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -245,6 +253,10 @@ fun MobileShell(
     var windowMenu by remember { mutableStateOf(false) }
     var sleepSheet by remember { mutableStateOf(false) }
 
+    val playlists by shellViewModel.playlists.collectAsStateWithLifecycle()
+    val activePlaylistId by shellViewModel.activePlaylistId.collectAsStateWithLifecycle()
+    var playlistSheet by remember { mutableStateOf(false) }
+
     val settingsTitle = settingsPageTitleRes(currentRoute)
 
     // Downloads is a tab on a rail but a row in More on a phone, where no tab is selected to name it
@@ -361,12 +373,14 @@ fun MobileShell(
                         CastRouteButton(
                             light = MaterialTheme.colorScheme.onSurface.luminance() > 0.5f,
                         )
-                        IconButton(onClick = { navController.navigateToTab(MobileDestination.MORE) }) {
-                            Icon(
-                                imageVector = MobileIcons.Person,
-                                contentDescription = stringResource(tv.own.owntv.mobile.R.string.profiles_title),
-                            )
-                        }
+                        // The television's playlist chip, in the space the profile avatar used to
+                        // take. The avatar only ever opened the More tab, which the bottom bar
+                        // already reaches; switching playlist had no door on the phone at all.
+                        PlaylistChip(
+                            playlists = playlists,
+                            activeId = activePlaylistId,
+                            onClick = { playlistSheet = true },
+                        )
                     },
                     scrollBehavior = scrollBehavior,
                 )
@@ -522,7 +536,92 @@ fun MobileShell(
             onDismiss = { sleepSheet = false },
         )
     }
+    if (playlistSheet) {
+        // The app's own picker sheet, not one written for this: "which of these" is a solved shape
+        // here, tick and all. `All playlists` is id -1, the same value Settings → Playlists stores.
+        SettingsChoiceSheet(
+            title = stringResource(tv.own.owntv.mobile.R.string.content_playlist_picker_title),
+            description = stringResource(
+                tv.own.owntv.mobile.R.string.content_playlist_picker_description,
+            ),
+            choices = listOf(
+                SettingsChoice(
+                    value = -1L,
+                    label = stringResource(tv.own.owntv.mobile.R.string.content_all_playlists),
+                ),
+            ) + playlists.map { SettingsChoice(value = it.id, label = it.name) },
+            // A stored default the profile no longer has is All playlists, exactly as the browse
+            // screens already read it — so the tick is never on a playlist that is not being shown.
+            selected = activePlaylistId.takeIf { id -> playlists.any { it.id == id } } ?: -1L,
+            onSelect = shellViewModel::selectPlaylist,
+            onDismiss = { playlistSheet = false },
+        )
+    }
 }
+
+/**
+ * Which playlist every browse screen is showing, and the way to change it.
+ *
+ * A button with a chevron once there are two to choose between, a plain badge when there is only
+ * one — there is nothing to pick then, but which playlist you are in is still worth saying. Its
+ * width is capped because a provider's own name can be very long and the bar's title must survive it.
+ */
+@Composable
+private fun PlaylistChip(
+    playlists: List<SourceEntity>,
+    activeId: Long,
+    onClick: () -> Unit,
+) {
+    if (playlists.isEmpty()) return
+    val label = when {
+        playlists.size == 1 -> playlists.first().name
+        else -> playlists.firstOrNull { it.id == activeId }?.name
+            ?: stringResource(tv.own.owntv.mobile.R.string.content_all_playlists)
+    }
+    val switchable = playlists.size > 1
+    val shape = RoundedCornerShape(50)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(start = MobileDimens.GapSmall)
+            .widthIn(max = PlaylistChipMaxWidth)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f))
+            .then(
+                if (switchable) {
+                    Modifier.clickable(
+                        onClick = onClick,
+                        onClickLabel = stringResource(
+                            tv.own.owntv.mobile.R.string.content_playlist_picker_title,
+                        ),
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .padding(start = 10.dp, end = if (switchable) 4.dp else 10.dp, top = 5.dp, bottom = 5.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (switchable) {
+            Icon(
+                imageVector = MobileIcons.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/** Long enough for most playlist names, short enough that the bar's title still has room. */
+private val PlaylistChipMaxWidth = 132.dp
 
 @Composable
 private fun NavIcon(destination: MobileDestination) {

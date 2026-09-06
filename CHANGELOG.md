@@ -470,6 +470,10 @@ release automation.
   with the sound running and bring the picture back with one tap.
 - **Fonts have a page of their own.** The interface font and size, and — new on the phone — the font
   and size used inside menus and sheets, with a sample that changes as you choose.
+- **Monospace really is monospace.** The app now carries its own typewriter font instead of asking
+  the phone for one. Some phones — particularly with a custom system font pack installed — answer
+  that request with the same face they use for ordinary text, which left two entries in the font
+  list looking identical. A font inside the app cannot be substituted away.
 - **Weather has a page of its own, and can use where the phone actually is.** Turn it on and the
   forecast follows the phone instead of guessing from the network, which on a phone that travels is
   the difference between your weather and your provider's. It asks only for approximate location,
@@ -509,6 +513,9 @@ release automation.
   another app does not ask again — but closing the app does.
 - **Switching profile is a tap on the Profile settings page**, and a locked one asks for its PIN
   before it switches.
+- **Profiles is reachable from More.** The row was there from the beginning and did nothing when
+  tapped; it now opens the profile manager, so switching or editing who is watching no longer means
+  finding it inside Settings.
 
 ### 💾 Backup and restore, from the phone
 
@@ -555,6 +562,12 @@ release automation.
 
 ### 📱 It behaves like a phone, not a television
 
+- **Switch playlist from the top bar, as on the television.** A chip in the bar names the playlist
+  you are browsing; tap it to pick another, or *All playlists* for the merged view. The choice
+  applies everywhere — Live TV, Movies, Series, the Guide and Home — and is remembered, because it
+  is the same "default playlist" the TV app and Settings have always used. With only one playlist
+  the chip simply names it. It stands where the profile picture used to: that only ever opened the
+  More tab, which the bottom bar already reaches, while switching playlist had no door at all.
 - **The settings that a phone does not have say so.** The Playback page ends with one line
   explaining that the live preview and the remote-control shortcuts are television features, so a
   setting you remember from the TV app is accounted for rather than just absent.

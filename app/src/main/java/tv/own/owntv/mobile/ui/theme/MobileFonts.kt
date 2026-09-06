@@ -50,6 +50,21 @@ private val DancingScriptFamily = FontFamily(
     variableFont(R.font.dancing_script_variable, FontWeight.Bold),
 )
 
+/**
+ * Shipped rather than asked for, unlike [FontFamily.SansSerif].
+ *
+ * `FontFamily.Monospace` resolves to whatever the phone registers as "monospace", and an OEM font
+ * pack is free to alias that to the same face it uses for "sans-serif" — which is exactly what
+ * happened: two entries in the font picker, one typeface. A file in the app cannot be aliased away.
+ * It is the same JetBrains Mono the TV app already carries for its settings value column.
+ */
+private val JetBrainsMonoFamily = FontFamily(
+    variableFont(R.font.jetbrains_mono_variable, FontWeight.Normal),
+    variableFont(R.font.jetbrains_mono_variable, FontWeight.Medium),
+    variableFont(R.font.jetbrains_mono_variable, FontWeight.SemiBold),
+    variableFont(R.font.jetbrains_mono_variable, FontWeight.Bold),
+)
+
 private val PoppinsFamily = FontFamily(
     Font(R.font.poppins_regular, FontWeight.Normal),
     Font(R.font.poppins_medium, FontWeight.Medium),
@@ -60,7 +75,7 @@ private val PoppinsFamily = FontFamily(
 fun AppFontFamily.asComposeFamily(): FontFamily = when (this) {
     AppFontFamily.LORA -> LoraFamily
     AppFontFamily.SYSTEM_SANS -> FontFamily.SansSerif
-    AppFontFamily.MONOSPACE -> FontFamily.Monospace
+    AppFontFamily.MONOSPACE -> JetBrainsMonoFamily
     AppFontFamily.PLAYFAIR_DISPLAY -> PlayfairDisplayFamily
     AppFontFamily.DANCING_SCRIPT -> DancingScriptFamily
     AppFontFamily.POPPINS -> PoppinsFamily

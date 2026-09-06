@@ -149,6 +149,8 @@
 - **Ten seconds back and forward, or a button to full screen, in the little window**
 - **Sideways, the top bar lines up with the tab rail**
 - **Fonts page, including the font used in menus and sheets**
+- **Switch playlist from the top bar, as on the television**
+- **Profiles opens from More**
 - **Weather page, with approximate device location**
 - **Any accent colour by hex code**
 - **Phone-only settings: background playback, Picture-in-Picture, gestures and a data saver**
@@ -182,6 +184,7 @@
 - **About: version, licence, contributors, source code and the Telegram group with a QR code**
 - **Clear history by kind: live, films, shows or all of it**
 - **Building the trending row shows its stage and counts**
+- **Fixed: Monospace no longer looks identical to System Sans**
 - **Fixed: Detailed logging in settings search now lands on the page that has it**
 - **Fixed: "Fill from playlist" when adding an EPG source now fills the address in**
 - **Fixed: a pop-up you type into rises above the keyboard instead of hiding behind it**

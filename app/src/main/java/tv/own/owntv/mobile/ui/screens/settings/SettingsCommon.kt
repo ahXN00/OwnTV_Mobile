@@ -249,6 +249,10 @@ data class SettingsChoice<T>(val value: T, val label: String, val description: S
 /**
  * The bottom sheet that replaces the TV app's centred picker dialogs — theme, accent, fonts, zoom
  * and every other "one of these" setting. Choosing dismisses it; there is no confirm button.
+ *
+ * [description] is the line the TV app's dialogs carry under their title, for the few pickers whose
+ * consequence is not obvious from the options — the playlist selector, whose choice applies to every
+ * screen and is remembered.
  */
 @Composable
 fun <T> SettingsChoiceSheet(
@@ -257,8 +261,21 @@ fun <T> SettingsChoiceSheet(
     selected: T,
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
+    description: String? = null,
 ) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = title) {
+        if (description != null) {
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(
+                    start = MobileDimens.ScreenPaddingH,
+                    end = MobileDimens.ScreenPaddingH,
+                    bottom = MobileDimens.GapSmall,
+                ),
+            )
+        }
         choices.forEach { choice ->
             MobileListRow(
                 title = choice.label,

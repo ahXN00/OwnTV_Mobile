@@ -2,12 +2,15 @@ package tv.own.owntv.mobile.ui.shell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -17,6 +20,7 @@ import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.entity.ChannelEntity
+import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.nav.MainSection
 import tv.own.owntv.core.nav.NavVisibility
 import tv.own.owntv.core.repository.activeProfileSources
@@ -24,6 +28,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.settings.StartupMode
 
 /** Shell state: which destinations the active playlist offers, and the tap that sends a list home. */
+@OptIn(ExperimentalCoroutinesApi::class)
 class ShellViewModel(
     navVisibility: NavVisibility,
     private val sourceDao: SourceDao,
@@ -44,6 +49,28 @@ class ShellViewModel(
     /** Core's rule, unchanged — the same set the TV app's rail is built from. */
     val visibleSections: StateFlow<Set<MainSection>> = navVisibility.visibleSections()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainSection.allBrowse)
+
+    /**
+     * The playlists the active profile can pick between, for the top bar's selector.
+     *
+     * The profile's own linked sources, **not** `activeProfileSources()` — that one has the chosen
+     * playlist already applied, so a picker built on it would offer only the playlist it is showing.
+     */
+    val playlists: StateFlow<List<SourceEntity>> = settings.activeProfileId
+        .flatMapLatest { pid ->
+            if (pid < 0) flowOf(emptyList()) else sourceDao.observeForProfile(pid)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Which one is showing. `-1` — or an id the profile no longer has — means All playlists. */
+    val activePlaylistId: StateFlow<Long> = settings.defaultSourceId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), -1L)
+
+    /** Narrow every browse screen to one playlist, or to all of them. Persisted, so it survives a
+     *  restart — it is the same value Settings → Playlists calls the default. */
+    fun selectPlaylist(sourceId: Long) {
+        viewModelScope.launch { settings.setDefaultSource(sourceId) }
+    }
 
     private val _scrollToTop = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
