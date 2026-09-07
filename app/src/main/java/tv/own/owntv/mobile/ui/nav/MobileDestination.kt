@@ -50,9 +50,16 @@ enum class MobileDestination(
         /** The bottom bar, in order. Library stands in for Movies and Series on a narrow screen. */
         val bottomBar: List<MobileDestination> = listOf(HOME, LIVE, LIBRARY, GUIDE, MORE)
 
-        /** The rail, in order: the six browse sections split apart, plus More and Settings. */
+        /**
+         * The rail, in order. The same five places as the bottom bar, with Library split into
+         * Movies and Series because a rail has the room for both.
+         *
+         * **Downloads and Settings are deliberately not on it.** They are not browse sections — they
+         * are what More is for, on every width — and a rail that lists them says the tablet is a
+         * different app from the phone rather than the same one with more room.
+         */
         val rail: List<MobileDestination> =
-            listOf(HOME, LIVE, MOVIES, SERIES, GUIDE, DOWNLOADS, MORE, SETTINGS)
+            listOf(HOME, LIVE, MOVIES, SERIES, GUIDE, MORE)
 
         /**
          * Filters a bar or rail to what the active playlist actually offers. A destination with no

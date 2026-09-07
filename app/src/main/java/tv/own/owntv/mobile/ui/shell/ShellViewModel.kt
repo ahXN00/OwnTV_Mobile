@@ -38,14 +38,6 @@ class ShellViewModel(
     private val settings: SettingsRepository,
 ) : ViewModel() {
 
-    /**
-     * Whether the app has nothing to show yet. Null until the database has answered, so the shell
-     * does not flash an empty Home on the way to the setup screen on every cold start.
-     */
-    val needsSetup: StateFlow<Boolean?> = sourceDao.observeAll()
-        .map { it.isEmpty() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
     /** Core's rule, unchanged — the same set the TV app's rail is built from. */
     val visibleSections: StateFlow<Set<MainSection>> = navVisibility.visibleSections()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainSection.allBrowse)

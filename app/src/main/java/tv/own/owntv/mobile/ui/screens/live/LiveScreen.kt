@@ -18,10 +18,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -44,8 +46,11 @@ import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.ChannelLogoImage
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.TwoPane
 import tv.own.owntv.mobile.ui.components.mobileGroupPlate
+import tv.own.owntv.mobile.ui.nav.isExpandedWidth
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
+import tv.own.owntv.mobile.ui.shell.LocalStreamOnScreen
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
@@ -54,12 +59,17 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
  * The TV app shows three panels at once — rail, list, preview — because it has the width for it and
  * a remote that moves between them. A phone has neither, so the same three things become one
  * scrolling list, a chip strip above it, and a screen you open by tapping a channel.
+ *
+ * A tablet has the width, so at expanded size the third panel comes back: the list on the left and
+ * the channel playing beside it. It starts empty rather than tuning the first channel by itself —
+ * opening Live TV is not a request to watch something.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiveScreen(
     scrollToTop: SharedFlow<String>,
     onOpenChannel: (channelId: Long, openCatchup: Boolean) -> Unit,
+    onOpenPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     vm: LiveViewModel = koinViewModel(),
 ) {
@@ -77,6 +87,19 @@ fun LiveScreen(
 
     var menuFor by remember { mutableStateOf<ChannelEntity?>(null) }
     var categoryPicker by remember { mutableStateOf(false) }
+    // Survives a rotation, so turning a tablet keeps the channel you were watching beside the list.
+    var previewing by rememberSaveable { mutableStateOf<Long?>(null) }
+    val twoPane = isExpandedWidth()
+
+    // While the pane is showing the channel, the picture is already on screen, so the shell must not
+    // also put a floating window over it. Cleared on the way out, or leaving Live TV with a channel
+    // open would take the mini player away on every other screen too.
+    val streamOnScreen = LocalStreamOnScreen.current
+    val paneHasChannel = twoPane && previewing != null
+    DisposableEffect(paneHasChannel) {
+        streamOnScreen.value = paneHasChannel
+        onDispose { streamOnScreen.value = false }
+    }
 
     // The guide is read for what is actually on screen. Watching the visible range rather than each
     // row means one batched query per scroll settle instead of one per row appearing.
@@ -91,7 +114,8 @@ fun LiveScreen(
     // Changing category scrolls back to the top: the position of the old list means nothing in the new one.
     LaunchedEffect(selected) { listState.scrollToItem(0) }
 
-    Column(modifier.fillMaxSize()) {
+    val listPane = @Composable {
+    Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth()) {
             FilterChipRow(
                 labels = categories.map { it.label() },
@@ -132,7 +156,12 @@ fun LiveScreen(
                                 nowPlaying = nowPlaying[channel.id],
                                 providerName = providers[channel.sourceId],
                                 isFavorite = channel.id in favorites,
-                                onClick = { onOpenChannel(channel.id, false) },
+                                // Beside the list the channel opens in the pane; on a phone it is
+                                // a screen of its own, which is the same screen either way.
+                                onClick = {
+                                    if (twoPane) previewing = channel.id
+                                    else onOpenChannel(channel.id, false)
+                                },
                                 onLongClick = { menuFor = channel },
                             )
                         }
@@ -140,6 +169,31 @@ fun LiveScreen(
                 }
             }
         }
+    }
+    }
+
+    if (twoPane) {
+        TwoPane(
+            list = listPane,
+            detail = {
+                val channelId = previewing
+                if (channelId == null) {
+                    SelectAChannel()
+                } else {
+                    ChannelDetailScreen(
+                        channelId = channelId,
+                        openCatchup = false,
+                        onFullscreen = onOpenPlayer,
+                        // Back here empties the pane rather than leaving Live TV: the list is still
+                        // on screen, so the thing the user is finished with is the channel.
+                        onBack = { previewing = null },
+                    )
+                }
+            },
+            modifier = modifier,
+        )
+    } else {
+        Box(modifier) { listPane() }
     }
 
     menuFor?.let { channel ->
@@ -163,6 +217,19 @@ private fun LiveCategory.label(): String = when (builtIn) {
     LiveCategory.BuiltIn.HISTORY -> stringResource(R.string.content_category_history)
     LiveCategory.BuiltIn.CATCHUP -> stringResource(R.string.content_catchup)
     null -> title.orEmpty()
+}
+
+/** The preview pane before a channel is picked — the television's own sentence for the same panel. */
+@Composable
+private fun SelectAChannel() {
+    Box(Modifier.fillMaxSize().padding(MobileDimens.GapLarge), contentAlignment = Alignment.Center) {
+        Text(
+            text = stringResource(R.string.content_preview_select_channel),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable

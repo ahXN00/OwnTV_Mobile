@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import tv.own.owntv.core.database.entity.SourceEntity
+import tv.own.owntv.core.model.SourceType
 import tv.own.owntv.mobile.ui.screens.settings.SettingsChoice
 import tv.own.owntv.mobile.ui.screens.settings.SettingsChoiceSheet
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +22,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -46,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,46 +125,59 @@ fun MobileShell(
 ) {
     val shellViewModel: ShellViewModel = koinViewModel()
     val sections by shellViewModel.visibleSections.collectAsStateWithLifecycle()
-    val needsSetup by shellViewModel.needsSetup.collectAsStateWithLifecycle()
 
-    // A brand new install has no playlist, so there is nothing for the tabs to show: the setup flow
-    // IS the app until one exists. No cancel — there is nowhere to cancel to.
-    if (needsSetup == true) {
-        SetupFlow(onDone = { }, modifier = modifier)
-        return
-    }
-
-    // Who is watching. The chooser is shown INSTEAD of the app rather than over it, so there is no
-    // back gesture out of it and nothing of the locked profile is on screen behind it. Both the
-    // profile list and the active id have to have arrived before anything is drawn: an active id
-    // that lands first, while Room is still deciding whether that profile is PIN-locked, would be
-    // enough to walk straight into it.
     val profilesViewModel: ProfilesViewModel = koinViewModel()
     val gateSession: ProfileGateSession = koinViewModel()
     val profiles by profilesViewModel.profiles.collectAsStateWithLifecycle()
     val activeProfileId by profilesViewModel.activeProfileId.collectAsStateWithLifecycle()
-    LaunchedEffect(activeProfileId) {
-        gateSession.invalidateIfNotProfile(activeProfileId.takeIf { it >= 0L })
-    }
-    // Nothing at all until Room answers — a frame of blank is the price of never showing the wrong
-    // person's library.
+    // Authentication is profile-bound: invalidate an old unlock before a changed active id can turn
+    // into a shell destination, whether it changed by a deletion, a restore, or another writer.
+    LaunchedEffect(activeProfileId) { gateSession.invalidateIfNotProfile(activeProfileId) }
+
+    /*
+     * What the app shows before the app itself — **the television's own `when`, branch for branch**
+     * (see `MainActivity.kt`). The order is the whole of the rule, and getting it wrong is what put
+     * "Who is watching?" on screen for a frame after the wizard:
+     *
+     *  - Nothing at all while either answer is still missing. A blank frame is the price of never
+     *    showing the wrong person's library, and of never guessing from half the inputs.
+     *  - **No active profile is the setup flow, not the chooser.** This is the branch mobile did not
+     *    have. Mobile decided setup from "are there any playlists", so the moment the wizard imported
+     *    one it handed over to the shell — while the active id was still unset — and the shell had
+     *    nowhere to go but the gate. The television asks about the *profile*, so its onboarding stays
+     *    up until one is active and the gate never gets a turn. It also means **Skip for now** works:
+     *    finishing with no playlist at all is a legitimate end to the wizard, where the old rule
+     *    would have dropped the user straight back into it.
+     *  - A stale id — a list that does not contain the active profile — is recovery, so setup again.
+     *  - Only then "Who is watching?", and only when the gate is genuinely required: more than one
+     *    profile, or a single one with a PIN.
+     */
     val loadedProfiles = profiles ?: return
+    val activeId = activeProfileId ?: return
+    if (activeId < 0L || loadedProfiles.none { it.id == activeId }) {
+        // The wizard reports the profile it activated, and that is the unlock — the same handover the
+        // television does. Without it the shell would have a valid active profile and no session for
+        // it, which is the one state that shows the chooser.
+        SetupFlow(
+            onDone = { profileId -> profileId?.let(gateSession::unlock) },
+            modifier = modifier,
+        )
+        return
+    }
+    val gateRequired = profileGateRequired(loadedProfiles)
     if (!shellMayCompose(
             profiles = loadedProfiles,
-            activeProfileId = activeProfileId,
+            activeProfileId = activeId,
             authenticatedProfileId = gateSession.unlockedProfileId,
-            gateRequired = profileGateRequired(loadedProfiles),
+            gateRequired = gateRequired,
         )
     ) {
-        // An empty list is a database still being restored, not a chooser with nothing in it.
-        if (loadedProfiles.isNotEmpty()) {
-            ProfileGate(
-                profiles = loadedProfiles,
-                onEntered = { gateSession.unlock(it.id) },
-                modifier = modifier,
-                vm = profilesViewModel,
-            )
-        }
+        ProfileGate(
+            profiles = loadedProfiles,
+            onEntered = { gateSession.unlock(it.id) },
+            modifier = modifier,
+            vm = profilesViewModel,
+        )
         return
     }
 
@@ -188,9 +205,19 @@ fun MobileShell(
     // second one attaching would take it away from the first. So no mini player on a screen that is
     // already showing the stream.
     // A channel screen sits under whichever tab it was opened from, so the tab it is under is not
-    // what says the picture is on screen — the route being a channel's is.
-    val showingStream = fullscreen || isChannelRoute(currentRoute)
-    val showMini = (channel != null || film != null) && !showingStream
+    // what says the picture is on screen — the route being a channel's is. On a tablet the channel
+    // is watched inside the Live TV route instead, in the pane beside the list, so the route cannot
+    // answer it and the screen raises this flag itself.
+    val streamOnScreen = remember { mutableStateOf(false) }
+    val showingStream = fullscreen || isChannelRoute(currentRoute) || streamOnScreen.value
+    // A mini player is something the user asks for in the full screen player, never something the
+    // app decides for them — see [LocalMiniRequested].
+    val miniRequested = remember { mutableStateOf(false) }
+    val nothingPlaying = channel == null && film == null
+    // The request dies with the stream, so the next one starts without a window the user never asked
+    // for; without this, stopping and then previewing another channel would bring the old one back.
+    LaunchedEffect(nothingPlaying) { if (nothingPlaying) miniRequested.value = false }
+    val showMini = !nothingPlaying && !showingStream && miniRequested.value
     // Floating window, bar above the tabs, or neither — the user's choice, and the only thing that
     // changes is where the same stream is drawn.
     val settings: SettingsRepository = koinInject()
@@ -234,8 +261,10 @@ fun MobileShell(
     val startupLive: StartupLiveSelection = koinInject()
     val startupUnavailable = stringResource(tv.own.owntv.mobile.R.string.settings_startup_channel_unavailable)
     var startupHandled by remember { mutableStateOf(false) }
-    LaunchedEffect(needsSetup) {
-        if (needsSetup != false || startupHandled) return@LaunchedEffect
+    // Reaching this point already means the setup flow and the profile chooser are both behind us —
+    // that is what the branches above guarantee — so there is nothing left to wait for.
+    LaunchedEffect(Unit) {
+        if (startupHandled) return@LaunchedEffect
         startupHandled = true
         when (val target = shellViewModel.resolveStartup()) {
             StartupTarget.Home -> Unit
@@ -453,20 +482,30 @@ fun MobileShell(
                 ) {
                     // Eight destinations do not fit down the short side of a phone held sideways, and
                     // an unscrollable rail simply loses the last of them — which is where Settings is.
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        destinations.forEach { destination ->
-                            NavigationRailItem(
-                                selected = destination == current,
-                                onClick = { navController.onNavClick(destination, current, shellViewModel) },
-                                icon = { NavIcon(destination) },
-                                label = { NavLabel(destination) },
-                                modifier = Modifier.longPressResetsScroll(destination, shellViewModel),
-                            )
+                    //
+                    // Centred and scrollable at once, which a plain scrolling Column cannot do: inside
+                    // `verticalScroll` a Column is measured against an unbounded height, so it wraps
+                    // its children and `Arrangement.Center` has nothing to centre within. Giving it a
+                    // minimum of the rail's own height makes it fill the rail when the items fit — so
+                    // they sit in the middle — and grow past it when they do not, which is when a
+                    // large display size or a big font turns the rail into a list that must scroll.
+                    BoxWithConstraints(Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier
+                                .verticalScroll(rememberScrollState())
+                                .heightIn(min = maxHeight),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            destinations.forEach { destination ->
+                                NavigationRailItem(
+                                    selected = destination == current,
+                                    onClick = { navController.onNavClick(destination, current, shellViewModel) },
+                                    icon = { NavIcon(destination) },
+                                    label = { NavLabel(destination) },
+                                    modifier = Modifier.longPressResetsScroll(destination, shellViewModel),
+                                )
+                            }
                         }
                     }
                 }
@@ -487,11 +526,16 @@ fun MobileShell(
                 // Every screen in the app is standing on this page panel, so a panel of its own
                 // draws as the layer behind one instead of frosting what is already frosted.
                 GlassNest(GlassSurface.PANELS) {
-                    MobileNavHost(
-                        navController = navController,
-                        scrollToTop = shellViewModel.scrollToTop,
-                        onNavigate = { navController.navigateToTab(it) },
-                    )
+                    CompositionLocalProvider(
+                        LocalStreamOnScreen provides streamOnScreen,
+                        LocalMiniRequested provides miniRequested,
+                    ) {
+                        MobileNavHost(
+                            navController = navController,
+                            scrollToTop = shellViewModel.scrollToTop,
+                            onNavigate = { navController.navigateToTab(it) },
+                        )
+                    }
                 }
                 // Low over the page, under the mini player: a sync running while the user browses is
                 // news, but it is never what they came to the screen for.
@@ -560,6 +604,25 @@ fun MobileShell(
 }
 
 /**
+ * A playlist's name, or the name it would have been given had one been typed.
+ *
+ * The name field is optional and older mobile builds stored a blank one rather than filling it in,
+ * so a playlist added before that was fixed has no name at all — and a chip with no text is a bare
+ * pill, which is exactly what the owner saw. Falling back at the point of display repairs those
+ * rows without a migration, and matches what the setup flow now writes for a new one.
+ */
+@Composable
+private fun SourceEntity.displayName(): String = name.ifBlank {
+    stringResource(
+        when (type) {
+            SourceType.XTREAM -> tv.own.owntv.mobile.R.string.setup_default_iptv
+            SourceType.STALKER -> tv.own.owntv.mobile.R.string.setup_default_portal
+            else -> tv.own.owntv.mobile.R.string.setup_name_default_playlist
+        },
+    )
+}
+
+/**
  * Which playlist every browse screen is showing, and the way to change it.
  *
  * A button with a chevron once there are two to choose between, a plain badge when there is only
@@ -574,8 +637,8 @@ private fun PlaylistChip(
 ) {
     if (playlists.isEmpty()) return
     val label = when {
-        playlists.size == 1 -> playlists.first().name
-        else -> playlists.firstOrNull { it.id == activeId }?.name
+        playlists.size == 1 -> playlists.first().displayName()
+        else -> playlists.firstOrNull { it.id == activeId }?.displayName()
             ?: stringResource(tv.own.owntv.mobile.R.string.content_all_playlists)
     }
     val switchable = playlists.size > 1

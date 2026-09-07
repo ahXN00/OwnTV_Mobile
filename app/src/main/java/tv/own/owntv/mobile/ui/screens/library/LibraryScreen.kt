@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -33,18 +34,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import kotlinx.coroutines.flow.SharedFlow
@@ -59,6 +61,9 @@ import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.mobileGroupPlate
 import tv.own.owntv.mobile.ui.components.PosterCard
+import tv.own.owntv.mobile.ui.components.GRID_LIST_SHARE
+import tv.own.owntv.mobile.ui.components.TwoPane
+import tv.own.owntv.mobile.ui.nav.isExpandedWidth
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.theme.LocalAnimations
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -80,6 +85,7 @@ fun LibraryScreen(
     scrollToTop: SharedFlow<String>,
     route: String,
     onOpenItem: (LibraryTab, Long) -> Unit,
+    onPlay: () -> Unit,
     modifier: Modifier = Modifier,
     fixedTab: LibraryTab? = null,
     vm: LibraryViewModel = koinViewModel(),
@@ -100,14 +106,6 @@ fun LibraryScreen(
         LibraryTab.SERIES -> vm.series
     }.collectAsLazyPagingItems()
 
-    // Roughly one poster per 110 dp of width, which is three on a small phone and eight on a tablet
-    // in landscape. The user's own number wins whenever they have set one.
-    val width = LocalConfiguration.current.screenWidthDp
-    val columns = chosenColumns.takeIf { it > 0 } ?: (width / COLUMN_WIDTH_DP).coerceIn(MIN_COLUMNS, MAX_COLUMNS)
-    // The gaps between the columns come out of the tiles, or the last one is pushed off the edge.
-    val gaps = MobileDimens.GridGap.value.toInt() * (columns - 1)
-    val posterWidth = ((width - GRID_PADDING_DP * 2 - gaps) / columns).dp
-
     val gridState = rememberLazyGridState()
     val listState = rememberLazyListState()
     gridState.ObeyGridScrollToTop(route, scrollToTop)
@@ -117,13 +115,34 @@ fun LibraryScreen(
     var sheetOpen by remember { mutableStateOf(false) }
     var categoryPicker by remember { mutableStateOf(false) }
 
-    // A new selection's scroll position has nothing to do with the old one's.
+    val twoPane = isExpandedWidth()
+    // Beside the grid, something is always open: the pane is a preview of the grid, so it falls back
+    // to the first tile until the user taps another. Derived rather than stored, so a category whose
+    // first title happens to be the one already showing still fills the pane instead of emptying it.
+    var tappedItem by rememberSaveable { mutableStateOf<Long?>(null) }
+    val openItem = tappedItem ?: if (twoPane) items.peekFirstId() else null
+
+    // A new selection's scroll position has nothing to do with the old one's, and neither does the
+    // title that was open in the pane — it is not in this category any more.
     LaunchedEffect(tab, selected) {
         gridState.scrollToItem(0)
         listState.scrollToItem(0)
+        tappedItem = null
     }
 
-    Column(modifier.fillMaxSize()) {
+    val listPane = @Composable {
+    // The column count comes from the width this pane actually got, not the window's: beside a
+    // detail pane, or next to the rail, the grid has less room than the screen is wide.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    // Roughly one poster per 110 dp of width, which is three on a small phone and eight on a tablet
+    // in landscape. The user's own number wins whenever they have set one.
+    val width = maxWidth.value.toInt()
+    val columns = chosenColumns.takeIf { it > 0 } ?: (width / COLUMN_WIDTH_DP).coerceIn(MIN_COLUMNS, MAX_COLUMNS)
+    // The gaps between the columns come out of the tiles, or the last one is pushed off the edge.
+    val gaps = MobileDimens.GridGap.value.toInt() * (columns - 1)
+    val posterWidth = ((width - GRID_PADDING_DP * 2 - gaps) / columns).dp
+
+    Column(Modifier.fillMaxSize()) {
         if (fixedTab == null) {
             // Transparent, or Material's own opaque surface paints a square black band across the
             // top of the page's rounded glass pane and squares off its two top corners.
@@ -188,7 +207,11 @@ fun LibraryScreen(
                         MobileListRow(
                             title = item.name,
                             subtitle = item.details(),
-                            onClick = { onOpenItem(tab, item.id) },
+                            // Beside the grid the title opens in the pane; on a phone it is a
+                            // screen of its own. The same screen, reached two ways.
+                            onClick = {
+                                if (twoPane) tappedItem = item.id else onOpenItem(tab, item.id)
+                            },
                             onLongClick = { menuFor = item },
                         )
                     }
@@ -215,7 +238,11 @@ fun LibraryScreen(
                                 ?.let { it.positionMs.toFloat() / it.durationMs.coerceAtLeast(1) },
                             width = posterWidth,
                             sharedKey = posterKey(tab.name, item.id),
-                            onClick = { onOpenItem(tab, item.id) },
+                            // Beside the grid the title opens in the pane; on a phone it is a
+                            // screen of its own. The same screen, reached two ways.
+                            onClick = {
+                                if (twoPane) tappedItem = item.id else onOpenItem(tab, item.id)
+                            },
                             onLongClick = { menuFor = item },
                         )
                     }
@@ -227,6 +254,24 @@ fun LibraryScreen(
     if (sheetOpen) {
         LibraryOptionsSheet(vm = vm, columns = columns, onDismiss = { sheetOpen = false })
     }
+    }
+    }
+
+    if (twoPane) {
+        TwoPane(
+            list = listPane,
+            detail = {
+                openItem?.let { id ->
+                    DetailScreen(tab = tab, itemId = id, onPlay = onPlay)
+                }
+            },
+            modifier = modifier,
+            listShare = GRID_LIST_SHARE,
+        )
+    } else {
+        Box(modifier) { listPane() }
+    }
+
     menuFor?.let { item ->
         VodMenu(
             item = item,
@@ -391,6 +436,12 @@ private fun Modifier.pinchToResize(columns: Int, onChange: (Int) -> Unit): Modif
             }
         }
     }
+
+/**
+ * The first title in the grid, without asking the pager to load a page for it — the detail pane
+ * follows it, and a preview must never be the reason a page is fetched.
+ */
+private fun LazyPagingItems<VodItem>.peekFirstId(): Long? = itemSnapshotList.firstOrNull()?.id
 
 private const val COLUMN_WIDTH_DP = 110
 private const val GRID_PADDING_DP = 8

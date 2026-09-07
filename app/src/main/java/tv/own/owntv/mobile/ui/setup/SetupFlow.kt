@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.setup.SourceImporter
 import tv.own.owntv.core.setup.displayText
 import tv.own.owntv.core.sync.detailText
@@ -49,27 +51,60 @@ import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
+import tv.own.owntv.mobile.ui.profiles.ProfileEditorSheet
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
-private enum class Step { CHOICE, FORM, IMPORTING, RESTORE }
+/**
+ * The television's own sequence, name for name. See `SetupWizardSteps.kt` for why the TV's two
+ * "chooser" steps have no counterpart here.
+ */
+private enum class Step {
+    WELCOME, DISCLAIMER, CHOICE, CREATE_PROFILE, ADD_CONTENT, EXISTING, FORM, IMPORTING, RESTORE
+}
 
 /**
  * Getting content onto the phone: type a playlist in, or bring everything back from a backup.
  *
- * The same flow serves both the empty first run and "add a playlist" later on — the only difference
- * is what happens at the end, which is [onDone]'s business, and whether there is anywhere to go
- * back to.
+ * **The first run is the television's wizard**, in its order and with its words — Welcome, the
+ * disclaimer, start-fresh-or-restore, the profile, then where the content comes from. Opening the
+ * same flow later from "Add a playlist" starts at *Add content* instead: the greeting, the disclaimer
+ * and the profile step all belong to a first run and would be in the way of the one thing that user
+ * came to do.
  */
 @Composable
 fun SetupFlow(
-    onDone: () -> Unit,
+    onDone: (profileId: Long?) -> Unit,
     modifier: Modifier = Modifier,
     onCancel: (() -> Unit)? = null,
 ) {
     val vm: SetupViewModel = koinViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
-    var step by rememberSaveable { mutableStateOf(Step.CHOICE) }
+    // No way to cancel means there is nothing behind this flow, which is exactly what a first run is.
+    val firstRun = onCancel == null
+    var step by rememberSaveable(firstRun) {
+        mutableStateOf(if (firstRun) Step.WELCOME else Step.ADD_CONTENT)
+    }
+    // Refreshed on every arrival at Add content, because restoring a backup on the way here can
+    // create the very profiles whose playlists this step offers to share.
+    var existing by remember { mutableStateOf<List<SourceEntity>>(emptyList()) }
+    LaunchedEffect(step) {
+        if (step == Step.ADD_CONTENT) {
+            existing = runCatching { vm.availableExistingSources() }.getOrDefault(emptyList())
+        }
+    }
+    // Where "Try again" and "Cancel" return to: the form for a new playlist, the list for a shared one.
+    var importOrigin by rememberSaveable { mutableStateOf(Step.FORM) }
+    // Where Back from the backup picker returns to — the first-run choice, or Add content.
+    var backupOrigin by rememberSaveable { mutableStateOf(Step.ADD_CONTENT) }
+
+    // The name field is optional, and the television has always filled a blank one in rather than
+    // storing an empty string. Without this the playlist has no name anywhere it is shown — the top
+    // bar's selector renders as a bare pill, and the playlist picker offers a row with no label.
+    val defaultProfileName = stringResource(R.string.setup_default_profile)
+    val defaultIptvName = stringResource(R.string.setup_default_iptv)
+    val defaultPlaylistName = stringResource(R.string.setup_name_default_playlist)
+    val defaultPortalName = stringResource(R.string.setup_default_portal)
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -79,34 +114,83 @@ fun SetupFlow(
         }
     }
 
-    // Back out of a step rather than out of the app; from the first step there is nowhere to go
-    // unless the caller says so, and an install with no playlist has nothing behind it.
-    BackHandler(enabled = step != Step.CHOICE || onCancel != null) {
+    // Back walks the wizard backwards rather than out of the app. From the very first step there is
+    // nowhere to go unless the caller gave us somewhere, and an install with no playlist has nothing
+    // behind it at all.
+    val atStart = step == (if (firstRun) Step.WELCOME else Step.ADD_CONTENT)
+    BackHandler(enabled = !atStart || onCancel != null) {
         when (step) {
-            Step.CHOICE -> onCancel?.invoke()
-            Step.FORM, Step.RESTORE -> { vm.reset(); step = Step.CHOICE }
+            Step.WELCOME -> onCancel?.invoke()
+            Step.DISCLAIMER -> step = Step.WELCOME
+            Step.CHOICE -> step = Step.DISCLAIMER
+            Step.CREATE_PROFILE -> step = Step.CHOICE
+            Step.ADD_CONTENT -> if (firstRun) step = Step.CREATE_PROFILE else onCancel?.invoke()
+            Step.EXISTING -> step = Step.ADD_CONTENT
+            Step.FORM -> { vm.reset(); step = Step.ADD_CONTENT }
+            Step.RESTORE -> { vm.reset(); step = backupOrigin }
             Step.IMPORTING -> Unit // the buttons on that screen decide; a stray swipe must not abandon a sync
         }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         when (step) {
+            Step.WELCOME -> WelcomeStep(onNext = { step = Step.DISCLAIMER })
+            Step.DISCLAIMER -> DisclaimerStep(
+                onAgree = { step = Step.CHOICE },
+                onBack = { step = Step.WELCOME },
+            )
+            // The first decision: start fresh, or bring everything back. Restoring first is why the
+            // profile step comes after this one — a restore brings its own profiles, and creating one
+            // beforehand would only be something for the restore to sit beside.
             Step.CHOICE -> SetupChoice(
-                onAddSource = { step = Step.FORM },
-                onRestore = { step = Step.RESTORE; pickBackup() },
+                onCreateProfile = { step = Step.CREATE_PROFILE },
+                onRestore = { backupOrigin = Step.CHOICE; step = Step.RESTORE; pickBackup() },
                 onCancel = onCancel,
+            )
+            Step.CREATE_PROFILE -> ProfileEditorSheet(
+                initial = null,
+                takenNames = emptySet(),
+                onConfirm = { name, avatar, kids, pin ->
+                    vm.createProfile(name.ifBlank { defaultProfileName }, avatar, kids, pin) {
+                        step = Step.ADD_CONTENT
+                    }
+                },
+                onDismiss = { step = Step.CHOICE },
+            )
+            Step.ADD_CONTENT -> AddContentStep(
+                hasExisting = existing.isNotEmpty(),
+                onNew = { importOrigin = Step.FORM; step = Step.FORM },
+                onExisting = { step = Step.EXISTING },
+                onImport = { backupOrigin = Step.ADD_CONTENT; step = Step.RESTORE; pickBackup() },
+                onSkip = { vm.finish(onDone) },
+                onBack = if (firstRun) ({ step = Step.CREATE_PROFILE }) else onCancel,
+            )
+            Step.EXISTING -> ExistingSourcesStep(
+                sources = existing,
+                onAdd = { ids ->
+                    vm.linkExisting(ids)
+                    importOrigin = Step.EXISTING
+                    step = Step.IMPORTING
+                },
+                onBack = { step = Step.ADD_CONTENT },
             )
             Step.FORM -> AddSourceForm(
                 onStartXtream = { name, server, user, pass, ua, refresh, live, movies, series, hls ->
-                    vm.startXtream(name, server, user, pass, ua, refresh, live, movies, series, hls)
+                    vm.startXtream(
+                        name.ifBlank { defaultIptvName },
+                        server, user, pass, ua, refresh, live, movies, series, hls,
+                    )
                     step = Step.IMPORTING
                 },
                 onStartM3u = { name, url, ua, refresh ->
-                    vm.startM3u(name, url, ua, refresh)
+                    vm.startM3u(name.ifBlank { defaultPlaylistName }, url, ua, refresh)
                     step = Step.IMPORTING
                 },
                 onStartStalker = { name, portal, mac, serial, dev1, dev2, sig, ua, refresh, live, movies, series ->
-                    vm.startStalker(name, portal, mac, serial, dev1, dev2, sig, ua, refresh, live, movies, series)
+                    vm.startStalker(
+                        name.ifBlank { defaultPortalName },
+                        portal, mac, serial, dev1, dev2, sig, ua, refresh, live, movies, series,
+                    )
                     step = Step.IMPORTING
                 },
             )
@@ -115,22 +199,22 @@ fun SetupFlow(
                 progressText = progress?.importProgressDisplay(),
                 onContinue = { vm.finish(onDone) },
                 onRunInBackground = { vm.continueInBackground(onDone) },
-                onRetry = { vm.reset(); step = Step.FORM },
-                onCancel = { vm.cancelImport(); step = Step.FORM },
+                onRetry = { vm.reset(); step = importOrigin },
+                onCancel = { vm.cancelImport(); step = importOrigin },
             )
             Step.RESTORE -> RestoreBackup(
                 state = state,
                 onPassword = vm::restoreWithPassword,
                 onContinue = { vm.finish(onDone) },
                 onPickAgain = { vm.reset(); pickBackup() },
-                onBack = { vm.reset(); step = Step.CHOICE },
+                onBack = { vm.reset(); step = backupOrigin },
             )
         }
     }
 }
 
 @Composable
-private fun SetupChoice(onAddSource: () -> Unit, onRestore: () -> Unit, onCancel: (() -> Unit)?) {
+private fun SetupChoice(onCreateProfile: () -> Unit, onRestore: () -> Unit, onCancel: (() -> Unit)?) {
     SetupPage {
         Text(
             text = stringResource(R.string.setup_set_up_owntv),
@@ -143,11 +227,14 @@ private fun SetupChoice(onAddSource: () -> Unit, onRestore: () -> Unit, onCancel
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(MobileDimens.GapSmall))
+        // The television's own label, and it has to be: this row leads to the profile editor, not to
+        // a playlist form. Calling it "Add a playlist" described the step after next and left the
+        // profile step looking like it had arrived by mistake.
         MobileListRow(
-            title = stringResource(R.string.setup_add_playlist),
-            subtitle = stringResource(R.string.setup_add_playlist_description),
-            leading = { Icon(MobileIcons.PlaylistAdd, contentDescription = null) },
-            onClick = onAddSource,
+            title = stringResource(R.string.setup_new_profile),
+            subtitle = stringResource(R.string.setup_create_profile_add_sources),
+            leading = { Icon(MobileIcons.Person, contentDescription = null) },
+            onClick = onCreateProfile,
         )
         MobileListRow(
             title = stringResource(R.string.setup_restore_backup),
@@ -370,7 +457,7 @@ private fun RestoreBackup(
 /** One column, centred, scrolling — every step of this flow is short enough to fit but must still
  *  survive a keyboard and a small screen in landscape. */
 @Composable
-private fun SetupPage(content: @Composable () -> Unit) {
+fun SetupPage(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()

@@ -1,0 +1,71 @@
+package tv.own.owntv.mobile.ui.screens.settings
+
+import androidx.compose.runtime.Composable
+
+/**
+ * One settings page, chosen by its route.
+ *
+ * It exists because settings are reached two ways: as a route of their own on a phone, and inside
+ * the right-hand pane on a tablet, where there is no back stack to navigate. Both go through this,
+ * so a page can never be wired into one and forgotten in the other.
+ *
+ * [onOpenRoute] is what a row that leads somewhere calls — navigation on a phone, and a push onto
+ * the pane's own stack on a tablet.
+ */
+@Composable
+fun SettingsGroupPage(group: SettingsGroup, onOpenRoute: (String) -> Unit) {
+    val openLeaf: (SettingsLeaf) -> Unit = { onOpenRoute(it.route) }
+    when (group) {
+        SettingsGroup.PROFILE -> SettingsProfilePage()
+        SettingsGroup.SOURCES -> SettingsSourcesPage(onOpenLeaf = openLeaf)
+        SettingsGroup.APPEARANCE -> SettingsAppearancePage(onOpenLeaf = openLeaf)
+        SettingsGroup.LAYOUT -> SettingsLayoutPage(onOpenLeaf = openLeaf)
+        SettingsGroup.CONTENT -> SettingsContentPage(onOpenLeaf = openLeaf)
+        SettingsGroup.PLAYBACK -> SettingsPlaybackPage(onOpenLeaf = openLeaf)
+        SettingsGroup.NETWORK -> SettingsNetworkPage()
+        SettingsGroup.DATA -> SettingsDataPage(onOpenLeaf = openLeaf)
+        SettingsGroup.APP -> SettingsAppPage(
+            onOpenLanguage = { onOpenRoute(SettingsLeaf.LANGUAGE.route) },
+            onOpenErrorLog = { onOpenRoute(SettingsLeaf.ERROR_LOG.route) },
+        )
+    }
+}
+
+/**
+ * One leaf page. [onAddSource] is the setup flow, which is a route outside settings altogether and
+ * so stays the caller's business in both layouts.
+ */
+@Composable
+fun SettingsLeafPage(leaf: SettingsLeaf, onOpenRoute: (String) -> Unit, onAddSource: () -> Unit) {
+    when (leaf) {
+        SettingsLeaf.PLAYLISTS -> SettingsPlaylistsPage(onAddSource = onAddSource)
+        SettingsLeaf.EPG_SOURCES -> SettingsEpgSourcesPage()
+        SettingsLeaf.GLASS_EFFECT -> SettingsGlassPage()
+        SettingsLeaf.FONTS -> SettingsFontsPage()
+        SettingsLeaf.WEATHER -> SettingsWeatherPage()
+        SettingsLeaf.CUSTOMIZE -> SettingsCustomizePage()
+        SettingsLeaf.METADATA -> SettingsMetadataPage()
+        SettingsLeaf.OPEN_SUBTITLES -> SettingsOpenSubtitlesPage()
+        SettingsLeaf.VIDEO_PLAYER -> SettingsVideoPlayerPage(
+            onOpenLeaf = { target -> onOpenRoute(target.route) },
+        )
+        SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
+        SettingsLeaf.HOME -> SettingsHomePage()
+        SettingsLeaf.BACKUP -> SettingsBackupPage()
+        SettingsLeaf.LOCAL_SYNC -> SettingsLocalSyncPage()
+        SettingsLeaf.LANGUAGE -> SettingsLanguagePage()
+        SettingsLeaf.ERROR_LOG -> SettingsErrorLogPage()
+    }
+}
+
+/** Whichever of the two a route names, or nothing when it is not a settings route at all. */
+@Composable
+fun SettingsRoutePage(route: String, onOpenRoute: (String) -> Unit, onAddSource: () -> Unit) {
+    SettingsGroup.entries.firstOrNull { it.route == route }?.let {
+        SettingsGroupPage(it, onOpenRoute)
+        return
+    }
+    SettingsLeaf.entries.firstOrNull { it.route == route }?.let {
+        SettingsLeafPage(it, onOpenRoute, onAddSource)
+    }
+}

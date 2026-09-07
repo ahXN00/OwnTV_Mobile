@@ -602,6 +602,57 @@ release automation.
   without opening the app.
 - **The screen stays awake while there is a picture**, and is allowed to sleep when there is not.
 
+### 📐 Tablets and big screens
+
+- **Two panes side by side where there is room for them.** Past 840dp of window width — a tablet in
+  landscape, or a phone-sized foldable opened flat — Live TV shows the channel list on the left and
+  the channel playing on the right, Movies and Series show the grid beside the film or show you
+  tapped, and Settings shows the nine groups beside the group you are in. A group's own pages open
+  in that same right-hand pane, so the list never disappears out from under you, and Back steps back
+  through it one page at a time.
+- **Live TV starts empty rather than tuning something by itself.** Opening the tab is not a request
+  to watch, so the pane says *Select a channel to preview it here* until you pick one. Library is
+  the other way round: the pane follows the first title in the grid, because a grid's preview pane
+  with nothing in it is half a screen of nothing.
+- **The navigation rail is the same five places as the phone's bottom bar**, with Library split into
+  Movies and Series because a rail has the room for both. Downloads and Settings are not on it —
+  they live under More, on every screen size. The rail sits centred, and scrolls when a large display
+  size makes it taller than the screen.
+- **The poster grid counts its columns from the space it actually has**, not from how wide the screen
+  is, so it stays sensible next to the rail and next to a detail pane instead of squeezing the
+  posters to fit a number.
+- **Rotating, unfolding or splitting the screen keeps your place** — where you had scrolled to, which
+  channel or title was open, and even half-typed text in the settings search.
+- **The Home hero card stops growing** instead of stretching to a tablet's full width and pushing
+  every other row off the bottom of the screen.
+
+### 🚀 The first time you open it
+
+- **The same welcome as the television, step for step.** A greeting with the app's name and your
+  choice of language, the *Before you start* notice, then start-fresh-or-restore, your profile, and
+  finally where your content comes from — a new playlist, one another profile already has, or a
+  backup file. *Skip for now* is there too, if you would rather set a playlist up later.
+- **It does not ask who is watching when there is only one answer.** Straight after typing your own
+  profile's name, being asked to pick a profile was the app forgetting what it had just been told.
+  The chooser now appears only when it is genuinely needed: more than one profile, or one with a PIN.
+- **A playlist left unnamed is named for you** — *My IPTV*, *My Playlist* or *My Portal*, exactly as
+  the television has always done. An unnamed one used to leave the playlist chip in the top bar as a
+  blank pill, and a playlist added before this fix now shows its proper name too.
+
+### 🛠️ Fixes
+
+- **Fixed: the app closed itself after adding a playlist.** Pressing OK on *All set!* ended the setup
+  from a background thread, which Android does not allow to change screens, and the whole app went
+  down with it.
+- **Fixed: Home said "Add a playlist first" when you already had one.** On a brand-new playlist every
+  row on Home is legitimately empty — nothing watched, nothing favourited yet — and the screen
+  offered to fix a problem you did not have. It now says what the television says: *Start watching to
+  see your activity here*, and never offers to add a playlist once you have one.
+- **Fixed: the little floating window opened on its own.** Tapping a channel started a preview, and
+  walking off to another tab put a window over whatever you went to look at. The window now appears
+  only when you ask for it in the full screen player, and leaving a channel stops the stream instead
+  of letting it play on where you cannot see it.
+
 ### 🌍 It speaks 26 languages on day one
 
 - **Every user-visible string comes from the core library**, already translated, so the mobile app

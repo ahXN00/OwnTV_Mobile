@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.database.dao.ProfileDao
@@ -26,8 +27,17 @@ class ProfilesViewModel(
     val profiles: StateFlow<List<ProfileEntity>?> = profileDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val activeProfileId: StateFlow<Long> = settings.activeProfileId
-        .stateIn(viewModelScope, SharingStarted.Eagerly, -1L)
+    /**
+     * The active profile, or null while the preference is still being read.
+     *
+     * Nullable on purpose, exactly as the television's is: `-1` already means "no profile chosen",
+     * so a `-1` placeholder while loading makes those two states indistinguishable — and the shell
+     * has to tell them apart, or the frame before the answer arrives looks like a fresh install and
+     * flashes "Who is watching?" on the way past.
+     */
+    val activeProfileId: StateFlow<Long?> = settings.activeProfileId
+        .map<Long, Long?> { it }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun verifyPin(profile: ProfileEntity, pin: String): Boolean = manager.verifyPin(profile, pin)
 

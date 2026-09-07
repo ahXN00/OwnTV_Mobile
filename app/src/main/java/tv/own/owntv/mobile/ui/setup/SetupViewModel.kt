@@ -3,11 +3,14 @@ package tv.own.owntv.mobile.ui.setup
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.settings.PlaylistRefresh
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.setup.SourceImporter
 import tv.own.owntv.core.sync.SyncScopeChoice
 import tv.own.owntv.mobile.R
@@ -98,18 +101,52 @@ class SetupViewModel(
      * does not cancel — cancelling would undo the playlist the user just added — and the sync pill
      * on the shell is what tells them it is still going.
      */
-    fun continueInBackground(onDone: () -> Unit) {
+    fun continueInBackground(onDone: (Long?) -> Unit) {
         importer.backgroundHandoff = true
         finish(onDone)
     }
 
-    /** Ends the flow: the profile the content landed on becomes the active one. */
-    fun finish(onDone: () -> Unit) {
+    /**
+     * Ends the flow: the profile the content landed on becomes the active one, and its id is handed
+     * back so the shell can admit it without asking who is watching — the television's `onDone`
+     * carries the same id for the same reason.
+     */
+    fun finish(onDone: (Long?) -> Unit) {
         appScope.launch {
-            importer.finish()
-            onDone()
+            val profileId = importer.finish()
+            onMain { onDone(profileId) }
         }
     }
+
+    /**
+     * Hands a wizard callback back to the main thread.
+     *
+     * [appScope] is a background scope — it has to be, so "Run in background" survives the screen
+     * going away — but every one of these callbacks ends up moving the user somewhere, and
+     * navigation must be touched on the main thread or `setCurrentState` throws and takes the whole
+     * process with it. That is what closed the app on "OK" after an import.
+     */
+    private suspend fun onMain(block: () -> Unit) = withContext(Dispatchers.Main) { block() }
+
+    /**
+     * The profile the wizard's own step creates, before any content exists to hang on it.
+     *
+     * [attachToProfile] makes one silently for anyone who reached the form without a profile; this is
+     * the deliberate one, with the name and avatar the user chose. Both go through core's importer, so
+     * whichever ran first is the profile the content lands on.
+     */
+    fun createProfile(name: String, avatarId: Int, isKids: Boolean, pin: String?, onCreated: () -> Unit) {
+        appScope.launch {
+            importer.createProfile(name, avatarId, isKids, pin)
+            onMain(onCreated)
+        }
+    }
+
+    /** Playlists another profile already has, which this one can share rather than re-import. */
+    suspend fun availableExistingSources(): List<SourceEntity> = importer.availableExistingSources()
+
+    /** Link the chosen existing playlists to this profile, then re-sync each one. */
+    fun linkExisting(sourceIds: Set<Long>) = runImport { importer.linkExisting(sourceIds) }
 
     fun reset() = importer.reset()
 

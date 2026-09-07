@@ -7,13 +7,14 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.SharedFlow
@@ -52,9 +55,10 @@ import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.home.GuideSliceState
 import tv.own.owntv.core.home.HeroItem
 import tv.own.owntv.core.home.HomeFeed
+import tv.own.owntv.core.database.dao.TrendingDao
+import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.launcher.LauncherContinuationItem
 import tv.own.owntv.core.launcher.LauncherWatchNextType
-import tv.own.owntv.core.model.HomeLiveRowMode
 import tv.own.owntv.core.model.HomeRow
 import tv.own.owntv.core.model.HomeTrendingStyle
 import tv.own.owntv.core.model.MediaType
@@ -63,7 +67,6 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.core.home.TrendingHomeItem
 import tv.own.owntv.mobile.ui.components.ContentActionsMenu
 import tv.own.owntv.mobile.ui.components.ContentTarget
-import tv.own.owntv.mobile.ui.components.PosterCard
 import tv.own.owntv.mobile.ui.components.PosterCard
 import tv.own.owntv.mobile.ui.components.SectionHeader
 import tv.own.owntv.mobile.ui.nav.posterKey
@@ -89,7 +92,6 @@ fun HomeScreen(
     onOpenSeries: (Long) -> Unit,
     onPlayerOpened: () -> Unit,
     onOpenSearch: (String) -> Unit,
-    onAddSource: () -> Unit,
     modifier: Modifier = Modifier,
     vm: HomeViewModel = koinViewModel(),
 ) {
@@ -110,15 +112,30 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     listState.ObeyScrollToTop(route = MobileHomeRoute, scrollToTop = scrollToTop)
 
-    val state = feed ?: return
+    // Null is the feed still being read, not an empty one. The television draws a skeleton here; a
+    // blank screen that suddenly becomes Home reads as a fault on a slow first start.
+    val state = feed ?: run {
+        HomeSkeleton(modifier)
+        return
+    }
     val rows = state.config.visibleOrder.filter { state.hasContent(it) }
 
+    // The television's three states, in its order. **None of them offers "add a playlist"**: by the
+    // time Home is on screen a playlist exists — the shell sends a user with none to setup instead —
+    // so telling them to add one was answering a question nobody asked, and it is what the owner saw
+    // after adding a portal that had simply not filled any row yet.
+    if (state.config.visibleOrder.isEmpty()) {
+        HomeMessage(
+            title = stringResource(R.string.home_no_rows),
+            body = stringResource(R.string.home_enable_rows),
+            modifier = modifier,
+        )
+        return
+    }
     if (rows.isEmpty()) {
-        // Two different empty screens: nothing to show yet, and nothing left switched on. Offering
-        // "add a playlist" to a user who simply hid every row sends them to fix the wrong thing.
-        EmptyHome(
-            allRowsHidden = state.config.visibleOrder.isEmpty(),
-            onAddSource = onAddSource,
+        HomeMessage(
+            title = stringResource(R.string.home_start_watching),
+            body = stringResource(R.string.home_continue_empty),
             modifier = modifier,
         )
         return
@@ -216,10 +233,20 @@ fun HomeScreen(
 
 /** A row with nothing in it is not drawn at all — an empty heading is worse than one row fewer. */
 private fun HomeFeed.hasContent(row: HomeRow): Boolean = when (row) {
-    HomeRow.TRENDING -> trendingItems.isNotEmpty()
+    // The television's own `rowHasData`, rule for rule. Trending needs enough titles to be worth a
+    // row rather than merely one, and the two live rows are drawn from the guide when their mode
+    // says On now, so that is what decides whether they have anything — not the card list, which is
+    // empty in that mode by design.
+    HomeRow.TRENDING -> trendingItems.size >= TrendingDao.MIN_ELIGIBLE_ITEMS
     HomeRow.HERO -> heroItems.isNotEmpty()
-    HomeRow.RECENT_CHANNELS -> recentLive.isNotEmpty()
-    HomeRow.FAVORITE_CHANNELS -> favoriteLive.isNotEmpty()
+    HomeRow.RECENT_CHANNELS -> when (config.recentLiveMode) {
+        HomeLiveRowMode.CARDS -> recentLive.isNotEmpty()
+        HomeLiveRowMode.ON_NOW -> recentGuide.hasContent
+    }
+    HomeRow.FAVORITE_CHANNELS -> when (config.favoriteLiveMode) {
+        HomeLiveRowMode.CARDS -> favoriteLive.isNotEmpty()
+        HomeLiveRowMode.ON_NOW -> favoriteGuide.hasContent
+    }
     HomeRow.CONTINUE_MOVIES -> continueMovies.isNotEmpty()
     HomeRow.CONTINUE_SERIES -> continueSeries.isNotEmpty()
 }
@@ -236,10 +263,16 @@ private fun HeroRow(
     onPlayEpisode: (Long, Long) -> Unit,
     onMenu: (ContentTarget) -> Unit,
 ) {
-    val cardWidth = LocalConfiguration.current.screenWidthDp.dp - MobileDimens.ScreenPaddingH * 2
     val state = rememberLazyListState()
     Column {
         SectionHeader(title = stringResource(R.string.home_row_keep_watching))
+        // One card per screenful is right on a phone, where the card IS the screen. On a tablet the
+        // same sum makes a 1250dp card that swallows Home whole and hides every row under it, so the
+        // card stops growing and the row simply shows more than one — which is what the width is for.
+        val cardWidth = min(
+            LocalConfiguration.current.screenWidthDp.dp - MobileDimens.ScreenPaddingH * 2,
+            HeroCardMaxWidth,
+        )
         LazyRow(
             state = state,
             flingBehavior = rememberSnapFlingBehavior(state),
@@ -681,10 +714,16 @@ private fun WeatherInfo.conditionIcon(): ImageVector = when {
     else -> MobileIcons.Cloud
 }
 
+/**
+ * Home with nothing on it: a headline and a line saying what would fill it.
+ *
+ * The television's two empty screens differ only in their words, so this is one composable with the
+ * words passed in rather than two that share a body.
+ */
 @Composable
-private fun EmptyHome(
-    allRowsHidden: Boolean,
-    onAddSource: () -> Unit,
+private fun HomeMessage(
+    title: String,
+    body: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -693,18 +732,26 @@ private fun EmptyHome(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(
-                if (allRowsHidden) R.string.home_no_rows else R.string.content_epg_add_playlist_first,
-            ),
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(MobileDimens.GapSmall))
+        Text(
+            text = body,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        if (!allRowsHidden) {
-            Button(onClick = onAddSource, modifier = Modifier.padding(top = MobileDimens.GapMedium)) {
-                Text(stringResource(R.string.setup_add_playlist))
-            }
-        }
+    }
+}
+
+/** The feed still being read. A quiet spinner, not a blank screen that jumps into a full Home. */
+@Composable
+private fun HomeSkeleton(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -717,3 +764,6 @@ private val ChannelCardWidth = 96.dp
 private val ChannelLogoSize = 56.dp
 private val OnNowCardWidth = 240.dp
 private val WeatherIconSize = 18.dp
+
+/** Wide enough to be the card Home is built around, and no wider. */
+private val HeroCardMaxWidth = 560.dp

@@ -30,34 +30,13 @@ import tv.own.owntv.mobile.ui.screens.library.LibraryTab
 import tv.own.owntv.mobile.ui.screens.live.ChannelDetailScreen
 import tv.own.owntv.mobile.ui.screens.live.LiveScreen
 import tv.own.owntv.mobile.ui.screens.search.SearchScreen
-import tv.own.owntv.mobile.ui.screens.settings.SettingsAppPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsAppearancePage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsContentPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsCustomizePage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsBackupPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsLocalSyncPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsDataPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsErrorLogPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsFontsPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsGlassPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsHomePage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsLanguagePage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsGroup
-import tv.own.owntv.mobile.ui.screens.settings.SettingsLayoutPage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsGroupPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsLeaf
-import tv.own.owntv.mobile.ui.screens.settings.SettingsMetadataPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsNetworkPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsOpenSubtitlesPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsPlaybackPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsProfilePage
+import tv.own.owntv.mobile.ui.screens.settings.SettingsLeafPage
 import tv.own.owntv.mobile.ui.screens.settings.SettingsScreen
-import tv.own.owntv.mobile.ui.screens.settings.SettingsEpgSourcesPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsPlaylistsPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsSourcesPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsSubtitleAppearancePage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsVideoPlayerPage
-import tv.own.owntv.mobile.ui.screens.settings.SettingsWeatherPage
 import tv.own.owntv.mobile.ui.setup.SetupFlow
+import tv.own.owntv.mobile.ui.shell.LocalMiniRequested
 import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 
 /**
@@ -112,7 +91,6 @@ fun MobileNavHost(
                         },
                         onPlayerOpened = { navController.navigate(PLAYER_ROUTE) },
                         onOpenSearch = { query -> navController.navigate(searchRoute(query)) },
-                        onAddSource = { navController.navigate(SETUP_ROUTE) },
                     )
                     MobileDestination.GUIDE -> GuideScreen(
                         scrollToTop = scrollToTop,
@@ -126,6 +104,7 @@ fun MobileNavHost(
                         onOpenChannel = { channelId, openCatchup ->
                             navController.navigate(channelRoute(destination, channelId, openCatchup))
                         },
+                        onOpenPlayer = { navController.navigate(PLAYER_ROUTE) },
                     )
                     MobileDestination.DOWNLOADS -> DownloadsScreen(
                         onPlayerOpened = { navController.navigate(PLAYER_ROUTE) },
@@ -138,9 +117,11 @@ fun MobileNavHost(
                             onOpenItem = { tab, id ->
                                 navController.navigate(detailRoute(destination.route, tab, id))
                             },
+                            onPlay = { navController.navigate(PLAYER_ROUTE) },
                         )
                     MobileDestination.SETTINGS -> SettingsScreen(
                         onOpenRoute = { navController.navigate(it) },
+                        onAddSource = { navController.navigate(SETUP_ROUTE) },
                     )
                     else -> PlaceholderScreen(destination = destination, scrollToTop = scrollToTop)
                 }
@@ -208,52 +189,25 @@ fun MobileNavHost(
         }
         // The nine group pages and every leaf under them. Each is a route rather than an expanding
         // block, so the system back gesture is what closes it.
-        val openLeaf: (SettingsLeaf) -> Unit = { navController.navigate(it.route) }
+        val openRoute: (String) -> Unit = { navController.navigate(it) }
+        val addSource: () -> Unit = { navController.navigate(SETUP_ROUTE) }
         SettingsGroup.entries.forEach { group ->
-            composable(group.route) {
-                when (group) {
-                    SettingsGroup.PROFILE -> SettingsProfilePage()
-                    SettingsGroup.SOURCES -> SettingsSourcesPage(onOpenLeaf = openLeaf)
-                    SettingsGroup.APPEARANCE -> SettingsAppearancePage(onOpenLeaf = openLeaf)
-                    SettingsGroup.LAYOUT -> SettingsLayoutPage(onOpenLeaf = openLeaf)
-                    SettingsGroup.CONTENT -> SettingsContentPage(onOpenLeaf = openLeaf)
-                    SettingsGroup.PLAYBACK -> SettingsPlaybackPage(onOpenLeaf = openLeaf)
-                    SettingsGroup.NETWORK -> SettingsNetworkPage()
-                    SettingsGroup.DATA -> SettingsDataPage(onOpenLeaf = openLeaf)
-                    SettingsGroup.APP -> SettingsAppPage(
-                        onOpenLanguage = { navController.navigate(SettingsLeaf.LANGUAGE.route) },
-                        onOpenErrorLog = { navController.navigate(SettingsLeaf.ERROR_LOG.route) },
-                    )
-                }
-            }
+            composable(group.route) { SettingsGroupPage(group, openRoute) }
         }
         SettingsLeaf.entries.forEach { leaf ->
-            composable(leaf.route) {
-                when (leaf) {
-                    SettingsLeaf.PLAYLISTS -> SettingsPlaylistsPage(
-                        onAddSource = { navController.navigate(SETUP_ROUTE) },
-                    )
-                    SettingsLeaf.EPG_SOURCES -> SettingsEpgSourcesPage()
-                    SettingsLeaf.GLASS_EFFECT -> SettingsGlassPage()
-                    SettingsLeaf.FONTS -> SettingsFontsPage()
-                    SettingsLeaf.WEATHER -> SettingsWeatherPage()
-                    SettingsLeaf.CUSTOMIZE -> SettingsCustomizePage()
-                    SettingsLeaf.METADATA -> SettingsMetadataPage()
-                    SettingsLeaf.OPEN_SUBTITLES -> SettingsOpenSubtitlesPage()
-                    SettingsLeaf.VIDEO_PLAYER -> SettingsVideoPlayerPage(
-                        onOpenLeaf = { target -> navController.navigate(target.route) },
-                    )
-                    SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
-                    SettingsLeaf.HOME -> SettingsHomePage()
-                    SettingsLeaf.BACKUP -> SettingsBackupPage()
-                    SettingsLeaf.LOCAL_SYNC -> SettingsLocalSyncPage()
-                    SettingsLeaf.LANGUAGE -> SettingsLanguagePage()
-                    SettingsLeaf.ERROR_LOG -> SettingsErrorLogPage()
-                }
-            }
+            composable(leaf.route) { SettingsLeafPage(leaf, openRoute, addSource) }
         }
         composable(PLAYER_ROUTE) {
-            PlayerScreen(onExit = { navController.leavePlayerStillPlaying() })
+            // `onExit` is only ever the mini-player button, the swipe down and Sound only — the three
+            // ways of saying "keep it playing". Back has its own path and stops the stream, so it
+            // never reaches here and never raises the flag.
+            val miniRequested = LocalMiniRequested.current
+            PlayerScreen(
+                onExit = {
+                    miniRequested.value = true
+                    navController.leavePlayerStillPlaying()
+                },
+            )
         }
         composable(SETUP_ROUTE) {
             SetupFlow(

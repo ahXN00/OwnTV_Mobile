@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import tv.own.owntv.mobile.ui.player.CatchupOptions
 import tv.own.owntv.mobile.ui.player.CatchupSheet as JumpBackSheet
 import tv.own.owntv.mobile.ui.player.VideoStage
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
+import tv.own.owntv.mobile.ui.shell.LocalMiniRequested
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import java.text.DateFormat
 import java.util.Date
@@ -74,6 +76,26 @@ fun ChannelDetailScreen(
         onBack()
     }
 
+    // Back is not the only way out: a tab in the bottom bar or the rail leaves this screen without
+    // ever reaching the handler above, and the stream went on playing behind whatever the user opened
+    // next. Leaving by any route now stops it — **except** the two departures that are meant to keep
+    // it: opening the full screen player, and the player's own mini-player button, which pops this
+    // screen on its way past and says through [LocalMiniRequested] that the stream was asked for.
+    val miniRequested = LocalMiniRequested.current
+    var toFullscreen by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!toFullscreen && !miniRequested.value) {
+                tuner.stop()
+                vodTuner.stop()
+            }
+        }
+    }
+    val openFullscreen = {
+        toFullscreen = true
+        onFullscreen()
+    }
+
     val channel by vm.channel.collectAsStateWithLifecycle()
     val nowNext by vm.nowNext.collectAsStateWithLifecycle()
     val siblings by vm.siblings.collectAsStateWithLifecycle()
@@ -96,7 +118,7 @@ fun ChannelDetailScreen(
                 .fillMaxWidth()
                 .aspectRatio(VIDEO_ASPECT)
                 .background(Color.Black)
-                .clickable(onClick = onFullscreen),
+                .clickable(onClick = openFullscreen),
         ) {
             VideoStage(player = vm.player, modifier = Modifier.fillMaxSize())
         }

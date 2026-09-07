@@ -195,3 +195,21 @@
 - **Translation checks in CI** — hardcoded text, number formats, text overflow, packaged languages
 - **Tag-driven releases**
 - **Automatic core library pin bumps**
+- **Two panes on a tablet: Live TV, Movies, Series and Settings side by side**
+- **Settings groups open beside the list instead of replacing it**
+- **The poster grid counts columns from the space it has, not the screen width**
+- **Rotating, unfolding and split screen keep your place**
+- **The navigation rail is centred, and scrolls at large display sizes**
+- **Downloads and Settings live under More on every screen size**
+- **The first run is the television's own wizard, step for step**
+- **Welcome screen with a language picker**
+- **Before you start: what OwnTV is and is not**
+- **Create your profile as part of setting up**
+- **Use a playlist another profile already has**
+- **Skip adding a playlist for now**
+- **A playlist left unnamed is named for you, as on the television**
+- **Fixed: the app closed itself after adding a playlist**
+- **Fixed: "Who is watching?" appeared when there was only one profile**
+- **Fixed: Home said "Add a playlist first" when a playlist was already there**
+- **Fixed: the floating window opened on its own after leaving a channel**
+- **Fixed: the Home hero card no longer swallows a tablet screen**
