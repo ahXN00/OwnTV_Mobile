@@ -626,6 +626,34 @@ release automation.
 - **The Home hero card stops growing** instead of stretching to a tablet's full width and pushing
   every other row off the bottom of the screen.
 
+### ⋯ The More tab is where everything that is not a setting now lives
+
+- **Favourites, in one place, for the first time.** More → Favourites is one screen with three chips
+  — Live TV, Movies, Series — showing everything you have starred. Each chip is the list that type
+  already has: the same channel row with what is on it now, the same poster grid at your own column
+  count, the same press-and-hold menu. Un-starring something removes it from the list there and then,
+  and the Library agrees the moment you go back to it. A chip with nothing under it is still shown,
+  so a Movies count of zero reads as "you have not starred a film" rather than as a broken screen.
+- **Watch history, the same way**, newest first, with the resume bar on the posters that have one.
+  Tapping a film picks it up where you left it, and a show opens on the episode you were on.
+- **Clear history moved onto that screen.** It used to be three levels down inside Settings, which is
+  not where you are when you decide to throw your history away. Same four choices — everything, Live
+  TV, Movies or Series — and the same confirmation before anything goes.
+- **Profiles works from More.** The row has been there since the app's second phase and did nothing;
+  it now opens the profile manager, where you rename, set a PIN, turn kids mode on or delete.
+- **Backup & Restore, Local sync, the error log and About left Settings.** None of them is a
+  preference — two are places, one is a log and one is a page of facts — and they were only in
+  Settings because Settings used to be the only door. All four are More rows now, opening exactly the
+  same pages.
+- **Settings holds settings and nothing else.** Nine groups became seven: *Data* is gone, and so is
+  *Profile*. Searching Settings for "backup", "sync" or "history" now finds nothing, because none of
+  those is in Settings any more.
+- **The two download preferences moved to the Downloads screen**, behind a gear in the bar — where
+  the downloads are saved, and whether they wait for Wi-Fi. They are the screen you are looking at
+  when you care about either one.
+- **Three rows left More.** *Add playlist*, *Restore backup* and *Sync now* were second doors to
+  things that already have one.
+
 ### 🚀 The first time you open it
 
 - **The same welcome as the television, step for step.** A greeting with the app's name and your

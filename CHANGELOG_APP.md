@@ -201,6 +201,13 @@
 - **Rotating, unfolding and split screen keep your place**
 - **The navigation rail is centred, and scrolls at large display sizes**
 - **Downloads and Settings live under More on every screen size**
+- **Favourites: everything you starred, on one screen**
+- **Watch history, newest first, with your resume points**
+- **Clear history sits on the history screen now, not inside Settings**
+- **More → Profiles opens the profile manager**
+- **Backup & Restore, Local sync, the error log and About moved to More**
+- **Settings is down to seven groups and holds settings only**
+- **Where downloads are saved, and Wi-Fi-only, moved to the Downloads screen**
 - **The first run is the television's own wizard, step for step**
 - **Welcome screen with a language picker**
 - **Before you start: what OwnTV is and is not**

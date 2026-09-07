@@ -34,7 +34,11 @@ import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
- * The nine settings groups, in the order the TV app's root list puts them.
+ * The seven settings groups, in the order the TV app's root list puts them.
+ *
+ * Two of the original nine are gone: **Data**, which held Backup, Local sync, Clear history and the
+ * download folder — a place, a place, an action and a download preference, none of them a setting —
+ * and **Profile**, which was a manager rather than a preference. Both live behind More now.
  *
  * Each is a route of its own rather than an expanding block: a phone screen holds far less than a
  * television's, and a back gesture out of a page is cheaper than scrolling past eight collapsed
@@ -52,14 +56,12 @@ enum class SettingsGroup(
     @param:StringRes val summaryRes: Int,
     val icon: ImageVector,
 ) {
-    PROFILE("settings/profile", R.string.settings_profile_group, R.string.settings_group_summary_profile, MobileIcons.Person),
     SOURCES("settings/sources", R.string.settings_group_sources, R.string.settings_group_summary_sources, MobileIcons.PlaylistPlay),
     APPEARANCE("settings/appearance", R.string.settings_appearance_group, R.string.settings_group_summary_appearance, MobileIcons.Palette),
     LAYOUT("settings/layout", R.string.settings_group_layout, R.string.settings_group_summary_layout, MobileIcons.ViewList),
     CONTENT("settings/content", R.string.settings_group_content_metadata, R.string.settings_group_summary_content_metadata, MobileIcons.Image),
     PLAYBACK("settings/playback", R.string.settings_playback_group, R.string.settings_group_summary_playback, MobileIcons.PlayCircle),
     NETWORK("settings/network", R.string.settings_network_group, R.string.settings_group_summary_network, MobileIcons.Wifi),
-    DATA("settings/data", R.string.settings_group_data, R.string.settings_group_summary_data, MobileIcons.Storage),
     APP("settings/app", R.string.settings_app_group, R.string.settings_group_summary_app, MobileIcons.Info),
 }
 

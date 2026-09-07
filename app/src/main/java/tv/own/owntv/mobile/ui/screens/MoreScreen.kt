@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,10 +16,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.settings.SettingsRepository
@@ -30,21 +34,32 @@ import tv.own.owntv.mobile.ui.nav.MobileDestination
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
- * The hub behind the More tab: everything that does not deserve a tab of its own.
+ * The hub behind the More tab: everything that is neither content nor a preference.
+ *
+ * Nine rows in three groups — where you go, your own data, and the app itself. Backup, Local sync,
+ * the error log and About are here rather than in Settings because none of them is a setting: they
+ * were in Settings only because Settings was the only door.
  *
  * Downloads and Settings are also rail destinations on a tablet, so they are reachable two ways
- * there and one way on a phone — the same screen either way. Nothing here is built yet; the rows
- * that have a destination navigate, and the rest land in their own phase.
+ * there and one way on a phone — the same screen either way.
+ *
+ * There is deliberately no "Add playlist", "Restore backup" or "Sync now" row: all three already
+ * live where they belong, and a second door is what this screen exists to remove.
  */
 @Composable
 fun MoreScreen(
     scrollToTop: SharedFlow<String>,
     onNavigate: (MobileDestination) -> Unit,
+    onOpenLeaf: (MoreLeaf) -> Unit,
     onDevRoute: (DevRoute) -> Unit,
-    onAddSource: () -> Unit,
-    onOpenProfiles: () -> Unit,
     modifier: Modifier = Modifier,
+    counts: MoreCountsViewModel = koinViewModel(),
 ) {
+    // The two counts are the whole point of those rows: they say how much there is before you go
+    // and look. Both queries already exist on the DAOs — see [MoreCountsViewModel].
+    val favorites by counts.favorites.collectAsStateWithLifecycle()
+    val history by counts.history.collectAsStateWithLifecycle()
+
     val listState = rememberLazyListState()
     listState.ObeyScrollToTop(route = MobileDestination.MORE.route, scrollToTop = scrollToTop)
 
@@ -69,20 +84,18 @@ fun MoreScreen(
                 MoreRow(R.string.common_nav_settings, MobileIcons.Settings) {
                     onNavigate(MobileDestination.SETTINGS)
                 }
+                LeafRow(MoreLeaf.PROFILES, onOpenLeaf)
             }
             MobileGroup {
-                MoreRow(R.string.profiles_title, MobileIcons.People, onOpenProfiles)
-                MoreRow(R.string.content_category_favorites, MobileIcons.Favorite)
-                MoreRow(R.string.content_category_history, MobileIcons.History)
+                LeafRow(MoreLeaf.FAVORITES, onOpenLeaf, count = favorites.total)
+                LeafRow(MoreLeaf.HISTORY, onOpenLeaf, count = history.total)
+                // Side by side, because they are the same act aimed at a file and at a device.
+                LeafRow(MoreLeaf.BACKUP, onOpenLeaf)
+                LeafRow(MoreLeaf.LOCAL_SYNC, onOpenLeaf)
             }
             MobileGroup {
-                // Both land on the same flow, which asks again which of the two it is — but a user
-                // who came here to restore a backup should not have to find it behind "add a
-                // playlist".
-                MoreRow(R.string.setup_add_playlist, MobileIcons.PlaylistAdd, onAddSource)
-                MoreRow(R.string.setup_restore_backup, MobileIcons.Restore, onAddSource)
-                MoreRow(R.string.settings_sync_now, MobileIcons.Sync)
-                MoreRow(R.string.settings_about, MobileIcons.Info)
+                LeafRow(MoreLeaf.ERROR_LOG, onOpenLeaf)
+                LeafRow(MoreLeaf.ABOUT, onOpenLeaf)
             }
 
             // Dev-only, and English-only by the same rule the harness itself lives under: R8 removes
@@ -161,11 +174,35 @@ enum class DevRoute(val route: String) {
 private fun MoreRow(
     labelRes: Int,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    subtitle: String? = null,
+    count: Int? = null,
     onClick: () -> Unit = {},
 ) {
     MobileListRow(
         title = stringResource(labelRes),
+        subtitle = subtitle,
         leading = { Icon(imageVector = icon, contentDescription = null) },
+        trailing = count?.let {
+            {
+                Text(
+                    text = it.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
         onClick = onClick,
+    )
+}
+
+/** A row that opens one of More's own pages, named and described by the registry itself. */
+@Composable
+private fun LeafRow(leaf: MoreLeaf, onOpen: (MoreLeaf) -> Unit, count: Int? = null) {
+    MoreRow(
+        labelRes = leaf.titleRes,
+        icon = leaf.icon,
+        subtitle = leaf.summaryRes?.let { stringResource(it) },
+        count = count,
+        onClick = { onOpen(leaf) },
     )
 }

@@ -28,10 +28,10 @@ import tv.own.owntv.mobile.ui.nav.isExpandedWidth
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
- * The settings root: a field to search all of it, the switches the user pinned, and the nine groups.
+ * The settings root: a field to search all of it, the switches the user pinned, and the seven groups.
  *
  * The TV app puts every setting behind a two-column browser on one enormous screen. A phone gets a
- * plain list instead — nine rows, each opening a page — because a thumb scrolls faster than it aims,
+ * plain list instead — seven rows, each opening a page — because a thumb scrolls faster than it aims,
  * and because search makes the depth cheap: typing "wifi" reaches a row four taps down in one.
  */
 @Composable
@@ -80,7 +80,7 @@ private fun SettingsTwoPane(
     vm: SettingsViewModel,
 ) {
     // Never empty: a pane with nothing in it is half a screen of wasted tablet, so the first group
-    // is open from the start. It is Profile, which is what the list itself begins with.
+    // is open from the start. It is Sources, which is what the list itself begins with.
     val stack = rememberSaveable(saver = listSaver(save = { it.toList() }, restore = { it.toMutableStateList() })) {
         mutableStateListOf(SettingsGroup.entries.first().route)
     }
@@ -115,7 +115,7 @@ private fun SettingsTwoPane(
     )
 }
 
-/** The list itself: search, the pinned switches, the nine groups. */
+/** The list itself: search, the pinned switches, the seven groups. */
 @Composable
 private fun SettingsList(
     query: String,

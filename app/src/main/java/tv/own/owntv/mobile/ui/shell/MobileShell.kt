@@ -99,6 +99,8 @@ import tv.own.owntv.mobile.ui.player.MiniPlayer
 import tv.own.owntv.mobile.ui.player.SleepTimerSheet
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
+import tv.own.owntv.mobile.ui.screens.downloads.DownloadPrefsSheet
+import tv.own.owntv.mobile.ui.screens.morePageTitleRes
 import tv.own.owntv.mobile.ui.screens.settings.settingsPageTitleRes
 import tv.own.owntv.mobile.ui.theme.GlassNest
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -286,7 +288,12 @@ fun MobileShell(
     val activePlaylistId by shellViewModel.activePlaylistId.collectAsStateWithLifecycle()
     var playlistSheet by remember { mutableStateOf(false) }
 
-    val settingsTitle = settingsPageTitleRes(currentRoute)
+    val settingsTitle = settingsPageTitleRes(currentRoute) ?: morePageTitleRes(currentRoute)
+
+    // The gear that carries the two download preferences, on the Downloads route only. They used to
+    // be rows in Settings → Data; this is the screen they are about.
+    var downloadPrefs by remember { mutableStateOf(false) }
+    val onDownloads = currentRoute == MobileDestination.DOWNLOADS.route
 
     // Downloads is a tab on a rail but a row in More on a phone, where no tab is selected to name it
     // — without this the bar would call it "Home", which is where it is not.
@@ -386,6 +393,16 @@ fun MobileShell(
                         }
                     },
                     actions = {
+                        if (onDownloads) {
+                            IconButton(onClick = { downloadPrefs = true }) {
+                                Icon(
+                                    imageVector = MobileIcons.Settings,
+                                    contentDescription = stringResource(
+                                        tv.own.owntv.mobile.R.string.settings_download_folder_title,
+                                    ),
+                                )
+                            }
+                        }
                         IconButton(
                             onClick = {
                                 navController.navigate(SEARCH_ROUTE) { launchSingleTop = true }
@@ -470,13 +487,36 @@ fun MobileShell(
         // The player owns the whole display, so it gets none of the shell's geometry: an inset,
         // rounded pane around a video would be a frame nobody asked for.
         val pageShape = if (fullscreen) RectangleShape else MobilePageShape
+
+        /*
+         * How much of the shell's own inset is still owed along the bottom edge.
+         *
+         * `insets` already carries whatever is down there, and what that is differs by layout:
+         *
+         *  - **Bottom bar or docked mini player** (a phone, or any width with the bar showing): the
+         *    island's own height. The shell inset is a real gap between the page and the island, so
+         *    it is added in full.
+         *  - **Rail and nothing else** (a tablet, a phone sideways): only the system's gesture
+         *    inset — empty room the page must keep clear but is not standing next to anything in.
+         *    Adding 11 dp on top of it left a dead band under both the rail and the page, four
+         *    times the gap down the sides, which is what the owner saw on the tablet. Only the
+         *    shortfall is added here, so the bottom ends up `max(gesture inset, 11 dp)` rather than
+         *    their sum.
+         */
+        val bottomIsland = !useRail || (showMini && miniStyle == SettingsRepository.MiniPlayerStyle.DOCKED)
+        val shellBottom = when {
+            fullscreen -> 0.dp
+            bottomIsland -> MobileDimens.ShellInset
+            else -> (MobileDimens.ShellInset - insets.calculateBottomPadding()).coerceAtLeast(0.dp)
+        }
+
         Row(Modifier.padding(insets)) {
             if (useRail && !fullscreen) {
                 NavigationRail(
                     containerColor = Color.Transparent,
                     windowInsets = WindowInsets(0, 0, 0, 0),
                     modifier = Modifier
-                        .padding(start = MobileDimens.ShellInset, bottom = MobileDimens.ShellInset)
+                        .padding(start = MobileDimens.ShellInset, bottom = shellBottom)
                         .glassSurface(GlassSurface.SIDEBAR, MobileNavShape)
                         .clip(MobileNavShape),
                 ) {
@@ -518,7 +558,7 @@ fun MobileShell(
                         // keeps the full inset, so the wallpaper frames the whole shell evenly.
                         start = if (fullscreen) 0.dp else if (useRail) MobileDimens.ShellGap else MobileDimens.ShellInset,
                         end = if (fullscreen) 0.dp else MobileDimens.ShellInset,
-                        bottom = if (fullscreen) 0.dp else MobileDimens.ShellInset,
+                        bottom = shellBottom,
                     )
                     .glassSurface(GlassSurface.PANELS, pageShape)
                     .clip(pageShape),
@@ -533,7 +573,6 @@ fun MobileShell(
                         MobileNavHost(
                             navController = navController,
                             scrollToTop = shellViewModel.scrollToTop,
-                            onNavigate = { navController.navigateToTab(it) },
                         )
                     }
                 }
@@ -579,6 +618,9 @@ fun MobileShell(
             programmeEndMs = nowNext?.now?.stopMs,
             onDismiss = { sleepSheet = false },
         )
+    }
+    if (downloadPrefs) {
+        DownloadPrefsSheet(onDismiss = { downloadPrefs = false })
     }
     if (playlistSheet) {
         // The app's own picker sheet, not one written for this: "which of these" is a solved shape

@@ -54,15 +54,16 @@ import java.text.DateFormat
 import java.util.Date
 
 /**
- * Language, what the app opens on, what version this is, and the log to attach to a bug report.
+ * Language, and what the app opens on.
  *
  * There is no update check here and there never will be: a phone gets its updates from the store it
  * was installed from, and an app that installs its own APK needs a permission this one refuses.
+ * About and the error log used to be here too; a page of facts and a log are not preferences, so
+ * both are More pages now — see [AboutPage] and [SettingsErrorLogPage].
  */
 @Composable
 fun SettingsAppPage(
     onOpenLanguage: () -> Unit,
-    onOpenErrorLog: () -> Unit,
     modifier: Modifier = Modifier,
     vm: SettingsViewModel = koinViewModel(),
     localeStore: LocaleStore = koinInject(),
@@ -98,6 +99,42 @@ fun SettingsAppPage(
             )
         }
 
+    }
+
+    if (startupSheet) {
+        SettingsChoiceSheet(
+            title = stringResource(R.string.settings_app_startup_dialog),
+            choices = StartupMode.entries.map {
+                SettingsChoice(it, stringResource(it.labelRes()))
+            },
+            selected = mode,
+            // Picking "Specific channel" is only half an answer — the channel itself is the setting.
+            onSelect = { picked ->
+                if (picked == StartupMode.SPECIFIC_CHANNEL) channelSheet = true else vm.setStartupMode(picked)
+            },
+            onDismiss = { startupSheet = false },
+        )
+    }
+
+    if (channelSheet) {
+        StartupChannelSheet(
+            vm = vm,
+            onPick = { picked -> vm.setStartupChannel(picked); channelSheet = false },
+            onDismiss = { channelSheet = false },
+        )
+    }
+}
+
+/**
+ * The version, the licence, where the source lives and how to reach the people who use it.
+ *
+ * A More page rather than a block inside Settings → App: it is a page of facts, and no part of it
+ * is a preference. The content itself is untouched — only its door moved.
+ */
+@Composable
+fun AboutPage(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    SettingsPage(modifier) {
         settingsSection(R.string.settings_about) {
             Column(
                 Modifier.padding(
@@ -143,37 +180,7 @@ fun SettingsAppPage(
                 onClick = { openLink(context, "https://$TELEGRAM_LINK") },
             )
             TelegramQr()
-
-            SettingRow(
-                title = stringResource(R.string.settings_playback_error_log),
-                subtitle = stringResource(R.string.settings_playback_error_description),
-                showChevron = true,
-                onClick = onOpenErrorLog,
-            )
         }
-    }
-
-    if (startupSheet) {
-        SettingsChoiceSheet(
-            title = stringResource(R.string.settings_app_startup_dialog),
-            choices = StartupMode.entries.map {
-                SettingsChoice(it, stringResource(it.labelRes()))
-            },
-            selected = mode,
-            // Picking "Specific channel" is only half an answer — the channel itself is the setting.
-            onSelect = { picked ->
-                if (picked == StartupMode.SPECIFIC_CHANNEL) channelSheet = true else vm.setStartupMode(picked)
-            },
-            onDismiss = { startupSheet = false },
-        )
-    }
-
-    if (channelSheet) {
-        StartupChannelSheet(
-            vm = vm,
-            onPick = { picked -> vm.setStartupChannel(picked); channelSheet = false },
-            onDismiss = { channelSheet = false },
-        )
     }
 }
 

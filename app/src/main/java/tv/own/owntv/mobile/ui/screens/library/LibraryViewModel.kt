@@ -347,7 +347,42 @@ class LibraryViewModel(
         _tab.value = tab
     }
 
+    /**
+     * Set while this view model is serving Favourites or Watch history rather than the Library tab.
+     * Those screens are one folder each: the selection is theirs to fix, and it must not become the
+     * remembered category, or opening Favourites would move the Library tab too.
+     */
+    private var lockedKey: LiveKey? = null
+
+    /** What the Library tab was showing before the pin, so [unlock] can put it back. Both halves,
+     *  because Movies and Series remember their category separately. */
+    private var previousKeys: Pair<LiveKey, LiveKey>? = null
+
+    fun lock(key: LiveKey) {
+        if (lockedKey == null) previousKeys = _selectedMovies.value to _selectedSeries.value
+        lockedKey = key
+        _selectedMovies.value = key
+        _selectedSeries.value = key
+    }
+
+    /**
+     * Release the pin and put the Library tab back where it was.
+     *
+     * **This is not optional bookkeeping.** On the television the equivalent view models are single
+     * instances shared with the browse sections, and a pin that outlived the screen that took it
+     * froze their category rails — focusable, but every click a no-op. The screen that locks
+     * therefore unlocks on dispose, in both apps, so the pairing cannot drift.
+     */
+    fun unlock() {
+        val (movies, series) = previousKeys ?: return
+        lockedKey = null
+        previousKeys = null
+        _selectedMovies.value = movies
+        _selectedSeries.value = series
+    }
+
     fun select(key: LiveKey) {
+        if (lockedKey != null) return
         val current = if (_tab.value == LibraryTab.MOVIES) _selectedMovies else _selectedSeries
         if (current.value == key) return
         current.value = key
@@ -376,10 +411,14 @@ class LibraryViewModel(
     init {
         viewModelScope.launch {
             if (settings.rememberCategoryMovies.first()) {
-                parseLiveKey(settings.lastMoviesCategory.first())?.let { _selectedMovies.value = it }
+                parseLiveKey(settings.lastMoviesCategory.first())?.let {
+                    if (lockedKey == null) _selectedMovies.value = it
+                }
             }
             if (settings.rememberCategorySeries.first()) {
-                parseLiveKey(settings.lastSeriesCategory.first())?.let { _selectedSeries.value = it }
+                parseLiveKey(settings.lastSeriesCategory.first())?.let {
+                    if (lockedKey == null) _selectedSeries.value = it
+                }
             }
         }
     }

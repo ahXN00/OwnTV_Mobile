@@ -16,17 +16,14 @@ import androidx.compose.runtime.Composable
 fun SettingsGroupPage(group: SettingsGroup, onOpenRoute: (String) -> Unit) {
     val openLeaf: (SettingsLeaf) -> Unit = { onOpenRoute(it.route) }
     when (group) {
-        SettingsGroup.PROFILE -> SettingsProfilePage()
         SettingsGroup.SOURCES -> SettingsSourcesPage(onOpenLeaf = openLeaf)
         SettingsGroup.APPEARANCE -> SettingsAppearancePage(onOpenLeaf = openLeaf)
         SettingsGroup.LAYOUT -> SettingsLayoutPage(onOpenLeaf = openLeaf)
         SettingsGroup.CONTENT -> SettingsContentPage(onOpenLeaf = openLeaf)
         SettingsGroup.PLAYBACK -> SettingsPlaybackPage(onOpenLeaf = openLeaf)
         SettingsGroup.NETWORK -> SettingsNetworkPage()
-        SettingsGroup.DATA -> SettingsDataPage(onOpenLeaf = openLeaf)
         SettingsGroup.APP -> SettingsAppPage(
             onOpenLanguage = { onOpenRoute(SettingsLeaf.LANGUAGE.route) },
-            onOpenErrorLog = { onOpenRoute(SettingsLeaf.ERROR_LOG.route) },
         )
     }
 }
@@ -51,10 +48,7 @@ fun SettingsLeafPage(leaf: SettingsLeaf, onOpenRoute: (String) -> Unit, onAddSou
         )
         SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
         SettingsLeaf.HOME -> SettingsHomePage()
-        SettingsLeaf.BACKUP -> SettingsBackupPage()
-        SettingsLeaf.LOCAL_SYNC -> SettingsLocalSyncPage()
         SettingsLeaf.LANGUAGE -> SettingsLanguagePage()
-        SettingsLeaf.ERROR_LOG -> SettingsErrorLogPage()
     }
 }
 

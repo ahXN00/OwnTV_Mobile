@@ -18,6 +18,8 @@ import tv.own.owntv.mobile.BuildConfig
 import tv.own.owntv.mobile.dev.DevHarnessScreen
 import tv.own.owntv.mobile.dev.ThemeGalleryScreen
 import tv.own.owntv.mobile.ui.screens.DevRoute
+import tv.own.owntv.mobile.ui.screens.MoreLeaf
+import tv.own.owntv.mobile.ui.screens.MoreLeafPage
 import tv.own.owntv.mobile.ui.screens.MoreScreen
 import tv.own.owntv.mobile.ui.screens.PlaceholderScreen
 import tv.own.owntv.mobile.ui.player.PlayerScreen
@@ -51,7 +53,6 @@ import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 fun MobileNavHost(
     navController: NavHostController,
     scrollToTop: SharedFlow<String>,
-    onNavigate: (MobileDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // One layout around the whole graph: it is what lets a poster tile on one screen and the header
@@ -73,10 +74,15 @@ fun MobileNavHost(
                 when (destination) {
                     MobileDestination.MORE -> MoreScreen(
                         scrollToTop = scrollToTop,
-                        onNavigate = onNavigate,
+                        // A plain push, NOT `navigateToTab`. Downloads and Settings are reached only
+                        // from here, and switching to them as tabs popped More off the back stack —
+                        // so Back out of Settings landed on Home instead of on the hub it was opened
+                        // from. Pushed, Back returns to More like every other row here.
+                        onNavigate = {
+                            navController.navigate(it.route) { launchSingleTop = true }
+                        },
+                        onOpenLeaf = { navController.navigate(it.route) { launchSingleTop = true } },
                         onDevRoute = { navController.navigate(it.route) },
-                        onAddSource = { navController.navigate(SETUP_ROUTE) },
-                        onOpenProfiles = { navController.navigate(SettingsGroup.PROFILE.route) },
                     )
                     MobileDestination.HOME -> HomeScreen(
                         scrollToTop = scrollToTop,
@@ -187,7 +193,7 @@ fun MobileNavHost(
                 },
             )
         }
-        // The nine group pages and every leaf under them. Each is a route rather than an expanding
+        // The seven group pages and every leaf under them. Each is a route rather than an expanding
         // block, so the system back gesture is what closes it.
         val openRoute: (String) -> Unit = { navController.navigate(it) }
         val addSource: () -> Unit = { navController.navigate(SETUP_ROUTE) }
@@ -196,6 +202,30 @@ fun MobileNavHost(
         }
         SettingsLeaf.entries.forEach { leaf ->
             composable(leaf.route) { SettingsLeafPage(leaf, openRoute, addSource) }
+        }
+        // The More pages. Separate routes from the settings ones on purpose: what left Settings has
+        // left, so nothing under `settings/` can reach them and the settings search cannot see them.
+        MoreLeaf.entries.forEach { leaf ->
+            composable(leaf.route) {
+                CompositionLocalProvider(LocalNavAnimatedScope provides this) {
+                    MoreLeafPage(
+                        leaf = leaf,
+                        // A channel or a title opened from Favourites lands on the screen it has
+                        // under its own tab — the same convention the Guide uses for its channels.
+                        onOpenChannel = { channelId, openCatchup ->
+                            navController.navigate(
+                                channelRoute(MobileDestination.LIVE, channelId, openCatchup),
+                            )
+                        },
+                        onOpenItem = { tab, id ->
+                            navController.navigate(
+                                detailRoute(MobileDestination.LIBRARY.route, tab, id),
+                            )
+                        },
+                        onOpenPlayer = { navController.navigate(PLAYER_ROUTE) },
+                    )
+                }
+            }
         }
         composable(PLAYER_ROUTE) {
             // `onExit` is only ever the mini-player button, the swipe down and Sound only — the three

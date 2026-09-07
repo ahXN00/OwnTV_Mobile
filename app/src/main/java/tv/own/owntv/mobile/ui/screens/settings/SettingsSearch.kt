@@ -70,10 +70,10 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
 
         SettingsRowEntry(SettingsGroup.NETWORK, null, R.string.common_proxy, R.string.settings_search_keywords_proxy),
 
-        SettingsRowEntry(SettingsGroup.DATA, null, R.string.settings_download_folder, R.string.settings_search_keywords_download),
-        SettingsRowEntry(SettingsGroup.DATA, null, R.string.settings_downloads_wifi_only, R.string.settings_search_keywords_wifi_only),
-        SettingsRowEntry(SettingsGroup.DATA, null, R.string.settings_clear_history, R.string.settings_search_keywords_history),
-
+        // No entries for the download folder, Wi-Fi-only, Clear history, Backup, Local sync, the
+        // error log, About or Profiles: none of them is in Settings any more, and a result for
+        // something that is not here is a lie about where it lives. The no-results state is left
+        // exactly as it was — it must not gain a line explaining where anything went.
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_app_startup, R.string.settings_search_keywords_startup),
         // Detailed logging sits in the video player's own diagnostics block, not on the App page —
         // a result that lands somewhere the row is not is worse than no result at all.

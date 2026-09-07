@@ -265,19 +265,53 @@ class LiveViewModel(
         }.map { ch -> cust.itemNames[CustomizeKeys.channel(ch)]?.let { ch.copy(name = it) } ?: ch }
     }
 
+    /**
+     * Set while this view model is serving More -> Favourites or More -> History rather than the
+     * browse section. Those screens are one folder each: the selection is theirs to fix, and it must
+     * not be persisted as the remembered category.
+     */
+    private var lockedKey: LiveKey? = null
+
+    /** What the browse section was showing before the pin, so [unlock] can put it back. */
+    private var previousKey: LiveKey? = null
+
+    fun lock(key: LiveKey) {
+        if (lockedKey == null) previousKey = _selected.value
+        lockedKey = key
+        _selected.value = key
+    }
+
+    /**
+     * Release the pin and put the browse section back where it was.
+     *
+     * **This is not optional bookkeeping.** On the television this view model is a single instance
+     * shared between the browse section and the More screens, so a pin that outlived the screen that
+     * took it froze the section's category rail — focusable, but every click a no-op. The screen that
+     * locks therefore unlocks on dispose.
+     */
+    fun unlock() {
+        val previous = previousKey ?: return
+        lockedKey = null
+        previousKey = null
+        _selected.value = previous
+    }
+
     init {
         viewModelScope.launch {
             if (settings.rememberCategoryLive.first()) {
-                parseLiveKey(settings.lastLiveCategory.first())?.let { _selected.value = it }
+                parseLiveKey(settings.lastLiveCategory.first())?.let {
+                    if (lockedKey == null) _selected.value = it
+                }
             }
             // "Start on: Favorites" outranks the remembered folder — it is what the user asked this
-            // launch to open on, and it applies to this launch only.
-            if (startupSelection.consumeFavorites()) _selected.value = LiveKey.Favorites
+            // launch to open on, and it applies to this launch only. A locked instance must not eat
+            // it: the request belongs to the Live TV tab.
+            if (lockedKey == null && startupSelection.consumeFavorites()) _selected.value = LiveKey.Favorites
         }
     }
 
     fun select(key: LiveKey) {
-        if (_selected.value == key) return
+        if (lockedKey != null || _selected.value == key) return
         _selected.value = key
         viewModelScope.launch { settings.setLastLiveCategory(key.serialize()) }
     }

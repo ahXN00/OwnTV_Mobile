@@ -30,6 +30,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,9 +89,25 @@ fun LibraryScreen(
     onPlay: () -> Unit,
     modifier: Modifier = Modifier,
     fixedTab: LibraryTab? = null,
+    /**
+     * Pins the grid to one folder and takes the chip strip away — how the Favourites and History
+     * screens show films and shows without a second copy of this grid existing.
+     */
+    lockedKey: LiveKey? = null,
     vm: LibraryViewModel = koinViewModel(),
 ) {
     LaunchedEffect(fixedTab) { fixedTab?.let { vm.select(it) } }
+    // Locking and unlocking are one pair: the pin belongs to this screen's lifetime, not to the view
+    // model's. On the television that view model is a single instance shared with the browse section,
+    // so a pin left behind froze its category rail. `DisposableEffect` (not `LaunchedEffect`) also
+    // means the pin is in place before the first frame, so the list never flashes the wrong folder.
+    if (lockedKey != null) {
+        val pinned = lockedKey
+        DisposableEffect(pinned) {
+            vm.lock(pinned)
+            onDispose { vm.unlock() }
+        }
+    }
 
     val tab by vm.tab.collectAsStateWithLifecycle()
     val categories by vm.categories.collectAsStateWithLifecycle()
@@ -159,7 +176,7 @@ fun LibraryScreen(
                 }
             }
         }
-        Box(Modifier.fillMaxWidth()) {
+        if (lockedKey == null) Box(Modifier.fillMaxWidth()) {
             FilterChipRow(
                 labels = categories.map { it.label(tab) },
                 selectedIndex = categories.indexOfFirst { it.key == selected },

@@ -71,8 +71,25 @@ fun LiveScreen(
     onOpenChannel: (channelId: Long, openCatchup: Boolean) -> Unit,
     onOpenPlayer: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Pins the list to one folder and takes the chip strip away — how the Favourites and History
+     * screens show channels without a second copy of this list existing.
+     */
+    lockedKey: LiveKey? = null,
     vm: LiveViewModel = koinViewModel(),
 ) {
+    // Locking and unlocking are one pair: the pin belongs to this screen's lifetime, not to the view
+    // model's. On the television that view model is a single instance shared with the browse section,
+    // so a pin left behind froze its category rail. `DisposableEffect` (not `LaunchedEffect`) also
+    // means the pin is in place before the first frame, so the list never flashes the wrong folder.
+    if (lockedKey != null) {
+        val pinned = lockedKey
+        DisposableEffect(pinned) {
+            vm.lock(pinned)
+            onDispose { vm.unlock() }
+        }
+    }
+
     val categories by vm.categories.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
     val channels = vm.channels.collectAsLazyPagingItems()
@@ -116,7 +133,7 @@ fun LiveScreen(
 
     val listPane = @Composable {
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxWidth()) {
+        if (lockedKey == null) Box(Modifier.fillMaxWidth()) {
             FilterChipRow(
                 labels = categories.map { it.label() },
                 selectedIndex = categories.indexOfFirst { it.key == selected },

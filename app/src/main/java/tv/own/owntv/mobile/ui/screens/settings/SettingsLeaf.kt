@@ -98,31 +98,13 @@ enum class SettingsLeaf(
         MobileIcons.Home,
     ),
 
-    BACKUP(
-        SettingsGroup.DATA, "backup",
-        R.string.settings_backup_title, R.string.settings_search_keywords_backup,
-        R.string.settings_backup_restore_description,
-        MobileIcons.Save,
-    ),
-
-    LOCAL_SYNC(
-        SettingsGroup.DATA, "localsync",
-        R.string.local_sync_title, R.string.local_sync_search_keywords,
-        R.string.local_sync_description,
-        MobileIcons.Sync,
-    ),
-
+    // Backup, Local sync and the error log used to be leaves here. They are not settings, so they
+    // are More pages now — see `MoreLeaf`. Language is the only one of the App group's screens left.
     LANGUAGE(
         SettingsGroup.APP, "language",
         R.string.settings_language, R.string.settings_search_keywords_language,
         R.string.settings_language_description,
         MobileIcons.Translate,
-    ),
-    ERROR_LOG(
-        SettingsGroup.APP, "errorlog",
-        R.string.settings_playback_error_log, R.string.settings_search_keywords_errors,
-        R.string.settings_playback_error_description,
-        MobileIcons.BugReport,
     ),
     ;
 
