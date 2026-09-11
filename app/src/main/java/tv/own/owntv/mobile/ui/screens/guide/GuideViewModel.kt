@@ -261,9 +261,26 @@ class GuideViewModel(
         .map { it.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
-    /** The guide's own order, kept apart from the Live list's — the television has the same pair. */
-    val sortGuide: StateFlow<SettingsRepository.GuideSort> = settings.sortGuide
-        .stateIn(viewModelScope, SharingStarted.Eagerly, SettingsRepository.GuideSort.LIVE_TV)
+    private val _stats = MutableStateFlow<GuideStats?>(null)
+    val stats: StateFlow<GuideStats?> = _stats
+
+    /**
+     * The guide's own order, kept apart from the Live list's — the television has the same pair.
+     *
+     * Catch-up is the odd one out: it is a *filter*, showing only channels with an archive. On a
+     * playlist with none it can only empty the guide, and the screen then blamed a missing playlist —
+     * which cost an evening to work out once. So a catch-up choice that cannot match anything is not
+     * applied. The user's stored preference is left alone: add a playlist with an archive and their
+     * choice comes back on its own.
+     */
+    val sortGuide: StateFlow<SettingsRepository.GuideSort> =
+        combine(settings.sortGuide, _stats) { sort, stats ->
+            if (sort == SettingsRepository.GuideSort.CATCHUP && (stats?.catchupChannels ?: 0) == 0) {
+                SettingsRepository.GuideSort.LIVE_TV
+            } else {
+                sort
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, SettingsRepository.GuideSort.LIVE_TV)
 
     fun setSortGuide(sort: SettingsRepository.GuideSort) {
         viewModelScope.launch { settings.setSortGuide(sort) }
@@ -434,9 +451,6 @@ class GuideViewModel(
     /** Bumped whenever the guide's own data changed under the rows on screen, so they read again. */
     private val _revision = MutableStateFlow(0)
     val revision: StateFlow<Int> = _revision
-
-    private val _stats = MutableStateFlow<GuideStats?>(null)
-    val stats: StateFlow<GuideStats?> = _stats
 
     private val _matching = MutableStateFlow(false)
     val matching: StateFlow<Boolean> = _matching

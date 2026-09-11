@@ -105,6 +105,12 @@ fun ProfileEditorSheet(
     onConfirm: (name: String, avatarId: Int, isKids: Boolean, pin: String?) -> Unit,
     onDismiss: () -> Unit,
     extraAction: (() -> Unit)? = null,
+    // A picture of the user's own, which applies immediately rather than on Save — the file is
+    // copied the moment it is chosen, so there is nothing sensible to do with it if the sheet is
+    // then cancelled. Absent on a profile that does not exist yet: it has no id to store one under.
+    customPath: String = "",
+    onPickPicture: ((android.net.Uri) -> Unit)? = null,
+    onClearPicture: (() -> Unit)? = null,
 ) {
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
     var avatarId by remember { mutableIntStateOf(initial?.avatarId ?: -1) }
@@ -134,6 +140,48 @@ fun ProfileEditorSheet(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (onPickPicture != null) {
+                val picker = androidx.activity.compose.rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
+                ) { uri -> uri?.let(onPickPicture) }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ProfileAvatar(
+                        avatarId = avatarId,
+                        imagePath = customPath,
+                        modifier = Modifier
+                            .size(AVATAR_PICK_SIZE - 8.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                picker.launch(
+                                    androidx.activity.result.PickVisualMediaRequest(
+                                        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                    ),
+                                )
+                            },
+                    )
+                    MobileButton(
+                        text = stringResource(R.string.profiles_avatar_own_picture),
+                        onClick = {
+                            picker.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                ),
+                            )
+                        },
+                        style = MobileButtonStyle.TEXT,
+                    )
+                    if (customPath.isNotBlank() && onClearPicture != null) {
+                        MobileButton(
+                            text = stringResource(R.string.common_clear),
+                            onClick = onClearPicture,
+                            style = MobileButtonStyle.TEXT,
+                        )
+                    }
+                }
+            }
             // -1 is "no picture", and it is offered first so a profile can be left plain.
             LazyRow(horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall)) {
                 items((-1 until PROFILE_AVATAR_COUNT).toList()) { id ->

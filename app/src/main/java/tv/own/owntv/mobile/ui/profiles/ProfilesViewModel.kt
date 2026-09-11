@@ -17,6 +17,7 @@ class ProfilesViewModel(
     profileDao: ProfileDao,
     settings: SettingsRepository,
     private val manager: ProfileManager,
+    private val context: android.content.Context,
 ) : ViewModel() {
 
     /**
@@ -56,6 +57,25 @@ class ProfilesViewModel(
     /** [pin]: null keeps the existing PIN, "" removes it. */
     fun edit(profile: ProfileEntity, name: String, avatarId: Int, isKids: Boolean, pin: String?) {
         viewModelScope.launch { manager.edit(profile, name, avatarId, isKids, pin) }
+    }
+
+    /**
+     * Give [profile] the picture at [uri] — whatever the photo picker handed back. Core copies and
+     * scales it; [onResult] says whether it was a readable image, so the sheet can tell the user
+     * rather than appearing to have ignored the tap.
+     */
+    fun setPicture(profile: ProfileEntity, uri: android.net.Uri, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val ok = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { manager.setCustomAvatar(profile, it) } ?: false
+            }.getOrDefault(false)
+            onResult(ok)
+        }
+    }
+
+    /** Drop [profile]'s picture; the drawn tile it already had comes back. */
+    fun clearPicture(profile: ProfileEntity) {
+        viewModelScope.launch { manager.clearCustomAvatar(profile) }
     }
 
     fun delete(profile: ProfileEntity) {

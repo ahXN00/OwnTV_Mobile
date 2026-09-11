@@ -23,7 +23,7 @@ val shellModule = module {
     // Set by the shell on launch, taken by Live TV when it opens — neither owns the other.
     singleOf(::StartupLiveSelection)
     viewModelOf(::ShellViewModel)
-    viewModelOf(::ProfilesViewModel)
+    viewModel { ProfilesViewModel(get(), get(), get(), androidContext()) }
     viewModelOf(::ProfileGateSession)
     // The counts the More rows and the Favourites / History chips carry.
     viewModel {

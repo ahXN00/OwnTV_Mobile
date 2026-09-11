@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.content.AdultCategoryClassifier
@@ -315,6 +316,26 @@ class DetailViewModel(
 
     val metadataMode: StateFlow<MetadataMode> = settings.metadataMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MetadataMode.PROVIDER_PLUS_TMDB)
+
+    /**
+     * TMDB's cached record for the listed season's episodes, keyed by episode id — read for the air
+     * date the row shows when the provider states none.
+     *
+     * Cache-only: this never fetches, so scrolling a season list cannot start a network request. The
+     * rows fill in as the cache does (opening an episode's details populates its season), which is
+     * the right trade for a line of secondary text.
+     */
+    val seasonMeta: StateFlow<Map<Long, MetadataCacheEntity>> =
+        combine(show, episodes, _season) { series, eps, season -> Triple(series, eps, season) }
+            .mapLatest { (series, eps, season) ->
+                val listed = eps.filter { season == null || it.seasonNumber == season }
+                if (series == null || listed.isEmpty()) {
+                    emptyMap()
+                } else {
+                    runCatching { metadata.cachedSeasonEpisodes(series, listed) }.getOrDefault(emptyMap())
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     /** The TMDB record for one episode — the still, the plot, the air date. Null when off or unmatched. */
     suspend fun episodeMeta(episode: EpisodeEntity): MetadataCacheEntity? = runCatching {

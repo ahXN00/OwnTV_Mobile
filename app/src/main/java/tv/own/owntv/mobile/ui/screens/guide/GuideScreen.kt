@@ -142,7 +142,15 @@ fun GuideScreen(
         // The list gets the height that is left, explicitly, rather than filling the column.
         Box(Modifier.weight(1f)) {
         if (channels.itemCount == 0) {
-            EmptyGuide(query = query, stats = stats, onAddEpg = onAddEpg)
+            EmptyGuide(
+                query = query,
+                stats = stats,
+                // Favourites and Catch-up narrow the list rather than reorder it, so an empty grid
+                // under one of them is a filter result, not an empty guide.
+                filterHidesEverything = sort == SettingsRepository.GuideSort.FAVORITES ||
+                    sort == SettingsRepository.GuideSort.CATCHUP,
+                onAddEpg = onAddEpg,
+            )
         } else {
             when (mode) {
                 SettingsRepository.GuideView.ON_NOW -> OnNowList(
@@ -440,10 +448,16 @@ private fun GuideOptionsSheet(
                 top = MobileDimens.GapSmall,
             ),
         )
+        // Catch-up is a filter wearing a sort's clothes: it shows only channels with an archive. On a
+        // playlist that has none it can only ever empty the guide, so it is not offered — which is
+        // exactly how the Live TV menu treats its own catch-up category.
+        val sorts = SettingsRepository.GuideSort.entries.filter {
+            it != SettingsRepository.GuideSort.CATCHUP || (stats?.catchupChannels ?: 0) > 0
+        }
         FilterChipRow(
-            labels = SettingsRepository.GuideSort.entries.map { stringResource(it.labelRes()) },
-            selectedIndex = SettingsRepository.GuideSort.entries.indexOf(sort),
-            onSelect = { index -> SettingsRepository.GuideSort.entries.getOrNull(index)?.let(onSort) },
+            labels = sorts.map { stringResource(it.labelRes()) },
+            selectedIndex = sorts.indexOf(sort),
+            onSelect = { index -> sorts.getOrNull(index)?.let(onSort) },
         )
         HorizontalDivider()
         MobileListRow(
@@ -478,16 +492,27 @@ private fun GuideOptionsSheet(
  * "Add EPG" to someone who simply mistyped a channel name helps nobody.
  */
 @Composable
-private fun EmptyGuide(query: String, stats: GuideStats?, onAddEpg: () -> Unit) {
+private fun EmptyGuide(
+    query: String,
+    stats: GuideStats?,
+    filterHidesEverything: Boolean,
+    onAddEpg: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(MobileDimens.GapLarge),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         val noEpg = stats?.hasEpgSources == false
+        // A filter that hides everything must say so. "Add a playlist" is what this used to show
+        // someone with three playlists and eighteen thousand programmes, because the guide could not
+        // tell "you have nothing" apart from "your Favourites/Catch-up filter matched nothing".
+        val hasGuide = (stats?.programmes ?: 0) > 0
+        val filtered = filterHidesEverything && hasGuide
         Text(
             text = when {
                 query.isNotBlank() -> stringResource(R.string.content_epg_no_channels_query, query)
+                filtered -> stringResource(R.string.content_epg_filter_hides_all)
                 noEpg -> stringResource(R.string.content_epg_empty)
                 else -> stringResource(R.string.content_epg_add_playlist)
             },
@@ -495,7 +520,7 @@ private fun EmptyGuide(query: String, stats: GuideStats?, onAddEpg: () -> Unit) 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        if (query.isBlank() && noEpg) {
+        if (query.isBlank() && noEpg && !filtered) {
             Text(
                 text = stringResource(R.string.content_epg_add_description),
                 style = MaterialTheme.typography.bodySmall,

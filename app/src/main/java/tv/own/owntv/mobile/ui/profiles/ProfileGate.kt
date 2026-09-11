@@ -119,6 +119,7 @@ private fun ProfileTile(profile: ProfileEntity, onClick: () -> Unit) {
     TileFrame(onClick = onClick) {
         ProfileAvatar(
             avatarId = profile.avatarId,
+            imagePath = profile.avatarPath.orEmpty(),
             modifier = Modifier.size(AVATAR_SIZE).clip(CircleShape),
         )
         Text(

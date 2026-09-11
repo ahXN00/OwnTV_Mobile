@@ -257,10 +257,18 @@ private fun EpgRow(
             null
         }
     }
+    // A Stalker portal's own guide has no address to show — it comes through the portal session
+    // rather than being downloaded — so the row says what it is instead of printing the internal
+    // marker that stands in for its URL.
+    val address = if (tv.own.owntv.core.repository.EpgRepository.stalkerSourceIdOf(source.url) != null) {
+        stringResource(R.string.settings_epg_sources_portal_guide)
+    } else {
+        source.url
+    }
     MobileListRow(
         title = source.name,
         // The address and the counts each get a line; on one, the counts fall off the edge.
-        subtitle = source.url + "\n" + status,
+        subtitle = address + "\n" + status,
         subtitleMaxLines = 3,
         trailing = {
             val badge = when {
@@ -399,14 +407,23 @@ private fun EpgSourceSheet(
                 )
             }
             list.orEmpty().forEach { option ->
+                // A portal guide has no address to show, and nothing to fill in — say what it is, and
+                // add it straight away rather than putting an internal marker in a URL box.
+                val portal = tv.own.owntv.core.repository.EpgRepository.stalkerSourceIdOf(option.url) != null
                 MobileListRow(
                     title = option.name,
-                    subtitle = option.url,
+                    subtitle = if (portal) stringResource(R.string.settings_epg_sources_portal_guide) else option.url,
                     trailing = { RadioButton(selected = option.url == url, onClick = null) },
                     onClick = {
-                        url = option.url
-                        if (name.isBlank()) name = option.name
                         showPlaylists = false
+                        if (portal) {
+                            // Nothing to type: save it as it stands and close the sheet.
+                            onSave(option.name, option.url, agent.trim().takeIf { it.isNotBlank() }, refresh, logos)
+                            onDismiss()
+                        } else {
+                            url = option.url
+                            if (name.isBlank()) name = option.name
+                        }
                     },
                 )
             }

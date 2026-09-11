@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import tv.own.owntv.core.profile.PROFILE_AVATAR_COUNT
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import tv.own.owntv.mobile.ui.components.MobileIcons
 
 /**
@@ -33,8 +35,8 @@ import tv.own.owntv.mobile.ui.components.MobileIcons
  * `avatarId` -1 is "no picture" and falls back to a plain silhouette.
  */
 @Composable
-fun ProfileAvatar(avatarId: Int, modifier: Modifier = Modifier) {
-    if (avatarId < 0) {
+fun ProfileAvatar(avatarId: Int, modifier: Modifier = Modifier, imagePath: String = "") {
+    if (avatarId < 0 && imagePath.isBlank()) {
         Box(
             modifier = modifier
                 .clip(CircleShape)
@@ -51,7 +53,22 @@ fun ProfileAvatar(avatarId: Int, modifier: Modifier = Modifier) {
         return
     }
     val i = ((avatarId % PROFILE_AVATAR_COUNT) + PROFILE_AVATAR_COUNT) % PROFILE_AVATAR_COUNT
-    Canvas(modifier = modifier) { drawAvatar(i) }
+    Box(modifier = modifier) {
+        // The drawn tile stays underneath the picture rather than being replaced by it: it costs a
+        // few Canvas paths, it fills the moment while the file is read, and it is what shows if the
+        // picture has gone — no file-existence check on every composition, and never a blank hole.
+        if (avatarId >= 0) {
+            Canvas(modifier = Modifier.matchParentSize()) { drawAvatar(i) }
+        }
+        if (imagePath.isNotBlank()) {
+            AsyncImage(
+                model = java.io.File(imagePath),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize().clip(CircleShape),
+            )
+        }
+    }
 }
 
 /** The silhouette reads as a person rather than as a filled circle at this share of the tile. */
@@ -77,7 +94,31 @@ private fun DrawScope.drawAvatar(i: Int) {
     val ink = Color(0xFF10181C)
     val bg = BG[i]
 
-    drawRoundRect(bg, size = Size(s, s), cornerRadius = CornerRadius(s * 0.30f))
+    // A lit gradient rather than one flat colour, with a soft sheen across the top and a hairline
+    // rim — the same treatment the television gives them, so one profile looks like itself on both.
+    drawRoundRect(
+        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+            colors = listOf(bg.lighten(TILE_TOP_LIGHTEN), bg, bg.darken(TILE_BOTTOM_DARKEN)),
+            start = Offset(0f, 0f),
+            end = Offset(s, s),
+        ),
+        size = Size(s, s),
+        cornerRadius = CornerRadius(s * 0.30f),
+    )
+    drawRoundRect(
+        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.16f), Color.Transparent),
+            endY = s * 0.55f,
+        ),
+        size = Size(s, s),
+        cornerRadius = CornerRadius(s * 0.30f),
+    )
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.14f),
+        size = Size(s, s),
+        cornerRadius = CornerRadius(s * 0.30f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = s * 0.012f),
+    )
 
     when (i) {
         0 -> { // Lightning bolt
@@ -160,3 +201,21 @@ private fun pentagon(center: Offset, r: Float): Path = Path().apply {
     }
     close()
 }
+
+/** How much lighter the top-left corner of a tile is than its base colour, and darker the bottom. */
+private const val TILE_TOP_LIGHTEN = 0.22f
+private const val TILE_BOTTOM_DARKEN = 0.14f
+
+private fun Color.lighten(amount: Float) = Color(
+    red = red + (1f - red) * amount,
+    green = green + (1f - green) * amount,
+    blue = blue + (1f - blue) * amount,
+    alpha = alpha,
+)
+
+private fun Color.darken(amount: Float) = Color(
+    red = red * (1f - amount),
+    green = green * (1f - amount),
+    blue = blue * (1f - amount),
+    alpha = alpha,
+)

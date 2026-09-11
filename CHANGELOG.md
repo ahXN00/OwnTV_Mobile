@@ -11,6 +11,33 @@ The first build of the mobile app. There is no user-facing app yet: this release
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
 release automation.
 
+### 📺 Live TV, episodes and profiles say more
+
+- **Upcoming programmes carry their synopsis**, not just a time and a title, on a channel's page.
+- **Episodes show the day they first aired** — on the list rows and in the details sheet. The
+  provider's own date wins where it sends one, with TMDB's as the fallback.
+- **A profile picture of your own**, chosen with the phone's photo picker. It is copied into the app,
+  cropped square and scaled down, and it travels inside your backup — restore on the TV and the
+  picture arrives with it, on the right person.
+- The ten drawn avatars were redrawn with a lit gradient and a soft sheen, matching the television.
+
+### 🗓️ Stalker portals: a guide, and catch-up
+
+- **A portal that publishes no XMLTV feed now has a guide** — the portal's own. It appears in
+  Settings → EPG as **"Guide from the portal"**, and **Add EPG source → Fill from playlist** offers
+  it and adds it in one tap, since there is nothing to type.
+- **Catch-up now appears on portal channels that have it.** The app had been looking for a field name
+  that Xtream uses and a MAG portal does not send, so every portal channel looked archive-less.
+
+### 🔎 The Guide stops blaming a missing playlist
+
+- **An empty guide now says which of the two things is true.** "Add a playlist to see the guide" was
+  shown even with three playlists and eighteen thousand programmes loaded, when the real reason was a
+  **Catch-up** or **Favourites** filter matching nothing. It now says the filter is hiding everything.
+- **Catch-up is only offered when you have channels to rewind**, the way the television already did
+  it — and if it was already your choice on a playlist with no archive, it simply is not applied, so
+  you are never left filtered with no way back.
+
 ### 📦 The app builds and installs
 
 - **A Material 3 phone and tablet app**, built on the same core library as the TV app, so the

@@ -51,6 +51,7 @@ import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.ContentMenuSheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
+import tv.own.owntv.mobile.ui.components.rememberAirDateLabel
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
@@ -90,6 +91,7 @@ fun DetailScreen(
     val progress by vm.progress.collectAsStateWithLifecycle()
     val episodeProgress by vm.episodeProgress.collectAsStateWithLifecycle()
     val completedIds by vm.completedIds.collectAsStateWithLifecycle()
+    val seasonMeta by vm.seasonMeta.collectAsStateWithLifecycle()
     val lastWatchedId by vm.lastWatchedId.collectAsStateWithLifecycle()
     val nextUpId by vm.nextUpId.collectAsStateWithLifecycle()
     val hideWatched by vm.hideWatched.collectAsStateWithLifecycle()
@@ -276,6 +278,7 @@ fun DetailScreen(
                 val watched = episodeProgress[episode.id]
                 EpisodeRow(
                     episode = episode,
+                    meta = seasonMeta[episode.id],
                     positionMs = watched?.positionMs ?: 0L,
                     durationMs = watched?.durationMs ?: 0L,
                     completed = episode.id in completedIds,
@@ -438,6 +441,7 @@ private fun SortingRow(label: String, descending: Boolean, onSelect: (Boolean) -
 @Composable
 private fun EpisodeRow(
     episode: EpisodeEntity,
+    meta: MetadataCacheEntity?,
     positionMs: Long,
     durationMs: Long,
     completed: Boolean,
@@ -470,7 +474,12 @@ private fun EpisodeRow(
                 null
             },
             title = episode.rowTitle(),
-            subtitle = episode.plot?.takeIf { it.isNotBlank() },
+            // The day it aired leads the line, because on a show with a thousand episodes that is
+            // what tells two near-identical titles apart; the plot follows it where there is one.
+            subtitle = listOfNotNull(
+                rememberAirDateLabel(episode, meta),
+                episode.plot?.takeIf { it.isNotBlank() },
+            ).joinToString(stringResource(R.string.content_metadata_separator)).takeIf { it.isNotEmpty() },
             onClick = onClick,
             onLongClick = onLongClick,
         )

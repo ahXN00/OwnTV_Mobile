@@ -179,6 +179,7 @@ private fun GuidePanel(nowNext: tv.own.owntv.core.live.EpgNowNext?) {
         )
         return
     }
+    val separator = stringResource(R.string.content_metadata_separator)
     LazyColumn(Modifier.fillMaxSize()) {
         item {
             Column(Modifier.padding(MobileDimens.ScreenPaddingH)) {
@@ -226,8 +227,16 @@ private fun GuidePanel(nowNext: tv.own.owntv.core.live.EpgNowNext?) {
                 )
             }
         }
+        // Each upcoming programme gets its synopsis beside the start time, the same way the
+        // television's preview pane shows one — a title alone rarely says which episode this is.
         items(upcoming) { entry ->
-            MobileListRow(title = entry.title, subtitle = times.format(Date(entry.startMs)))
+            val time = times.format(Date(entry.startMs))
+            val synopsis = entry.description?.takeIf { it.isNotBlank() }
+            MobileListRow(
+                title = entry.title,
+                subtitle = if (synopsis == null) time else time + separator + synopsis,
+                subtitleMaxLines = if (synopsis == null) 1 else 3,
+            )
         }
     }
 }

@@ -252,7 +252,13 @@ fun episodeDetails(episode: EpisodeEntity, meta: MetadataCacheEntity?, tmdbWins:
         title = if (tmdbWins) meta?.title?.takeIf { it.isNotBlank() } ?: fallback else fallback,
         subtitle = stringResource(R.string.content_season_episode, episode.seasonNumber, episode.episodeNumber),
         backdropUrl = MetadataImages.backdrop(meta?.backdropPath ?: meta?.posterPath),
-        metaLine = metaLine(meta?.year, meta?.rating?.positive(), null),
+        // The whole day where either side knows it, falling back to the bare year — on a long-running
+        // show the year is shared by hundreds of episodes and identifies none of them.
+        metaLine = listOfNotNull(
+            rememberAirDateLabel(episode, meta),
+            meta?.rating?.positive()?.let { stringResource(R.string.content_rating, it) },
+        ).joinToString(stringResource(R.string.content_metadata_separator))
+            .ifEmpty { metaLine(meta?.year, meta?.rating?.positive(), null) },
         plot = if (tmdbWins) meta?.overview ?: episode.plot
         else episode.plot?.takeIf { it.isNotBlank() } ?: meta?.overview,
     )

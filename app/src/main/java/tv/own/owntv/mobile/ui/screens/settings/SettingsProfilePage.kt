@@ -68,6 +68,7 @@ fun SettingsProfilePage(
                     leading = {
                         ProfileAvatar(
                             avatarId = profile.avatarId,
+                            imagePath = profile.avatarPath.orEmpty(),
                             modifier = Modifier.size(ROW_AVATAR_SIZE).clip(CircleShape),
                         )
                     },
@@ -125,6 +126,9 @@ fun SettingsProfilePage(
             takenNames = list.filter { it.id != profile.id }.map { it.name.lowercase() }.toSet(),
             onConfirm = { name, avatarId, isKids, pin -> vm.edit(profile, name, avatarId, isKids, pin) },
             onDismiss = { editing = null },
+            customPath = profile.avatarPath.orEmpty(),
+            onPickPicture = { uri -> vm.setPicture(profile, uri) },
+            onClearPicture = { vm.clearPicture(profile) },
             extraAction = if (list.size > 1) {
                 { deleting = profile }
             } else {
