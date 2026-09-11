@@ -21,6 +21,7 @@
 - **🖼️ A profile picture of your own, from your photos**
 - **🗓️ Stalker portals: the portal's own TV guide, and catch-up with it**
 - **🔎 An empty guide says whether a filter is hiding it, not "add a playlist"**
+- **🗺️ A playlist that offers two TV guides sets up both of them**
 - **The mobile app builds, signs and installs**
 - **Bottom bar on a phone, navigation rail on a tablet**
 - **Add your playlist from the phone: Xtream, M3U or MAG portal**

@@ -31,6 +31,12 @@ release automation.
 
 ### 🔎 The Guide stops blaming a missing playlist
 
+- **A playlist that offers two TV guides now sets up both of them (TV #171).** Some playlists name
+  more than one guide in their header, separated by a comma — one per country a provider covers. Both
+  addresses were taken as a single one and glued together, so the request could only fail and no
+  programmes arrived. Each guide is now its own entry, syncing and re-syncing on its own, and **Fill
+  from playlist** offers each of them separately.
+
 - **An empty guide now says which of the two things is true.** "Add a playlist to see the guide" was
   shown even with three playlists and eighteen thousand programmes loaded, when the real reason was a
   **Catch-up** or **Favourites** filter matching nothing. It now says the filter is hiding everything.
