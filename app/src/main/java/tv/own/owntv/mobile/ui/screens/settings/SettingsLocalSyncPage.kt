@@ -34,6 +34,7 @@ import tv.own.owntv.core.backup.BackupManager
 import tv.own.owntv.core.companion.CompanionServerState
 import tv.own.owntv.core.sync.local.SyncDirection
 import tv.own.owntv.core.sync.local.SyncFailure
+import tv.own.owntv.core.sync.local.shortCodes
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileTextField
@@ -90,10 +91,14 @@ fun SettingsLocalSyncPage(
         }
 
         if (paired.isNotEmpty()) {
+            // Only the devices whose names collide get a code, so a normal household never sees one.
+            val codes = shortCodes(paired)
             settingsSection(R.string.local_sync_paired_devices) {
                 paired.forEach { device ->
                     SettingRow(
-                        title = device.name,
+                        title = codes[device.id]
+                            ?.let { stringResource(R.string.local_sync_device_with_code, device.name, it) }
+                            ?: device.name,
                         subtitle = lastSyncedText(device.lastSyncAt),
                         showChevron = true,
                         enabled = !vm.busy,
@@ -241,10 +246,17 @@ private fun FindDeviceSheet(vm: LocalSyncViewModel) {
             } else {
                 Label(stringResource(R.string.local_sync_found))
                 vm.found.forEach { device ->
+                    // A device already paired says so instead of showing an address the user has no
+                    // use for, and opens its actions rather than asking for a PIN it does not need.
+                    val known = vm.pairedMatch(device)
                     SettingRow(
                         title = device.name,
-                        subtitle = device.address,
-                        onClick = { vm.chooseAddress(device.address, device.port) },
+                        subtitle = if (known != null) {
+                            stringResource(R.string.local_sync_already_paired)
+                        } else {
+                            device.address
+                        },
+                        onClick = { vm.choose(device) },
                     )
                 }
             }
@@ -333,11 +345,10 @@ private fun DirectionSheet(
 @Composable
 private fun SectionsSheet(
     direction: SyncDirection,
-    onStart: (Set<BackupManager.Section>, String?) -> Unit,
+    onStart: (Set<BackupManager.Section>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var sections by remember { mutableStateOf(BackupManager.Section.entries.toSet()) }
-    var password by remember { mutableStateOf("") }
 
     MobileBottomSheet(
         onDismissRequest = onDismiss,
@@ -371,19 +382,14 @@ private fun SectionsSheet(
                     onToggle = { on -> sections = if (on) sections + section else sections - section },
                 )
             }
-            Label(stringResource(R.string.settings_backup_encrypt_title))
-            Note(stringResource(R.string.local_sync_password_hint))
-            MobileTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = stringResource(R.string.settings_backup_password),
-                isPassword = true,
-            )
+            // No password field, deliberately. The two devices already share a secret from pairing
+            // and core seals the payload with it, so the playlist logins travel without anyone being
+            // asked to invent a passphrase in the middle of a sync.
         }
         SheetButtons(
             confirm = stringResource(R.string.settings_backup_continue),
             confirmEnabled = sections.isNotEmpty(),
-            onConfirm = { onStart(sections, password.takeIf { it.isNotBlank() }) },
+            onConfirm = { onStart(sections) },
             onDismiss = onDismiss,
         )
     }

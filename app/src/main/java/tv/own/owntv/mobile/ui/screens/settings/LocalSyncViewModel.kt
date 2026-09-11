@@ -67,7 +67,7 @@ class LocalSyncViewModel(
         /** Paired. Which way should the data go? */
         data class ChooseDirection(val device: PairedDevice) : Step
 
-        /** Which parts, and the password if the payload should carry the playlist logins. */
+        /** Which parts to merge. No password is asked for — the two devices agree a key themselves. */
         data class ChooseSections(val device: PairedDevice, val direction: SyncDirection) : Step
 
         /**
@@ -107,14 +107,14 @@ class LocalSyncViewModel(
         // same arriving container twice.
         if (incomingWatcher?.isActive != true) incomingWatcher = viewModelScope.launch {
             sync.incoming.collect { file ->
-                val preview = sync.preview(file).getOrNull() ?: return@collect
+                val payload = sync.previewIncoming(file).getOrNull() ?: return@collect
                 step = Step.Confirm(
                     device = null,
                     direction = SyncDirection.RECEIVE,
-                    file = file,
-                    preview = preview,
+                    file = payload.file,
+                    preview = payload.preview,
                     sections = BackupManager.Section.entries.toSet(),
-                    password = null,
+                    password = payload.password,
                 )
             }
         }
@@ -139,6 +139,33 @@ class LocalSyncViewModel(
     fun chooseAddress(address: String, port: Int) {
         discovery?.cancel()
         step = Step.EnterPin(address, port)
+    }
+
+    /**
+     * The pairing this discovered device already has here, or null.
+     *
+     * Its announced id first, because that is the thing that does not change; the address only as a
+     * fallback for a device too old to announce one, where a router handing out a new lease would
+     * make a known device look new.
+     */
+    fun pairedMatch(device: DiscoveredDevice): PairedDevice? {
+        val known = paired.value
+        return device.deviceId.takeIf { it.isNotBlank() }?.let { id -> known.firstOrNull { it.id == id } }
+            ?: known.firstOrNull { it.address == device.address }
+    }
+
+    /**
+     * Picking a device out of the found list. One that is already paired goes straight to its actions:
+     * asking for a PIN again would be asking the user to prove something this device already knows.
+     */
+    fun choose(device: DiscoveredDevice) {
+        val existing = pairedMatch(device)
+        if (existing == null) {
+            chooseAddress(device.address, device.port)
+        } else {
+            discovery?.cancel()
+            step = Step.ChooseDirection(existing)
+        }
     }
 
     fun submitPin(pin: String) {
@@ -172,17 +199,19 @@ class LocalSyncViewModel(
      * the one merging, and a merge cannot destroy anything), while anything that would change THIS
      * device is fetched and previewed first.
      */
-    fun start(sections: Set<BackupManager.Section>, password: String?) {
+    fun start(sections: Set<BackupManager.Section>) {
         val current = step as? Step.ChooseSections ?: return
         busy = true
         viewModelScope.launch {
             when (current.direction) {
-                SyncDirection.SEND -> sync.send(current.device, sections, password)
+                SyncDirection.SEND -> sync.send(current.device, sections)
                     .onSuccess { step = Step.Result(received = null, sent = true) }
                     .onFailure { error = failure(it) }
-                SyncDirection.RECEIVE, SyncDirection.MERGE -> sync.fetch(current.device, sections, password)
-                    .onSuccess { (file, preview) ->
-                        step = Step.Confirm(current.device, current.direction, file, preview, sections, password)
+                SyncDirection.RECEIVE, SyncDirection.MERGE -> sync.fetch(current.device, sections)
+                    .onSuccess { payload ->
+                        step = Step.Confirm(
+                            current.device, current.direction, payload.file, payload.preview, sections, payload.password,
+                        )
                     }
                     .onFailure { error = failure(it) }
             }
@@ -200,7 +229,7 @@ class LocalSyncViewModel(
                     // A merge sends this device's own data back once the incoming half has landed,
                     // so both ends finish holding the same thing rather than one being a round behind.
                     val sent = current.device != null && current.direction == SyncDirection.MERGE &&
-                        sync.send(current.device, current.sections, current.password).isSuccess
+                        sync.send(current.device, current.sections).isSuccess
                     step = Step.Result(received = summary, sent = sent)
                 }
                 .onFailure { error = failure(it) }

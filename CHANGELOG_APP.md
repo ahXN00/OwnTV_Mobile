@@ -25,6 +25,11 @@
 - **Send, receive or merge — you pick the direction and what travels**
 - **See exactly what a sync will change before it changes anything**
 - **A deletion now stays deleted on both devices**
+- **The newer of two devices always wins, so a sync never moves you backwards in a show**
+- **No password to invent: the two devices lock the transfer themselves, logins included**
+- **A device you already paired says so, and skips the PIN**
+- **Pairing the same device twice updates it instead of listing it twice**
+- **Two phones of the same model are told apart by a short code**
 - **Scan the QR code to pair, or find the device on the network**
 - **Movies and Series, with categories, sorting and grid or list**
 - **Pinch to resize the posters**

@@ -546,12 +546,24 @@ release automation.
 - **Either device can start it, and the direction is always named** — *Send to*, *Receive from* or
   *Merge with*. There is no bare "sync" button whose meaning you have to guess.
 - **You choose what travels**: the same tick-list Backup & Restore uses — playlists, favourites, watch
-  history, resume points, your customisations, your manual ordering and your settings. Add a password
-  and your playlist logins travel with it.
+  history, resume points, your customisations, your manual ordering and your settings.
+- **You are never asked for a password, and your playlist logins travel anyway.** The two devices
+  agree a key between themselves when they pair, and everything that crosses the network is locked
+  with it. There used to be a password box here, and leaving it empty — which is what anyone would do
+  syncing to their own television — quietly left the playlist logins behind.
 - **You see what will change before it does.** A summary counts what would be added and what would be
   removed, and nothing is written until you confirm.
 - **A deletion now stays deleted.** Unfavourite something here, sync, and the television does not
   hand it back on the next sync.
+- **The newer of the two always wins.** Finish an episode on the television and the phone takes that
+  over, not the other way round. Watch history and resume points used to be decided by whichever
+  device happened to sync last, so a sync could quietly move you backwards in a show.
+- **A device you have already paired says so**, instead of asking for its PIN a second time — tap it
+  and you go straight to Send, Receive or Merge.
+- **Pairing the same device again updates it** instead of adding a second copy to the list. Pair your
+  phone three times and it was three identical rows.
+- **Two of the same phone are told apart** by a short code after the name, shown only when two paired
+  devices would otherwise read the same.
 - **As many devices as you like.** Each one you pair is listed with when you last synced with it.
 
 ### ⏳ A large playlist can finish in the background
