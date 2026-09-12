@@ -55,7 +55,7 @@ espressoCore = "3.7.0"
 # app takes a core change, and core's release workflow opens that bump as a PR automatically. For
 # local work, owntv.corePath in ~/.gradle/gradle.properties substitutes core's source for these
 # artifacts and this number is then ignored.
-owntvCore = "1.0.32"
+owntvCore = "1.0.33"
 
 # libmpv (FFmpeg-based) — the codec engine :player-core wraps. Must be declared by every app that
 # uses the player, because OwnTVPlayer implements MPVLib.EventObserver and :player-core only takes
