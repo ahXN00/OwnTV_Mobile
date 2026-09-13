@@ -59,7 +59,7 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
  * "chooser" steps have no counterpart here.
  */
 private enum class Step {
-    WELCOME, DISCLAIMER, CHOICE, CREATE_PROFILE, ADD_CONTENT, EXISTING, FORM, IMPORTING, RESTORE
+    WELCOME, DISPLAY_SIZE, DISCLAIMER, CHOICE, CREATE_PROFILE, ADD_CONTENT, EXISTING, FORM, IMPORTING, RESTORE
 }
 
 /**
@@ -121,7 +121,8 @@ fun SetupFlow(
     BackHandler(enabled = !atStart || onCancel != null) {
         when (step) {
             Step.WELCOME -> onCancel?.invoke()
-            Step.DISCLAIMER -> step = Step.WELCOME
+            Step.DISPLAY_SIZE -> step = Step.WELCOME
+            Step.DISCLAIMER -> step = Step.DISPLAY_SIZE
             Step.CHOICE -> step = Step.DISCLAIMER
             Step.CREATE_PROFILE -> step = Step.CHOICE
             Step.ADD_CONTENT -> if (firstRun) step = Step.CREATE_PROFILE else onCancel?.invoke()
@@ -134,10 +135,16 @@ fun SetupFlow(
 
     Box(modifier = modifier.fillMaxSize()) {
         when (step) {
-            Step.WELCOME -> WelcomeStep(onNext = { step = Step.DISCLAIMER })
+            Step.WELCOME -> WelcomeStep(onNext = { step = Step.DISPLAY_SIZE })
+            // Before the disclaimer, which is the first screen that is mostly words: if the text is
+            // too small to read, that is the screen it first hurts on (#179).
+            Step.DISPLAY_SIZE -> DisplaySizeStep(
+                onNext = { step = Step.DISCLAIMER },
+                onBack = { step = Step.WELCOME },
+            )
             Step.DISCLAIMER -> DisclaimerStep(
                 onAgree = { step = Step.CHOICE },
-                onBack = { step = Step.WELCOME },
+                onBack = { step = Step.DISPLAY_SIZE },
             )
             // The first decision: start fresh, or bring everything back. Restoring first is why the
             // profile step comes after this one — a restore brings its own profiles, and creating one

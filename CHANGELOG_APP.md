@@ -16,6 +16,7 @@
 
 ### New features
 
+- **🔎 Set how big the interface and its text are during setup** (#179)
 - **🎨 A real colour picker for the accent, the selection highlight and subtitle text**
 - **🏷️ Long-press a category to hide or move it, from Live TV, the Library or the Guide** (#131, thanks @pt5pnzghm6-sys0)
 - **♿ A screen reader now announces which row or chip is selected**

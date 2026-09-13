@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,13 +27,20 @@ import org.koin.compose.koinInject
 import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.i18n.SupportedLocales
+import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.theme.FontCustomization
+import tv.own.owntv.core.theme.UiFontScale
+import tv.own.owntv.core.theme.UiZoom
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.screens.settings.SettingsSlider
+import tv.own.owntv.mobile.ui.screens.settings.stepsFor
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 
 /**
  * The first-run wizard's own steps, in the television's order and with its words.
@@ -76,7 +85,126 @@ fun WelcomeStep(onNext: () -> Unit) {
     }
 }
 
-/** Step 2 — what the app is not: it ships no channels, and the user brings their own sources. */
+/**
+ * Step 2 — how big everything is, before the first screen that is mostly words (#179).
+ *
+ * The two settings are the ones the Appearance and Fonts pages edit, written straight through, so a
+ * choice made here is the app's from now on. `MobileTheme` scales every dp and sp from these same
+ * values, which is what makes this screen resize under the finger as the slider moves — the sample
+ * line below the sliders is the point of the step, not decoration.
+ *
+ * Zoom offers its whole range, the same one the Appearance page offers. Below
+ * [UiZoom.LOW_RAM_WARN] a screen holds enough extra items to exhaust a small-memory device, so
+ * crossing that line raises the same accept-the-risk prompt Settings raises — asked once, on the
+ * drag that crosses it, and not again for the rest of the visit.
+ */
+@Composable
+fun DisplaySizeStep(onNext: () -> Unit, onBack: () -> Unit) {
+    val settings: SettingsRepository = koinInject()
+    val scope = rememberCoroutineScope()
+    val zoom by settings.uiZoomPercent.collectAsStateWithLifecycle(UiZoom.DEFAULT)
+    val fonts by settings.fontCustomization.collectAsStateWithLifecycle(FontCustomization())
+    var pendingLowZoom by remember { mutableStateOf<Int?>(null) }
+    var lowZoomAccepted by remember { mutableStateOf(zoom < UiZoom.LOW_RAM_WARN) }
+    SetupPage {
+        Text(
+            text = stringResource(R.string.setup_display_size_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(R.string.setup_display_size_description),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(MobileDimens.GapSmall))
+        // Zoom first: it scales the font row below it too, so it is the coarse control and often
+        // the only one that needs touching.
+        SettingsSlider(
+            title = stringResource(R.string.settings_ui_zoom),
+            value = zoom,
+            range = UiZoom.MIN..UiZoom.MAX,
+            steps = stepsFor(UiZoom.MIN, UiZoom.MAX, UiZoom.STEP),
+            onValueChange = { raw ->
+                val pct = UiZoom.clamp(raw)
+                if (pct < UiZoom.LOW_RAM_WARN && !lowZoomAccepted) {
+                    pendingLowZoom = pct
+                } else {
+                    scope.launch { settings.setUiZoomPercent(pct) }
+                }
+            },
+        )
+        SettingsSlider(
+            title = stringResource(R.string.settings_font_size),
+            value = fonts.sizePercent,
+            range = UiFontScale.MIN..UiFontScale.MAX,
+            steps = stepsFor(UiFontScale.MIN, UiFontScale.MAX, UiFontScale.STEP),
+            onValueChange = { raw ->
+                scope.launch {
+                    settings.setFontCustomization(fonts.copy(sizePercent = UiFontScale.clamp(raw)))
+                }
+            },
+        )
+        Spacer(Modifier.height(MobileDimens.GapSmall))
+        Text(
+            text = stringResource(R.string.setup_display_size_preview),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(MobileDimens.GapSmall))
+        MobileButton(text = stringResource(R.string.setup_continue), onClick = onNext)
+        MobileButton(
+            text = stringResource(R.string.settings_reset),
+            onClick = {
+                scope.launch {
+                    settings.setUiZoomPercent(UiZoom.DEFAULT)
+                    settings.setFontCustomization(fonts.copy(sizePercent = UiFontScale.DEFAULT))
+                }
+            },
+            style = MobileButtonStyle.TEXT,
+        )
+        MobileButton(
+            text = stringResource(R.string.common_back),
+            onClick = onBack,
+            style = MobileButtonStyle.TEXT,
+        )
+    }
+
+    // The same prompt the Appearance page raises, for the same reason (#51): below the warning
+    // point a small-memory device can run out of memory. Cancel leaves the zoom untouched.
+    pendingLowZoom?.let { target ->
+        AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
+            onDismissRequest = { pendingLowZoom = null },
+            title = { Text(stringResource(R.string.settings_low_zoom_warning_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.settings_low_zoom_warning,
+                        UiZoom.LOW_RAM_WARN,
+                        UiZoom.LOW_RAM_WARN,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        lowZoomAccepted = true
+                        pendingLowZoom = null
+                        scope.launch { settings.setUiZoomPercent(target) }
+                    },
+                ) { Text(stringResource(R.string.settings_low_zoom_accept)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingLowZoom = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+}
+
+/** Step 3 — what the app is not: it ships no channels, and the user brings their own sources. */
 @Composable
 fun DisclaimerStep(onAgree: () -> Unit, onBack: () -> Unit) {
     SetupPage {

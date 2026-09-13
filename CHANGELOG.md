@@ -11,6 +11,21 @@ The first build of the mobile app. There is no user-facing app yet: this release
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
 release automation.
 
+### 🔎 Set how big everything is during setup, not after it
+
+A request on the television's tracker (#179) pointed out something true of both apps: the settings
+that make the interface bigger could only be found *after* setup, on screens the user had already
+struggled to read.
+
+- **The first run now asks on its second screen**, before the disclaimer, which is the first screen
+  that is mostly words.
+- **Two sliders — UI Zoom and Font size — with a sample sentence beneath them that resizes as you
+  drag**, so the size is judged by reading it rather than by picking a number.
+- These are the same settings as **Settings → Appearance** and **Settings → Fonts**, so a choice made
+  here is simply the app's from then on and can be changed again at any time.
+- Zoom offers its whole 50–150% range, and crossing below 85% raises the same low-memory
+  confirmation the Appearance page raises — asked once, not on every further drag.
+
 ### 🎨 A real colour picker, everywhere a colour is chosen
 
 Every colour setting offered a short list of named colours and a box for a six-character code. That is
