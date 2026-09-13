@@ -176,6 +176,11 @@ android {
         // extraction cannot reintroduce English-only quantity wording. The strings live in core, but
         // the call site that needs a plural is here.
         fatal += "PluralsCandidate"
+        // Media3's player API surface is almost entirely @UnstableApi; this app is built on core's
+        // player, so the check fires ~30 times across the player, Live and Multiview code and
+        // carries no signal. Opting in file-by-file would only move the same acknowledgement into a
+        // handful of annotations. The television app disables it for the same reason.
+        disable += "UnsafeOptInUsageError"
         // local.properties is developer-local and never committed (its Windows SDK path cannot be
         // escaped without breaking the local tooling that writes it). CI has no such file at all.
         disable += "PropertyEscape"

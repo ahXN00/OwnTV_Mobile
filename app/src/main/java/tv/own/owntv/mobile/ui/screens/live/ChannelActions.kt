@@ -94,6 +94,9 @@ fun ChannelMenu(
         tv.own.owntv.core.live.DEFAULT_MULTIVIEW_TILES,
     )
     val context = androidx.compose.ui.platform.LocalContext.current
+    // Configuration-aware, unlike context.getString: the toast below is formatted at click time with
+    // a count that is not known at composition, so it cannot be a stringResource.
+    val res = androidx.compose.ui.platform.LocalResources.current
 
     if (sheetOpen && multiviewSetting != null) {
         val canMove = vm.contextKeyOf(selected) != null
@@ -178,7 +181,7 @@ fun ChannelMenu(
                             tuner.addToMultiview(channel, multiviewTiles)
                             android.widget.Toast.makeText(
                                 context,
-                                context.getString(
+                                res.getString(
                                     R.string.multiview_added,
                                     tuner.multiviewSelection.value.size,
                                     multiviewTiles,
