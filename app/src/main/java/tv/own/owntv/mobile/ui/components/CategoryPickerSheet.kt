@@ -27,6 +27,15 @@ fun CategoryPickerSheet(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     onDismiss: () -> Unit,
+    /**
+     * Whether picking closes the sheet.
+     *
+     * True for the Live screen, where a category *is* the destination. False where the category is
+     * only the first of two steps — the Multiview picker and the player's channel button — because
+     * there the dismiss ran straight after the select and tore down the very state the select had
+     * just set, so choosing a category made the whole picker vanish.
+     */
+    dismissOnSelect: Boolean = true,
 ) {
     var query by remember { mutableStateOf("") }
     val matches = remember(labels, query) {
@@ -50,7 +59,7 @@ fun CategoryPickerSheet(
                     },
                     onClick = {
                         onSelect(index)
-                        onDismiss()
+                        if (dismissOnSelect) onDismiss()
                     },
                 )
             }

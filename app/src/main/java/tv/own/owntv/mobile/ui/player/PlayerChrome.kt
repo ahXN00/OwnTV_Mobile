@@ -163,32 +163,6 @@ internal fun TransportCapsule(modifier: Modifier = Modifier, content: @Composabl
     )
 }
 
-/**
- * The label a control grows into.
- *
- * On the television the trigger is focus. A finger has none, so here it is press-and-hold: hold a
- * button to be told what it is, tap it to use it. The two or three tools with no gesture twin are
- * *pinned* and carry their label all the time.
- */
-@Composable
-private fun ExpandingLabel(visible: Boolean, label: String, tint: Color) {
-    val ms = LocalAnimations.current.scale(EXPAND_MS)
-    AnimatedVisibility(
-        visible = visible,
-        enter = expandHorizontally(tween(ms)) + fadeIn(tween(ms)),
-        exit = shrinkHorizontally(tween(ms)) + fadeOut(tween(ms)),
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            color = tint,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 8.dp).widthIn(max = LABEL_MAX_DP.dp),
-        )
-    }
-}
 
 /**
  * Hold to read, tap to act.
@@ -229,7 +203,14 @@ private fun Modifier.holdToReveal(
     }
 }
 
-/** A tool: a 48 dp square that grows sideways into its label. */
+/**
+ * A tool: a 48 dp square, and nothing but its glyph.
+ *
+ * **No name is ever drawn.** The bar sits over the picture on a phone-width screen and has very
+ * little room; a button that grew sideways into a word pushed its neighbours off the end of the row.
+ * The name is not lost — [holdToReveal] publishes it as the button's `contentDescription` and as a
+ * named click action, so a screen reader still announces every control by name.
+ */
 @Composable
 internal fun CtrlButton(
     icon: ImageVector,
@@ -237,28 +218,19 @@ internal fun CtrlButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     active: Boolean = false,
-    pinned: Boolean = false,
 ) {
     var held by remember { mutableStateOf(false) }
-    val open = held || pinned
-    val pad by animateDpAsState(
-        targetValue = if (open) 12.dp else 0.dp,
-        animationSpec = tween(LocalAnimations.current.scale(EXPAND_MS)),
-        label = "toolPadding",
-    )
     val tint = if (active) LocalAccentOnVideo.current else if (held) Color.White else OnVideo
     Row(
         modifier
             .height(48.dp)
             .widthIn(min = 48.dp)
             .clip(ButtonShape)
-            .holdToReveal(label, onExpanded = { held = it }, onClick = onClick)
-            .padding(horizontal = pad),
+            .holdToReveal(label, onExpanded = { held = it }, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
-        ExpandingLabel(open, label, tint)
     }
 }
 
@@ -294,8 +266,9 @@ private fun TextControl(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        // The value IS the glyph here - "1.5x" and "EXO" already say what the button is. The
+        // control's *name* is never drawn, same as CtrlButton: it lives in the semantics only.
         Text(text, style = MaterialTheme.typography.labelLarge, color = tint, fontWeight = FontWeight.SemiBold)
-        ExpandingLabel(held, label, tint)
     }
 }
 

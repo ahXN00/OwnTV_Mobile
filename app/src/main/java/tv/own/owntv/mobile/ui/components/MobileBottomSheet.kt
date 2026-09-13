@@ -7,11 +7,20 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** A sheet's list may take at most half the screen: the buttons under it have to stay reachable. */
 @Composable
-fun sheetListHeight() = (LocalConfiguration.current.screenHeightDp / 2).dp
+fun sheetListHeight(): Dp {
+    val config = LocalConfiguration.current
+    // Half the screen is right in portrait, where the sheet shares the screen with what is behind it.
+    // In landscape a phone is only ~400dp tall, so half of it was barely one row — a picker that
+    // showed its search field and nothing else. Landscape gets most of the height, because in
+    // landscape there is nothing useful to see behind the sheet anyway.
+    val fraction = if (config.screenHeightDp < config.screenWidthDp) 0.78f else 0.5f
+    return (config.screenHeightDp * fraction).dp
+}
 
 /**
  * The bottom sheet every long-press menu and picker in this app uses.

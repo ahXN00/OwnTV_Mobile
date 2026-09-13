@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -45,7 +46,13 @@ import tv.own.owntv.mobile.cast.CastHandoff
 import tv.own.owntv.mobile.cast.CastRequest
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.map
 import tv.own.owntv.player.LiveProgramme
+import tv.own.owntv.player.LiveExoWatchdog
+import tv.own.owntv.player.LivePreviewEngine
+import tv.own.owntv.player.MediaMeta
+import tv.own.owntv.player.PlaybackEngine
 import tv.own.owntv.player.MpvPlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
@@ -80,10 +87,94 @@ class LiveTuner(
     private val dataSaver: DataSaverGate,
     private val audioOnlyStore: AudioOnlyStore,
     private val cast: CastController,
+    private val recordings: tv.own.owntv.core.recording.RecordingManager,
+    /**
+     * The second live engine (L2). Live played on mpv and nothing else here, which is why the HUD's
+     * engine button was hidden for live: there was no engine to swap to. This is the same
+     * [LivePreviewEngine] the television runs live on, and the same one Multiview gives each tile.
+     */
+    private val exo: LivePreviewEngine,
+    /** Per-channel "compatibility mode" pins — the same store, and the same meaning, as the television's. */
+    private val forceMpvStore: tv.own.owntv.core.player.ForceMpvStore,
     val player: OwnTVPlayer,
 ) : CastHandoff {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    // --- "Record what I'm watching" (Plan D, D3 mode b) -----------------------------------------
+
+
+    /**
+     * Start or stop recording the channel on screen, from its start time of *now*.
+     *
+     * **This fetches the channel itself rather than copying the open stream, and that is deliberate.**
+     * The original design tapped mpv's `stream-record`, which costs no second connection — but that
+     * copies bytes as they pass through mpv's stream layer, and an HLS channel never puts them there:
+     * FFmpeg's `hls` demuxer opens each segment on its own. mpv accepted the instruction and wrote
+     * nothing, every time, on every HLS channel — which on a normal IPTV playlist is all of them.
+     *
+     * So it goes through the same engine as a scheduled recording, and inherits its behaviour: it
+     * costs one of the playlist's connections, it **keeps running** when the channel is changed or
+     * the player is left, and Downloads → Live TV can stop it. The connection is why
+     * `canRecordOn` is asked first — a refusal is a sentence, not a failed recording.
+     */
+    fun togglePlayerRecording() {
+        scope.launch {
+            val open = playerRecording.value
+            if (open != null) {
+                recordings.stop(open)
+                return@launch
+            }
+            val ch = channel.value ?: return@launch
+            val pid = settings.activeProfileId.first().takeIf { it >= 0 } ?: return@launch
+            startRecordingNow(ch, pid, _nowNext.value?.now)
+        }
+    }
+
+    /**
+     * Record [channel] from now, whether or not it is the one on screen — the long-press entry in the
+     * channel list. A channel the provider publishes no guide for never appears in the guide, so this
+     * is the only way to record it at all.
+     */
+    fun recordNow(ch: tv.own.owntv.core.database.entity.ChannelEntity) {
+        scope.launch {
+            val pid = settings.activeProfileId.first().takeIf { it >= 0 } ?: return@launch
+            startRecordingNow(ch, pid, if (ch.id == channel.value?.id) _nowNext.value?.now else null)
+        }
+    }
+
+    private suspend fun startRecordingNow(
+        ch: tv.own.owntv.core.database.entity.ChannelEntity,
+        profileId: Long,
+        programme: tv.own.owntv.core.parser.XtEpgEntry?,
+    ): tv.own.owntv.core.database.entity.RecordingEntity? {
+        if (recordings.canRecordOn(ch.sourceId) !is tv.own.owntv.core.live.StreamGrant.Allowed) return null
+        val startMs = System.currentTimeMillis()
+        // Start now: the programme is already under way and a live edge cannot be rewound, so the
+        // pre-roll has nothing to reach back to. The end is the programme's own, padding included.
+        val stopMs = programme
+            ?.let { recordings.windowFor(it.startMs, it.stopMs).last }
+            ?.takeIf { it > startMs }
+            ?: (startMs + tv.own.owntv.core.recording.RecordingSchedule.NO_GUIDE_RUNTIME_MINUTES * 60_000L)
+        return recordings.schedule(
+            tv.own.owntv.core.database.entity.RecordingEntity(
+                profileId = profileId,
+                sourceId = ch.sourceId,
+                channelId = ch.id,
+                channelName = ch.name,
+                channelIconUrl = ch.logoUrl,
+                epgChannelId = ch.epgChannelId,
+                streamUrl = ch.streamUrl,
+                httpHeaders = ch.httpHeaders,
+                title = programme?.title ?: ch.name,
+                description = programme?.description,
+                programmeStartMs = programme?.startMs ?: startMs,
+                programmeStopMs = programme?.stopMs ?: stopMs,
+                startMs = startMs,
+                stopMs = stopMs,
+            ),
+        )
+    }
 
     /**
      * The engine as the rest of the system sees it. Published to [session] whenever a stream starts,
@@ -93,13 +184,45 @@ class LiveTuner(
      */
     private val engine by lazy { MpvPlaybackEngine(player) }
 
+    // --- Which engine is playing live (L2) -------------------------------------------------------
+
+    private val _liveOnExo = MutableStateFlow(false)
+
+    /**
+     * Whether live is on ExoPlayer right now — false means mpv, and false is also every VOD case.
+     *
+     * The HUD reads this to decide which surface to show and which way its engine button flips. It is
+     * the *actual* engine rather than the pin, because an automatic handover to mpv leaves a channel
+     * running on mpv while still unpinned, and a button keyed off the pin would then do nothing.
+     */
+    val liveOnExo: StateFlow<Boolean> = _liveOnExo
+
+    /** The live ExoPlayer engine, for the surface the player screen has to give it. */
+    val exoEngine: LivePreviewEngine get() = exo
+
+    /**
+     * Whichever engine the HUD should be reading and driving.
+     *
+     * Both are a [PlaybackEngine], so nothing above this has to know which one it has — the same
+     * arrangement the television uses, and the reason the phone's HUD needed no second set of
+     * controls.
+     */
+    val activeEngine: StateFlow<PlaybackEngine> = _liveOnExo
+        .map { onExo -> if (onExo) exo else engine }
+        .stateIn(scope, SharingStarted.Eagerly, engine)
+
+    /** Cancelled by the next tune, a stop, or a manual engine switch. */
+    private var exoWatchJob: Job? = null
+
     /**
      * Hand the stream to the system: the session takes the lockscreen and the audio focus, the
      * foreground service keeps the process alive once the app leaves the screen. Both are idempotent,
      * so every `play()` call can go through here.
      */
     private fun publishToSystem() {
-        session.attach(engine)
+        // Whichever engine actually holds the stream: a session published for the idle one would
+        // answer the lockscreen and the headphone button for something that is not playing.
+        session.attach(if (_liveOnExo.value) exo else engine)
         PlaybackService.start(context)
     }
 
@@ -117,6 +240,29 @@ class LiveTuner(
 
     /** The channel on screen, with the user's own name for it. */
     val channel: StateFlow<ChannelEntity?> = _channel
+
+    /**
+     * The recording running on the channel on screen, or null.
+     *
+     * **Read from the table rather than held here.** It used to be a field set by the button, which
+     * meant the player only knew about a recording *it* had started: one begun from the channel
+     * list's long-press left the button saying "Record" while the channel was already recording, and
+     * pressing it again would have started a second one. A recording no longer belongs to the
+     * playing stream — it outlives it — so the honest question is "is this channel being recorded?",
+     * and only the table can answer that.
+     */
+    val playerRecording: StateFlow<tv.own.owntv.core.database.entity.RecordingEntity?> =
+        settings.activeProfileId
+            .flatMapLatest { pid ->
+                if (pid < 0) flowOf(emptyList()) else recordings.observe(pid)
+            }
+            .combine(channel) { rows, ch ->
+                rows.firstOrNull {
+                    it.channelId == ch?.id &&
+                        it.status == tv.own.owntv.core.model.RecordingStatus.RECORDING
+                }
+            }
+            .stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _nowNext = MutableStateFlow<EpgNowNext?>(null)
     val nowNext: StateFlow<EpgNowNext?> = _nowNext
@@ -206,6 +352,21 @@ class LiveTuner(
     }
 
     /** Switch to another channel without leaving the screen — the Channels tab and the overlay. */
+    /**
+     * Make [channel] the current one **without playing it**, for a tap that is about to open
+     * Multiview instead of the player.
+     *
+     * [switchTo] starts a stream, and the grid opens by stopping it again a fraction of a second
+     * later — a race the stop lost: the engine was still loading when it was told to stop, carried
+     * on, and played underneath the grid. That was the phone's doubled sound, named in a log as an
+     * engine the pool had never built. Nothing should be started that is about to be stopped.
+     */
+    fun selectWithoutPlaying(channel: ChannelEntity) {
+        loadedId = channel.id
+        _channel.value = custom.value.itemNames[CustomizeKeys.channel(channel)]
+            ?.let { channel.copy(name = it) } ?: channel
+    }
+
     fun switchTo(channel: ChannelEntity) {
         if (channel.id == loadedId) return
         loadedId = channel.id
@@ -263,21 +424,188 @@ class LiveTuner(
             ),
         )
         if (!handedOver) {
-            player.play(
-                url = url,
-                title = named.name,
-                logoUrl = named.displayLogoUrl,
-                isLive = true,
-                userAgent = source?.userAgent,
-                httpHeaders = channel.httpHeaders,
-            )
-            publishToSystem()
+            // L2 - which engine opens it. ExoPlayer first, because it opens a live stream faster and
+            // handles HLS better, with mpv behind it for everything ExoPlayer cannot do: that is the
+            // television's order, and the phone now has it too. A channel the user has pinned to
+            // "compatibility mode" skips straight to mpv, because that pin is them saying so.
+            if (pinKeyFor(channel) in forceMpvStore.urls.first()) {
+                startOnMpv(named, url, source?.userAgent, channel.httpHeaders)
+            } else {
+                startOnExo(named, url, source?.userAgent, channel.httpHeaders)
+            }
             applyAudioOnlyDefault(channel)
         }
         recordHistory(pid, channel.id)
         _nowNext.value = epgReader.nowNext(channel, custom.value, settings.epgOffsetMinutes.first())
         _timelineProgrammes.value = catchupProgrammes()
             .map { LiveProgramme(it.startMs, it.stopMs, it.title) }
+    }
+
+    /** The stable per-channel key a compatibility pin is filed under (P6), with the URL as fallback. */
+    private fun pinKeyFor(channel: ChannelEntity): String =
+        enginePinKey(channel.sourceId, MediaType.LIVE.name, channel.remoteId) ?: channel.streamUrl
+
+    /**
+     * Open [channel] on mpv — a pinned channel, or ExoPlayer having given up on it.
+     *
+     * mpv is the full-screen player the rest of the app already uses, so this is the path the phone
+     * has always taken; the only new thing is that it is now a choice rather than the only option.
+     */
+    private fun startOnMpv(channel: ChannelEntity, url: String, userAgent: String?, headers: String?) {
+        exoWatchJob?.cancel()
+        _liveOnExo.value = false
+        // Free ExoPlayer's decoder and its connection BEFORE mpv asks for either. A one-connection
+        // playlist refuses the second request outright, and a TV-class decoder hands mpv a codec the
+        // outgoing engine still holds — the same ordering every other engine transition already uses.
+        exo.stop()
+        player.play(
+            url = url,
+            title = channel.name,
+            logoUrl = channel.displayLogoUrl,
+            isLive = true,
+            userAgent = userAgent,
+            httpHeaders = headers,
+        )
+        publishToSystem()
+    }
+
+    /**
+     * Open [channel] on ExoPlayer, and watch it.
+     *
+     * The watch is the point. An engine that reports what happened is not the same as one that knows
+     * when to give up, and every rung of [LiveExoWatchdog] exists because a real channel failed in a
+     * way nothing else caught — a picture that never arrives while the audio plays, segment URLs the
+     * provider refuses, a stream that opens and then delivers nothing, no decodable audio, or a
+     * channel that played and then froze. Each of those hands the channel to mpv, which frequently
+     * plays it.
+     */
+    private fun startOnExo(channel: ChannelEntity, url: String, userAgent: String?, headers: String?) {
+        exoWatchJob?.cancel()
+        _liveOnExo.value = true
+        // Same ordering as the reverse direction above: mpv lets go of the connection and the decoder
+        // before ExoPlayer claims either.
+        player.stop()
+        exo.play(
+            url,
+            muted = false,
+            meta = MediaMeta(
+                title = channel.name,
+                logoUrl = channel.displayLogoUrl,
+                contentKey = pinKeyFor(channel),
+            ),
+            userAgent = userAgent,
+            httpHeaders = headers,
+            drmConfig = channel.drmConfig,
+        )
+        publishToSystem()
+        exoWatchJob = scope.launch {
+            LiveExoWatchdog(
+                engine = exo,
+                // A watchdog outlives the tune that armed it — the user zaps, backs out, or starts a
+                // film — and firing after that would stop a stream nobody complained about.
+                stillOurs = { _liveOnExo.value && loadedId == channel.id },
+                handOver = { reason ->
+                    android.util.Log.i(ENGINE_TAG, "live '${channel.name}' ExoPlayer -> mpv: $reason")
+                    startOnMpv(channel, url, userAgent, headers)
+                },
+                // The phone has no separate give-up alarm to stand down or postpone: the engine's own
+                // open watchdog plus this one are the whole budget, and a handover to mpv is what
+                // happens instead of abandoning the tune. The television has both because its ladder
+                // also walks stream FORMATS, which the phone does not do yet.
+                onOpened = {},
+                postponeDeadline = {},
+                log = { android.util.Log.i(ENGINE_TAG, it) },
+            ).watch(channel.name)
+        }
+    }
+
+    /**
+     * The HUD's engine button on a live channel: flip this channel between ExoPlayer and mpv, and
+     * remember the choice for next time.
+     *
+     * The television calls the mpv side "compatibility mode" and files it per channel, and this is
+     * that same store and that same pin — so a channel pinned on one device opens on mpv on the other
+     * once the two have synced.
+     */
+    fun toggleLiveEngine() {
+        val channel = _channel.value ?: return
+        // A replay is a recorded programme, not the live stream: re-tuning here would swap what the
+        // user is watching for whatever is on that channel now.
+        if (_replaying.value || timeshift.isRewound) return
+        // A protected channel has only one engine that can obtain its key, so swapping would trade a
+        // playing channel for a guaranteed failure.
+        if (channel.drmConfig != null) return
+        scope.launch {
+            val goToMpv = _liveOnExo.value
+            forceMpvStore.pin(pinKeyFor(channel), goToMpv)
+            val source = withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
+            val url = if (streamUrlResolver.needsResolve(source)) {
+                runCatching { streamUrlResolver.resolve(source!!, channel.streamUrl) }.getOrNull() ?: return@launch
+            } else {
+                channel.streamUrl
+            }
+            if (goToMpv) startOnMpv(channel, url, source?.userAgent, channel.httpHeaders)
+            else startOnExo(channel, url, source?.userAgent, channel.httpHeaders)
+        }
+    }
+
+    /** Tag for the engine decisions above, so a support log can be filtered to just them. */
+    private val ENGINE_TAG = "LiveEngine"
+
+    // --- Multiview: channels kept from the browse screen ------------------------------------------
+    // The plan's second entry point: pick two to four channels from the Live list, then play one and
+    // the grid opens already filled. Held here, not in a view model, for the same reason everything
+    // else here is: the list that fills it and the player that empties it are different screens.
+    private val _multiviewSelection = MutableStateFlow<List<ChannelEntity>>(emptyList())
+    val multiviewSelection: StateFlow<List<ChannelEntity>> = _multiviewSelection
+
+    /** Keep [channel] for the grid, up to [limit] tiles. Adding one twice does nothing. */
+    fun addToMultiview(channel: ChannelEntity, limit: Int) {
+        val current = _multiviewSelection.value
+        if (current.any { it.id == channel.id } || current.size >= limit) return
+        _multiviewSelection.value = current + channel
+    }
+
+    fun clearMultiviewSelection() {
+        _multiviewSelection.value = emptyList()
+    }
+
+    /** The playlist a channel came from, so a caller can ask what it allows (the tile budget). */
+    suspend fun sourceOf(channel: ChannelEntity): tv.own.owntv.core.database.entity.SourceEntity? =
+        withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
+
+    /**
+     * Tune [channel] into a Multiview tile's own engine.
+     *
+     * Routed through here for the same reason the television routes it through its view model: which
+     * URL a channel actually plays is the playlist's business — its User-Agent, the channel's headers,
+     * and, for a Stalker portal, a command that has to be resolved to a link per play. None of that
+     * belongs in a grid, and a second copy of it would drift.
+     *
+     * The system session is deliberately **not** published: the lockscreen, the audio focus and the
+     * foreground service belong to the one stream the user is watching, and a grid of four muted
+     * pictures is not four of those.
+     */
+    fun tuneTile(engine: tv.own.owntv.player.LivePreviewEngine, channel: ChannelEntity, muted: Boolean) {
+        scope.launch {
+            if (!dataSaver.allowsStreaming()) return@launch
+            val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
+            if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao)) return@launch
+            val source = withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
+            val url = if (streamUrlResolver.needsResolve(source)) {
+                runCatching { streamUrlResolver.resolve(source!!, channel.streamUrl) }.getOrNull() ?: return@launch
+            } else {
+                channel.streamUrl
+            }
+            engine.play(
+                url,
+                muted = muted,
+                meta = tv.own.owntv.player.MediaMeta(title = channel.name, logoUrl = channel.displayLogoUrl),
+                userAgent = source?.userAgent,
+                httpHeaders = channel.httpHeaders,
+                drmConfig = channel.drmConfig,
+            )
+        }
     }
 
     /**
@@ -311,6 +639,43 @@ class LiveTuner(
     /** The stable per-item key, with the stream URL as the fallback the engine stores also use. */
     private fun audioOnlyKey(channel: ChannelEntity): String =
         enginePinKey(channel.sourceId, MediaType.LIVE.name, channel.remoteId) ?: channel.streamUrl
+
+    /**
+     * Every Live TV category across every playlist, for the Multiview picker.
+     *
+     * The picker cannot start at a channel list the way the player's does: the player already has a
+     * channel playing and its category is the obvious place to look, while an empty tile has no such
+     * context — and a flat list of every channel is tens of thousands of rows on a real playlist.
+     * Hidden categories are dropped and renames applied, so it matches what is seen everywhere else.
+     */
+    suspend fun liveCategoriesForPicker(): List<Pair<Long, String>> {
+        val c = ctx.value
+        if (c.profileId < 0) return emptyList()
+        val cust = custom.value
+        return withContext(Dispatchers.IO) {
+            categoryDao.observe(c.liveSourceIds.ifEmpty { listOf(-1L) }, MediaType.LIVE).first()
+        }
+            .filter { CustomizeKeys.category(it) !in cust.hiddenItems }
+            .map { cat -> cat.id to (cust.itemNames[CustomizeKeys.category(cat)] ?: cat.name) }
+    }
+
+    /** One category's channels, with the same hide/rename treatment the rest of the app applies. */
+    suspend fun channelsInCategoryForPicker(categoryId: Long): List<ChannelEntity> {
+        val c = ctx.value
+        if (c.profileId < 0) return emptyList()
+        val category = withContext(Dispatchers.IO) { categoryDao.getById(categoryId) } ?: return emptyList()
+        val cust = custom.value
+        return withContext(Dispatchers.IO) {
+            channelDao.snapshotByCategoryManual(
+                categoryId = category.id,
+                profileId = c.profileId,
+                contextKey = CustomizeKeys.category(category),
+                limit = SIBLING_LIMIT,
+            )
+        }
+            .filter { CustomizeKeys.channel(it) !in cust.hiddenItems }
+            .map { ch -> cust.itemNames[CustomizeKeys.channel(ch)]?.let { ch.copy(name = it) } ?: ch }
+    }
 
     private suspend fun loadSiblings(channel: ChannelEntity) {
         val c = ctx.value
@@ -517,6 +882,9 @@ class LiveTuner(
         cast.release(this)
         session.attach(null)
         PlaybackService.stop(context)
+        exoWatchJob?.cancel()
+        _liveOnExo.value = false
+        exo.stop()
         player.stop()
     }
 

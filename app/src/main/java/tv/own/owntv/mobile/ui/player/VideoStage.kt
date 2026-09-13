@@ -48,6 +48,9 @@ import org.koin.compose.koinInject
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.settings.SubtitleStyle
 import tv.own.owntv.mobile.ui.theme.asComposeFamily
+import org.koin.compose.koinInject
+import tv.own.owntv.mobile.ui.screens.live.LiveTuner
+import tv.own.owntv.player.LivePreviewEngine
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.ZoomMode
 
@@ -72,8 +75,31 @@ fun VideoStage(
      */
     zoomOverride: ZoomMode? = null,
 ) {
-    val aspect by player.videoAspect.collectAsStateWithLifecycle()
-    val videoSize by player.videoSize.collectAsStateWithLifecycle()
+    // L2 — which engine holds the picture. Resolved HERE rather than passed in, and that is the whole
+    // point: this composable is used at four sizes (the channel screen's panel, full screen, the
+    // docked mini player and the floating window) and the first attempt passed the engine to ONE of
+    // them. The other three drew mpv's surface while ExoPlayer held the stream, so ExoPlayer had no
+    // surface at all — sound, no picture — and the watchdog dutifully handed every channel back to
+    // mpv within seconds. A parameter that three of four callers forget is the wrong shape.
+    val tuner: LiveTuner = koinInject()
+    val liveOnExo by tuner.liveOnExo.collectAsStateWithLifecycle()
+    val liveExo = tuner.exoEngine.takeIf { liveOnExo }
+
+    // Shape comes from whichever engine actually holds the video, or the frame is laid out against
+    // numbers the idle one last reported.
+    val aspect: Float?
+    val videoSize: Pair<Int, Int>?
+    if (liveExo != null) {
+        val a by liveExo.videoAspect.collectAsStateWithLifecycle()
+        val size by liveExo.videoSize.collectAsStateWithLifecycle()
+        aspect = a
+        videoSize = size
+    } else {
+        val a by player.videoAspect.collectAsStateWithLifecycle()
+        val size by player.videoSize.collectAsStateWithLifecycle()
+        aspect = a
+        videoSize = size
+    }
     val chosenZoom by player.zoomMode.collectAsStateWithLifecycle()
     val zoom = zoomOverride ?: chosenZoom
 
@@ -87,6 +113,19 @@ fun VideoStage(
         val viewModifier = Modifier.videoZoom(zoom, aspect, videoSize, maxWidth, maxHeight)
         // key(surfaceResetToken): when the player bumps the token this whole view is disposed and
         // rebuilt, making a genuinely FRESH Surface. Some decoders only recover on one.
+        if (liveExo != null) {
+            // Live on ExoPlayer. Its own generation counter replaces mpv's reset token for the same
+            // reason mpv has one: some hardware only ever accepts one 4K codec per Surface, so a
+            // fresh decoder needs a genuinely fresh Surface, not a reused one.
+            val exoGeneration by liveExo.surfaceGeneration.collectAsStateWithLifecycle()
+            key(exoGeneration) {
+                AndroidView(modifier = viewModifier, factory = { ctx -> ExoSurfaceView(ctx, liveExo) })
+            }
+            // Live subtitles come out of the same engine, and nothing of mpv's applies here.
+            val cues by liveExo.cues.collectAsStateWithLifecycle()
+            StyledSubtitleView(cues = cues, modifier = viewModifier)
+            return@BoxWithConstraints
+        }
         val surfaceResetToken by player.surfaceResetToken.collectAsStateWithLifecycle()
         key(surfaceResetToken) {
             AndroidView(modifier = viewModifier, factory = { ctx -> MpvSurfaceView(ctx, player) })
@@ -109,6 +148,21 @@ fun VideoStage(
             )
         }
         if (!exoActive) SubtitleOverlay(player = player, modifier = viewModifier, sizeScale = subtitleScale)
+    }
+}
+
+/**
+ * A plain `SurfaceView` handed to the live ExoPlayer engine — the same thing a Multiview tile gives
+ * its own engine, which is why it is this short: the engine does the rest.
+ */
+private class ExoSurfaceView(context: Context, engine: LivePreviewEngine) :
+    android.view.SurfaceView(context) {
+    init {
+        holder.addCallback(object : android.view.SurfaceHolder.Callback {
+            override fun surfaceCreated(holder: android.view.SurfaceHolder) = engine.setSurface(holder.surface)
+            override fun surfaceChanged(holder: android.view.SurfaceHolder, format: Int, width: Int, height: Int) = Unit
+            override fun surfaceDestroyed(holder: android.view.SurfaceHolder) = engine.detachSurface(holder.surface)
+        })
     }
 }
 

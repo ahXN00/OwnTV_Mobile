@@ -41,6 +41,7 @@ import tv.own.owntv.core.database.dao.ProgressDao
 import tv.own.owntv.core.database.dao.SeriesDao
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.entity.ContentOrderEntity
+import tv.own.owntv.core.database.entity.DownloadEntity
 import tv.own.owntv.core.database.entity.FavoriteEntity
 import tv.own.owntv.core.database.entity.MetadataCacheEntity
 import tv.own.owntv.core.database.entity.MovieEntity
@@ -53,11 +54,13 @@ import tv.own.owntv.core.live.serialize
 import tv.own.owntv.core.metadata.MetadataMode
 import tv.own.owntv.core.metadata.MetadataRepository
 import tv.own.owntv.core.metadata.TitleNormalizer
+import tv.own.owntv.core.model.DownloadStatus
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.storage.StorageAccess
+import tv.own.owntv.core.storage.MediaFolders
 import tv.own.owntv.core.subtitles.SubtitleController
 import tv.own.owntv.mobile.ui.components.ReorderItem
 
@@ -527,6 +530,29 @@ class LibraryViewModel(
         }
     }
 
+    /**
+     * The download rows behind one library row's Download action: the film's own row, or every
+     * episode row of the show. A show's episodes are looked up by series id, which is what
+     * `observeForSeries` is for.
+     */
+    fun downloadsOf(itemId: Long): Flow<List<DownloadEntity>> = if (mediaType.value == MediaType.MOVIE) {
+        ctx.flatMapLatest { c ->
+            if (c.profileId < 0) flowOf(emptyList()) else downloadManager.observe(c.profileId)
+        }.map { list -> list.filter { it.mediaType == MediaType.MOVIE && it.itemId == itemId } }
+    } else {
+        downloadManager.observeForSeries(itemId)
+    }
+
+    /** Start the failed rows over. */
+    fun retryDownloads(rows: List<DownloadEntity>) {
+        rows.filter { it.status == DownloadStatus.FAILED }.forEach { downloadManager.retry(it) }
+    }
+
+    /** Cancel what is in flight, or remove what has already been saved. */
+    fun deleteDownloads(rows: List<DownloadEntity>) {
+        rows.forEach { downloadManager.delete(it) }
+    }
+
     // --- Reordering, and moving into the user's own categories --------------------------------------
 
     /** The stable key of the list being looked at, or null when it has no stored order to move in. */
@@ -716,12 +742,12 @@ class LibraryViewModel(
 
 /** Where an episode's file goes — the TV app's layout, so one library serves both apps. */
 internal fun episodeDir(showName: String, seasonNumber: Int): String =
-    "Series/${StorageAccess.sanitize(showName)}/Season $seasonNumber"
+    MediaFolders.seasonDir(showName, seasonNumber)
 
 internal fun episodeFileName(name: String, episodeNumber: Int, containerExt: String?, streamUrl: String): String {
     val stem = StorageAccess.sanitize(name.ifBlank { "episode-$episodeNumber" })
     return "$stem.${containerExt ?: StorageAccess.extOf(streamUrl)}"
 }
 
-/** Where films go on disk, matching the TV app so one library serves both. */
-internal const val MOVIES_DIR = "Movies"
+/** Where films go on disk. Core owns the name so the two apps cannot drift apart (D1). */
+internal val MOVIES_DIR: String = MediaFolders.MOVIES

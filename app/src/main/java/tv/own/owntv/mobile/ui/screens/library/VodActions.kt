@@ -35,6 +35,10 @@ import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.ContentMenuSheet
+import tv.own.owntv.mobile.ui.components.downloadActionFor
+import tv.own.owntv.mobile.ui.components.icon
+import tv.own.owntv.mobile.ui.components.label
+import tv.own.owntv.mobile.ui.components.onTap
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
@@ -92,6 +96,10 @@ fun VodMenu(
         subtitles = if (movie) vm.downloadedSubtitles(item.id).map { it.cacheId } else emptyList()
     }
 
+    // What this item's Download action should now say and do — the row watches its own transfer.
+    val downloadRows by vm.downloadsOf(item.id).collectAsStateWithLifecycle(emptyList())
+    val downloadAction = downloadActionFor(downloadRows)
+
     if (sheetOpen) {
         val canMove = vm.contextKeyOf(selected) != null
         val actions = buildList {
@@ -131,12 +139,19 @@ fun VodMenu(
             add(
                 SheetAction(
                     key = "download",
-                    label = stringResource(
-                        if (movie) R.string.content_download else R.string.content_download_all_episodes,
+                    label = downloadAction.label(
+                        stringResource(
+                            if (movie) R.string.content_download else R.string.content_download_all_episodes,
+                        ),
                     ),
-                    icon = MobileIcons.Download,
+                    icon = downloadAction.icon(),
+                    destructive = downloadAction.deletes,
                     group = 1,
-                    onClick = { vm.download(item.id) },
+                    onClick = downloadAction.onTap(
+                        onDownload = { vm.download(item.id) },
+                        onRetry = { vm.retryDownloads(downloadRows) },
+                        onDelete = { vm.deleteDownloads(downloadRows) },
+                    ),
                 ),
             )
             if (subtitles.isNotEmpty()) {

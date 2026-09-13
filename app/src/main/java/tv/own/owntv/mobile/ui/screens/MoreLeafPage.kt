@@ -12,8 +12,8 @@ import tv.own.owntv.mobile.ui.screens.settings.SettingsProfilePage
  * One More page, chosen by its route — the same shape `SettingsGroupPage` has, and for the same
  * reason: a page is wired once, so it can never be reachable by a route and missing from it.
  *
- * Five of the seven are pages that already existed and only changed door. Favourites and Watch
- * history are the two that are genuinely new, and they are the only two that navigate.
+ * Five of the eight are pages that already existed and only changed door. Favourites, Watch
+ * history and Recordings are the ones that are genuinely new.
  */
 @Composable
 fun MoreLeafPage(

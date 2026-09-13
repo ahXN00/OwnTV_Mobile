@@ -79,7 +79,23 @@ fun ChannelMenu(
 
     LaunchedEffect(sheetOpen, dialog) { if (!sheetOpen && dialog == null) onDismiss() }
 
-    if (sheetOpen) {
+    // Multiview: offered only once it is switched on, and the confirmation says how many are kept.
+    val settings = org.koin.compose.koinInject<tv.own.owntv.core.settings.SettingsRepository>()
+    val tuner = org.koin.compose.koinInject<LiveTuner>()
+    // Null until DataStore has answered — not `false`.
+    //
+    // A sheet is handed to the host as a lambda and drawn there, and the host keeps drawing the
+    // lambda it was first given. Built while this was still the placeholder `false`, the menu was
+    // built *without* the Multiview row and went on showing that version: the row never appeared,
+    // however many times it was opened. Waiting for the real answer costs a frame and is correct.
+    val multiviewSetting by settings.multiviewEnabled.collectAsStateWithLifecycle(null as Boolean?)
+    val multiviewEnabled = multiviewSetting == true
+    val multiviewTiles by settings.multiviewTiles.collectAsStateWithLifecycle(
+        tv.own.owntv.core.live.DEFAULT_MULTIVIEW_TILES,
+    )
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    if (sheetOpen && multiviewSetting != null) {
         val canMove = vm.contextKeyOf(selected) != null
         val actions = buildList {
             add(
@@ -131,6 +147,17 @@ fun ChannelMenu(
                     ),
                 )
             }
+            // Record this channel from now. The guide's Record needs a programme, so a channel the
+            // provider publishes no guide for can only be recorded from here.
+            add(
+                SheetAction(
+                    key = "record",
+                    label = stringResource(R.string.recording_record),
+                    icon = MobileIcons.LiveTv,
+                    group = 1,
+                    onClick = { tuner.recordNow(channel) },
+                ),
+            )
             add(
                 SheetAction(
                     key = "play_external",
@@ -140,6 +167,28 @@ fun ChannelMenu(
                     onClick = { vm.playExternal(channel) },
                 ),
             )
+            if (multiviewEnabled) {
+                add(
+                    SheetAction(
+                        key = "add_to_multiview",
+                        label = stringResource(R.string.multiview_add_to),
+                        icon = MobileIcons.GridView,
+                        group = 1,
+                        onClick = {
+                            tuner.addToMultiview(channel, multiviewTiles)
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(
+                                    R.string.multiview_added,
+                                    tuner.multiviewSelection.value.size,
+                                    multiviewTiles,
+                                ),
+                                android.widget.Toast.LENGTH_SHORT,
+                            ).show()
+                        },
+                    ),
+                )
+            }
             if (canMove) {
                 add(
                     SheetAction(

@@ -38,6 +38,7 @@ import androidx.paging.compose.itemKey
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.live.LiveKey
@@ -82,6 +83,12 @@ fun LiveScreen(
     // model's. On the television that view model is a single instance shared with the browse section,
     // so a pin left behind froze its category rail. `DisposableEffect` (not `LaunchedEffect`) also
     // means the pin is in place before the first frame, so the list never flashes the wrong folder.
+    // Channels kept with "Add to Multiview" are spent by playing one. While any are waiting, a tap
+    // plays rather than browses — see the tap handler below.
+    val tuner: LiveTuner = koinInject()
+    val multiviewSelection by tuner.multiviewSelection.collectAsStateWithLifecycle()
+    val multiviewPending = multiviewSelection.isNotEmpty()
+
     if (lockedKey != null) {
         val pinned = lockedKey
         DisposableEffect(pinned) {
@@ -176,8 +183,21 @@ fun LiveScreen(
                                 // Beside the list the channel opens in the pane; on a phone it is
                                 // a screen of its own, which is the same screen either way.
                                 onClick = {
-                                    if (twoPane) previewing = channel.id
-                                    else onOpenChannel(channel.id, false)
+                                    when {
+                                        // Channels are waiting to become a Multiview grid, so the
+                                        // tap that says "now" must actually start playing. Sent to
+                                        // the channel page instead, it took two taps to open the
+                                        // grid and the first one looked like it had done nothing.
+                                        multiviewPending -> {
+                                            // Selected, not started: the grid is about to open and
+                                            // would only have to stop it again — and losing that
+                                            // race is what played a second channel under the tiles.
+                                            tuner.selectWithoutPlaying(channel)
+                                            onOpenPlayer()
+                                        }
+                                        twoPane -> previewing = channel.id
+                                        else -> onOpenChannel(channel.id, false)
+                                    }
                                 },
                                 onLongClick = { menuFor = channel },
                             )

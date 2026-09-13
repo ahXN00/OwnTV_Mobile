@@ -25,6 +25,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import tv.own.owntv.core.model.RecordingStatus
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -401,6 +403,65 @@ private fun ProgrammeSheet(
                 title = stringResource(R.string.content_epg_watch_start),
                 onClick = { onDismiss(); vm.playCatchup(channel, programme); onOpenChannel(channel.id) },
             )
+        }
+        // Record. What it offers depends on what is already true of this programme, so the row never
+        // promises something it cannot do.
+        if (vm.canRecord(channel, programme)) {
+            val recordingRows by vm.recordingRows.collectAsStateWithLifecycle()
+            val existing = remember(recordingRows, channel.id, programme.startMs) {
+                vm.recordingFor(channel, programme)
+            }
+            // A database read, so once per opened programme rather than once per frame.
+            val clash by produceState<String?>(null, channel.id, programme.startMs, recordingRows) {
+                value = vm.clashFor(channel, programme)
+            }
+            when (existing?.status) {
+                RecordingStatus.RECORDING -> MobileListRow(
+                    title = stringResource(R.string.recording_stop),
+                    leading = { Icon(MobileIcons.Pause, contentDescription = null) },
+                    onClick = { vm.stopRecording(existing); onDismiss() },
+                )
+                RecordingStatus.SCHEDULED -> MobileListRow(
+                    title = stringResource(R.string.common_cancel),
+                    leading = { Icon(MobileIcons.Delete, contentDescription = null) },
+                    onClick = { vm.cancelRecording(existing); onDismiss() },
+                )
+                else -> MobileListRow(
+                    title = stringResource(
+                        if (programme.stopMs <= System.currentTimeMillis()) {
+                            R.string.recording_from_archive
+                        } else {
+                            R.string.recording_record
+                        },
+                    ),
+                    // The clash, said before committing: a live programme cannot wait its turn, so a
+                    // warning afterwards would be of no use at all (D10).
+                    subtitle = clash?.let { stringResource(R.string.recording_clash_with, it) },
+                    subtitleMaxLines = 2,
+                    leading = { Icon(MobileIcons.LiveTv, contentDescription = null) },
+                    onClick = { vm.record(channel, programme); onDismiss() },
+                )
+            }
+            // "Every showing" only for a programme still to come — a rule is a standing instruction
+            // about the future, and offering it on last night's repeat would promise nothing.
+            if (programme.stopMs > System.currentTimeMillis()) {
+                val seriesRule by produceState<tv.own.owntv.core.database.entity.RecordingRuleEntity?>(
+                    null, channel.id, programme.title, recordingRows,
+                ) {
+                    value = vm.seriesRuleFor(channel, programme)
+                }
+                MobileListRow(
+                    title = stringResource(
+                        if (seriesRule != null) R.string.recording_stop_series
+                        else R.string.recording_record_series,
+                    ),
+                    leading = { Icon(MobileIcons.CalendarMonth, contentDescription = null) },
+                    onClick = {
+                        seriesRule?.let { vm.stopSeries(it) } ?: vm.recordSeries(channel, programme)
+                        onDismiss()
+                    },
+                )
+            }
         }
         MobileListRow(
             title = stringResource(

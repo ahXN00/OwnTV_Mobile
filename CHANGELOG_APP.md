@@ -16,6 +16,16 @@
 
 ### New features
 
+- **⏺️ Record Live TV — from the guide, the channel list or while you are watching**
+- **🔁 Record every showing of a programme on a channel**
+- **⏪ Save a catch-up programme from your provider's archive**
+- **🔲 Multiview — several live channels at once**
+- **🔊 Sound only: keep a channel's commentary without its picture**
+- **🔌 OwnTV works out how many channels your provider allows, and warns you before refusing one**
+- **ℹ️ A playlist's Test button is now Info, with Re-test behind it**
+- **📂 Save downloads and recordings to a folder you pick**
+- **📤 Export a recording or download to a folder of your own**
+- **▶️ Live TV on the second player engine, with per-channel compatibility mode**
 - **📺 Upcoming programmes show what they are about**
 - **📅 Episodes show the day they first aired**
 - **🖼️ A profile picture of your own, from your photos**
@@ -231,3 +241,13 @@
 - **Fixed: Home said "Add a playlist first" when a playlist was already there**
 - **Fixed: the floating window opened on its own after leaving a channel**
 - **Fixed: the Home hero card no longer swallows a tablet screen**
+- **Fixed: "Add to Multiview" was written but never shown in the channel menu**
+- **Fixed: two channels could play their sound at once in Multiview**
+- **Fixed: the channel you tapped kept playing underneath the grid**
+- **Fixed: a tile that could not be played still played its sound**
+- **Fixed: a menu or picker opened before its data arrived stayed empty until the screen was rotated**
+- **Fixed: a picker in landscape showed only its search box**
+- **Fixed: the player's channel button could not reach another category or playlist**
+- **Fixed: an episode download appeared in no list at all**
+- **Fixed: file sizes lost their MB**
+- **Fixed: the landscape player HUD had no gap between its two clusters**

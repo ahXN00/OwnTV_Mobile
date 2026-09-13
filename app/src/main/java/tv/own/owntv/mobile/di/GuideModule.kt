@@ -12,6 +12,6 @@ import tv.own.owntv.mobile.ui.screens.guide.GuideViewModel
  * assembled here. A `single` because it holds nothing: what to keep is the screen's decision.
  */
 val guideModule = module {
-    single { GuideReader(get(), get(), get()) }
+    single { GuideReader(get(), get(), get(), get()) }
     viewModelOf(::GuideViewModel)
 }

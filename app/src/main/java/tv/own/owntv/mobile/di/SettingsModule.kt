@@ -43,6 +43,10 @@ val settingsModule = module {
             importFinalizer = get(),
             trendingDao = get(),
             trendingActivity = get(),
+            connectionLimits = get(),
+            player = get(),
+            livePreview = get(),
+            enginePool = get(),
         )
     }
     viewModel {

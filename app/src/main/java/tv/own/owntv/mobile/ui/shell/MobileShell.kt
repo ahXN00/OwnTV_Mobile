@@ -99,7 +99,6 @@ import tv.own.owntv.mobile.ui.player.MiniPlayer
 import tv.own.owntv.mobile.ui.player.SleepTimerSheet
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
-import tv.own.owntv.mobile.ui.screens.downloads.DownloadPrefsSheet
 import tv.own.owntv.mobile.ui.screens.morePageTitleRes
 import tv.own.owntv.mobile.ui.screens.settings.settingsPageTitleRes
 import tv.own.owntv.mobile.ui.theme.GlassNest
@@ -290,11 +289,6 @@ fun MobileShell(
 
     val settingsTitle = settingsPageTitleRes(currentRoute) ?: morePageTitleRes(currentRoute)
 
-    // The gear that carries the two download preferences, on the Downloads route only. They used to
-    // be rows in Settings → Data; this is the screen they are about.
-    var downloadPrefs by remember { mutableStateOf(false) }
-    val onDownloads = currentRoute == MobileDestination.DOWNLOADS.route
-
     // Downloads is a tab on a rail but a row in More on a phone, where no tab is selected to name it
     // — without this the bar would call it "Home", which is where it is not.
     val offBarTitle = MobileDestination.entries.firstOrNull { it.route == currentRoute }?.labelRes
@@ -393,16 +387,6 @@ fun MobileShell(
                         }
                     },
                     actions = {
-                        if (onDownloads) {
-                            IconButton(onClick = { downloadPrefs = true }) {
-                                Icon(
-                                    imageVector = MobileIcons.Settings,
-                                    contentDescription = stringResource(
-                                        tv.own.owntv.mobile.R.string.settings_download_folder_title,
-                                    ),
-                                )
-                            }
-                        }
                         IconButton(
                             onClick = {
                                 navController.navigate(SEARCH_ROUTE) { launchSingleTop = true }
@@ -578,11 +562,20 @@ fun MobileShell(
                 }
                 // Low over the page, under the mini player: a sync running while the user browses is
                 // news, but it is never what they came to the screen for.
-                if (!fullscreen) {
+                if (fullscreen) {
+                    // Top, clear of the player's own controls at the bottom, and recordings only.
+                    SyncStatusPill(
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding(),
+                        recordingsOnly = true,
+                    )
+                } else {
                     SyncStatusPill(
                         Modifier
                             .align(Alignment.BottomCenter)
                             .navigationBarsPadding(),
+                        onOpenDownloads = { navController.navigate(MobileDestination.DOWNLOADS.route) },
                     )
                 }
                 // Over the content rather than beside it, because that is what a floating window is.
@@ -618,9 +611,6 @@ fun MobileShell(
             programmeEndMs = nowNext?.now?.stopMs,
             onDismiss = { sleepSheet = false },
         )
-    }
-    if (downloadPrefs) {
-        DownloadPrefsSheet(onDismiss = { downloadPrefs = false })
     }
     if (playlistSheet) {
         // The app's own picker sheet, not one written for this: "which of these" is a solved shape

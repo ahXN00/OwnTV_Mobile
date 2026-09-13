@@ -47,6 +47,7 @@ fun SettingsLeafPage(leaf: SettingsLeaf, onOpenRoute: (String) -> Unit, onAddSou
             onOpenLeaf = { target -> onOpenRoute(target.route) },
         )
         SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()
+        SettingsLeaf.RECORDING -> SettingsRecordingPage()
         SettingsLeaf.HOME -> SettingsHomePage()
         SettingsLeaf.LANGUAGE -> SettingsLanguagePage()
     }

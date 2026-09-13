@@ -99,6 +99,12 @@ class SettingsViewModel(
     private val importFinalizer: ImportFinalizer,
     private val trendingDao: TrendingDao,
     private val trendingActivity: TrendingActivityTracker,
+    private val connectionLimits: tv.own.owntv.core.live.ConnectionLimits,
+    // Measuring opens streams, so whatever is playing has to stop first — on a single-connection
+    // account the measurement IS the thing that cuts the picture off.
+    private val player: tv.own.owntv.player.OwnTVPlayer,
+    private val livePreview: tv.own.owntv.player.LivePreviewEngine,
+    private val enginePool: tv.own.owntv.player.LiveEnginePool,
 ) : ViewModel() {
 
     /** Run a setter on a scope that survives the row being scrolled off the screen. */
@@ -315,21 +321,84 @@ class SettingsViewModel(
     sealed interface SourceTestState {
         val sourceName: String
         data class Running(override val sourceName: String) : SourceTestState
-        data class Done(override val sourceName: String, val result: SourceTestResult) : SourceTestState
+
+        /**
+         * The connection measurement, which takes minutes rather than the fraction of a second the
+         * liveness check takes — hence its own state, with progress the user has to be able to see.
+         */
+        data class Measuring(
+            override val sourceName: String,
+            val progress: tv.own.owntv.core.live.ProbeProgress,
+        ) : SourceTestState
+
+        data class Done(
+            override val sourceName: String,
+            val result: SourceTestResult,
+            /** What is stored for this playlist, measured or published. Null before anything is known. */
+            val limit: tv.own.owntv.core.live.ConnectionLimit? = null,
+        ) : SourceTestState
     }
 
     private val _sourceTest = MutableStateFlow<SourceTestState?>(null)
     val sourceTest: StateFlow<SourceTestState?> = _sourceTest.asStateFlow()
 
     /** Ask the provider whether the account is still good, without waiting for a sync to fail. */
+    /**
+     * The Info sheet: what is already known, plus a quick liveness check.
+     *
+     * The measured stream limit is read straight from the playlist row and never re-measured here —
+     * measuring costs minutes and stops playback, so it belongs behind Re-test.
+     */
     fun testSource(source: SourceEntity) {
         viewModelScope.launch {
             _sourceTest.value = SourceTestState.Running(source.name)
             val result = sourceTester.test(source)
             // The sheet may have been dismissed while the request ran; don't re-open it.
-            if (_sourceTest.value != null) _sourceTest.value = SourceTestState.Done(source.name, result)
+            if (_sourceTest.value != null) {
+                _sourceTest.value = SourceTestState.Done(source.name, result, connectionLimits.known(source))
+            }
         }
     }
+
+    /**
+     * Re-test: measure how many streams this provider really allows, by opening them.
+     *
+     * Stops playback first, and deliberately not gently — the user agreed to a warning that says so.
+     */
+    fun retestSource(source: SourceEntity) {
+        measureJob?.cancel()
+        measureJob = viewModelScope.launch {
+            runCatching { player.stop() }
+            runCatching { livePreview.stop() }
+            runCatching { enginePool.releaseAll() }
+            _sourceTest.value = SourceTestState.Measuring(
+                source.name,
+                tv.own.owntv.core.live.ProbeProgress(1, 1, tv.own.owntv.core.live.MAX_PROBE_STREAMS),
+            )
+            val limit = connectionLimits.measureAndStore(source, force = true) { progress ->
+                if (_sourceTest.value is SourceTestState.Measuring) {
+                    _sourceTest.value = SourceTestState.Measuring(source.name, progress)
+                }
+            }
+            val result = sourceTester.test(source)
+            if (_sourceTest.value != null) _sourceTest.value = SourceTestState.Done(source.name, result, limit)
+        }
+    }
+
+    /**
+     * Abandon a measurement in progress.
+     *
+     * Cancelling the coroutine is what closes the streams — the probe releases them in a `finally` —
+     * so nothing keeps holding a connection the user is about to want back. What the run had already
+     * confirmed is discarded rather than saved: half a measurement is a guess.
+     */
+    fun skipConnectionMeasurement() {
+        measureJob?.cancel()
+        measureJob = null
+        _sourceTest.value = null
+    }
+
+    private var measureJob: kotlinx.coroutines.Job? = null
 
     fun dismissSourceTest() { _sourceTest.value = null }
 

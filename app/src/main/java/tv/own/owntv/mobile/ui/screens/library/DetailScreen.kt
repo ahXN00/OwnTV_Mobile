@@ -50,6 +50,11 @@ import tv.own.owntv.core.database.entity.MetadataCacheEntity
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.ContentMenuSheet
+import tv.own.owntv.mobile.ui.components.DownloadActionButton
+import tv.own.owntv.mobile.ui.components.downloadActionFor
+import tv.own.owntv.mobile.ui.components.icon
+import tv.own.owntv.mobile.ui.components.label
+import tv.own.owntv.mobile.ui.components.onTap
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.rememberAirDateLabel
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
@@ -96,6 +101,8 @@ fun DetailScreen(
     val nextUpId by vm.nextUpId.collectAsStateWithLifecycle()
     val hideWatched by vm.hideWatched.collectAsStateWithLifecycle()
     val order by vm.order.collectAsStateWithLifecycle()
+    val itemDownloads by vm.itemDownloads.collectAsStateWithLifecycle()
+    val episodeDownloads by vm.episodeDownloadStates.collectAsStateWithLifecycle()
 
     val title = movie?.name ?: show?.name.orEmpty()
     val plot = movie?.plot ?: show?.plot
@@ -202,13 +209,16 @@ fun DetailScreen(
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    IconButton(onClick = { vm.download() }) {
-                        Icon(
-                            imageVector = MobileIcons.Download,
-                            contentDescription = stringResource(R.string.content_download),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
+                    DownloadActionButton(
+                        action = downloadActionFor(itemDownloads),
+                        onDownload = { vm.download() },
+                        onRetry = { vm.retryDownloads(itemDownloads) },
+                        onDelete = { vm.deleteDownloads(itemDownloads) },
+                        idleLabel = stringResource(
+                            if (tab == LibraryTab.SERIES) R.string.content_download_all_episodes
+                            else R.string.content_download,
+                        ),
+                    )
                     // How the episode list is shown belongs with the show's other buttons, not
                     // wedged between "Next up" and the first episode — down there it read as part of
                     // the resume card and pushed the list itself off the screen.
@@ -526,6 +536,11 @@ private fun EpisodeMenu(
     var hasSubtitles by remember { mutableStateOf(false) }
     LaunchedEffect(episode.id) { hasSubtitles = vm.downloadedSubtitles(episode).isNotEmpty() }
 
+    // This episode's own download row, so the menu offers what is actually left to do with it.
+    val episodeDownloads by vm.episodeDownloadStates.collectAsStateWithLifecycle()
+    val episodeRows = listOfNotNull(episodeDownloads[episode.id])
+    val downloadAction = downloadActionFor(episodeRows)
+
     val title = episode.rowTitle()
 
     if (sheetOpen) {
@@ -543,10 +558,15 @@ private fun EpisodeMenu(
             add(
                 SheetAction(
                     key = "download",
-                    label = stringResource(R.string.content_download),
-                    icon = MobileIcons.Download,
+                    label = downloadAction.label(),
+                    icon = downloadAction.icon(),
+                    destructive = downloadAction.deletes,
                     group = 1,
-                    onClick = { vm.download(episode) },
+                    onClick = downloadAction.onTap(
+                        onDownload = { vm.download(episode) },
+                        onRetry = { vm.retryDownloads(episodeRows) },
+                        onDelete = { vm.deleteDownloads(episodeRows) },
+                    ),
                 ),
             )
             add(

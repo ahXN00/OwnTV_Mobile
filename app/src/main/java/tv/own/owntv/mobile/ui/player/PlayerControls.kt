@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,12 +41,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.own.owntv.core.live.EpgNowNext
 import tv.own.owntv.mobile.R
+import tv.own.owntv.core.player.PlayerControl
+import tv.own.owntv.core.player.ControlCluster
 import tv.own.owntv.mobile.cast.CastRouteButton
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.SquircleShape
 import tv.own.owntv.player.LiveProgramme
+import tv.own.owntv.player.PlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
 import java.text.NumberFormat
 
@@ -65,6 +69,14 @@ enum class PlayerSheet {
 @Composable
 fun PlayerControls(
     player: OwnTVPlayer,
+    /**
+     * The engine actually holding the stream, which on live is now either one (L2).
+     *
+     * Everything the bar READS comes from here; `player` stays only for the two things that are mpv's
+     * alone. Without this the HUD read a stopped mpv while ExoPlayer played: the title line said MPV
+     * beside a button saying EXO, and the play/pause glyph showed "paused" over a moving picture.
+     */
+    engine: PlaybackEngine,
     title: String,
     subtitle: String?,
     logoUrl: String?,
@@ -80,6 +92,19 @@ fun PlayerControls(
     timelineProgrammes: List<LiveProgramme>,
     /** The provider's own number for the channel, or null when the user has numbers turned off. */
     channelNumber: Int?,
+    /**
+     * Whether live is playing on ExoPlayer right now (L3). Ignored off live.
+     *
+     * The engine button used to be hidden on live, and the comment beside it said why: the phone had
+     * only mpv, so there was nothing to swap to. Now there is.
+     */
+    liveOnExo: Boolean = false,
+    /**
+     * Flip the live channel between ExoPlayer and mpv, remembering the choice for that channel —
+     * the television's "compatibility mode". Null hides the button, which is what a replay, a rewind
+     * and a protected channel all want.
+     */
+    onToggleLiveEngine: (() -> Unit)? = null,
     onBack: () -> Unit,
     onGoLive: () -> Unit,
     onScrubLive: (deltaSec: Int) -> Unit,
@@ -93,12 +118,19 @@ fun PlayerControls(
     onToggleFavorite: () -> Unit,
     /** Opens "Go back to…", or null when this channel's provider keeps no archive. */
     onCatchup: (() -> Unit)?,
+    // Live only, and only once Multiview is switched on in Settings. Null hides the button.
+    onMultiview: (() -> Unit)? = null,
     /** Files a diagnostic report about the stream on screen. */
     onReport: () -> Unit,
     /** Flashes a line over the picture — what the engine toggle uses to name what it switched to. */
     onToast: (String) -> Unit,
     /** The screen-wide scrub gesture's running total, in media milliseconds, while it is happening. */
     gestureScrubMs: Long?,
+    /** Whether the Info sheet is open — Report is offered only while it is (H1). */
+    infoOpen: Boolean = false,
+    // Live only, and only once "Record what I'm watching" is switched on (D3). Null hides it.
+    onRecordThis: (() -> Unit)? = null,
+    recordingThis: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     // The app's own effects spring, not Material's default: with animations off it snaps, so the
@@ -121,7 +153,7 @@ fun PlayerControls(
             ) {
                 PlayerDock {
                     TopRow(
-                        player = player,
+                        player = engine,
                         title = title,
                         subtitle = subtitle,
                         logoUrl = logoUrl,
@@ -140,7 +172,7 @@ fun PlayerControls(
                 }
             }
 
-            TransportRow(player = player, isLive = isLive, modifier = Modifier.align(Alignment.Center))
+            TransportRow(player = engine, isLive = isLive, modifier = Modifier.align(Alignment.Center))
 
             Column(
                 Modifier
@@ -163,6 +195,7 @@ fun PlayerControls(
                     }
                     ToolBar(
                         player = player,
+                        engine = engine,
                         isLive = isLive,
                         goLive = if (isLive && (offsetSec ?: 0) > 1) onGoLive else null,
                         onOpenSheet = onOpenSheet,
@@ -172,8 +205,14 @@ fun PlayerControls(
                         favorite = favorite,
                         onToggleFavorite = onToggleFavorite,
                         onCatchup = onCatchup,
+                        onMultiview = onMultiview,
                         onReport = onReport,
                         onToast = onToast,
+                        infoOpen = infoOpen,
+                        onRecordThis = onRecordThis,
+                        recordingThis = recordingThis,
+                        liveOnExo = liveOnExo,
+                        onToggleLiveEngine = onToggleLiveEngine,
                     )
                 }
             }
@@ -183,7 +222,7 @@ fun PlayerControls(
 
 @Composable
 private fun TopRow(
-    player: OwnTVPlayer,
+    player: PlaybackEngine,
     title: String,
     subtitle: String?,
     logoUrl: String?,
@@ -233,7 +272,7 @@ private fun TopRow(
 }
 
 @Composable
-private fun TransportRow(player: OwnTVPlayer, isLive: Boolean, modifier: Modifier = Modifier) {
+private fun TransportRow(player: PlaybackEngine, isLive: Boolean, modifier: Modifier = Modifier) {
     val playing by player.isPlaying.collectAsStateWithLifecycle()
     val step by player.seekStepMs.collectAsStateWithLifecycle()
     TransportCapsule(modifier) {
@@ -350,13 +389,18 @@ private fun LiveBar(
 /**
  * The tools: one button per picker, scrollable because a phone in portrait is narrow.
  *
- * Each is a 48 dp square that grows into its name when held. The three with no gesture twin —
- * subtitles, aspect and dropping the picture — are pinned open instead, because a control nobody can
- * find is not a control. Volume, brightness and speed all have a finger gesture already.
+ * Each is a 48 dp square showing **its glyph and nothing else**. No control draws its name: the bar
+ * sits over the picture on a phone-width screen and there is very little room, so a button that grew
+ * sideways into a word pushed its neighbours off the end of the row. Every name is still published
+ * to accessibility services — see `CtrlButton`.
+ *
+ * The order is core's `PlayerControl`, shared with the television (Feature H).
  */
 @Composable
 private fun ToolBar(
     player: OwnTVPlayer,
+    /** Read state from here; `player` is used only for the VOD engine toggle, which is mpv's own. */
+    engine: PlaybackEngine,
     isLive: Boolean,
     /** The way back to the live edge, or null when the picture is already there. */
     goLive: (() -> Unit)?,
@@ -368,106 +412,208 @@ private fun ToolBar(
     favorite: Boolean,
     onToggleFavorite: () -> Unit,
     onCatchup: (() -> Unit)?,
+    // Live only, and only once Multiview is switched on in Settings. Null hides the button.
+    onMultiview: (() -> Unit)? = null,
     onReport: () -> Unit,
     onToast: (String) -> Unit,
+    /**
+     * Whether the Info sheet is open. Report is offered only while it is (H1) — a report is about
+     * what Info is showing, and there is nothing to report without it.
+     */
+    infoOpen: Boolean = false,
+    // Live only, and only once "Record what I'm watching" is switched on in Settings (D3). Null
+    // hides the button, exactly as on the television.
+    onRecordThis: (() -> Unit)? = null,
+    recordingThis: Boolean = false,
+    liveOnExo: Boolean = false,
+    onToggleLiveEngine: (() -> Unit)? = null,
 ) {
-    val audioCount by player.audioCount.collectAsStateWithLifecycle()
-    val speed by player.speed.collectAsStateWithLifecycle()
-    val engine by player.engineChip.collectAsStateWithLifecycle()
+    val audioCount by engine.audioCount.collectAsStateWithLifecycle()
+    val speed by engine.speed.collectAsStateWithLifecycle()
+    val engineName by engine.engineChip.collectAsStateWithLifecycle()
     // The engine chip in the title line is small and easy to miss, so the swap says which engine it
     // landed on — otherwise the only feedback for the button is a picture that blinks.
     val switchedToExo = stringResource(R.string.player_switch_exo)
     val switchedToMpv = stringResource(R.string.player_switch_mpv)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
-    ) {
-        // First, so the way back to now is the first thing the thumb reaches on a bar that scrolls.
-        GoLivePill(enabled = goLive != null, onClick = { goLive?.invoke() })
-        // Adding what is on to Favourites without leaving it. From here there is no list row to hold
-        // down, so the player has to carry the toggle itself.
-        CtrlButton(
-            icon = if (favorite) MobileIcons.Favorite else MobileIcons.FavoriteBorder,
-            label = stringResource(
-                if (favorite) R.string.content_favorited else R.string.content_favorite,
-            ),
-            onClick = onToggleFavorite,
-            active = favorite,
-        )
-        if (onCatchup != null) {
-            CtrlButton(MobileIcons.History, stringResource(R.string.content_catchup_jump), onCatchup)
-        }
-        CtrlButton(MobileIcons.VolumeUp, stringResource(R.string.player_tool_volume), {
-            onOpenSheet(PlayerSheet.VOLUME)
-        })
-        CtrlButton(MobileIcons.BrightnessMedium, stringResource(R.string.player_tool_brightness), {
-            onOpenSheet(PlayerSheet.BRIGHTNESS)
-        })
-        CtrlButton(
-            icon = MobileIcons.ClosedCaption,
-            label = stringResource(R.string.player_tool_subtitles),
-            onClick = { onOpenSheet(PlayerSheet.SUBTITLES) },
-            pinned = true,
-        )
-        if (audioCount > 1) {
-            CtrlButton(MobileIcons.Audiotrack, stringResource(R.string.player_tool_audio), {
-                onOpenSheet(PlayerSheet.AUDIO)
+    // H5 - the ORDER is core's `PlayerControl`, the same list the television's HUD renders from, so
+    // the two bars read alike. Each control keeps its own composable and its own condition; only the
+    // sequence is shared. The `when` is exhaustive, so a control added to the shared list cannot be
+    // silently missing here.
+    //
+    // Drawn through one lambda because the bar has two LAYOUTS and only one set of buttons. In
+    // portrait a phone has nowhere near the width for both clusters, so they are concatenated into a
+    // single scrolling row. In landscape there is room, and the bar takes the television's shape:
+    // the media cluster hugs the left edge, the tools cluster the right, and the gap between them
+    // separates "what is playing" from "how it is shown". That gap is the thing the two bars were
+    // supposed to share after H3 and did not - the phone ran them together at every width.
+    val render: @Composable (PlayerControl) -> Unit = { control ->
+        when (control) {
+            // First, so the way back to now is the first thing the thumb reaches on a bar that
+            // scrolls.
+            PlayerControl.GO_LIVE -> GoLivePill(enabled = goLive != null, onClick = { goLive?.invoke() })
+            PlayerControl.VOLUME -> CtrlButton(MobileIcons.VolumeUp, stringResource(R.string.player_tool_volume), {
+                onOpenSheet(PlayerSheet.VOLUME)
             })
-        }
-        CtrlButton(
-            icon = MobileIcons.AspectRatio,
-            label = stringResource(R.string.player_tool_aspect),
-            onClick = { onOpenSheet(PlayerSheet.ASPECT) },
-            pinned = true,
-        )
-        if (!isLive) {
-            SpeedButton(
-                rate = formatSpeed(speed),
-                label = stringResource(R.string.player_tool_speed),
-                active = speed != 1.0,
-                onClick = { onOpenSheet(PlayerSheet.SPEED) },
-            )
-            // Live is already on the engine the television's compatibility mode switches TO, so the
-            // toggle would have nothing to swap; for a film, an episode or a replay it is real.
-            EngineToggle(
-                engine = engine.orEmpty(),
-                label = stringResource(R.string.player_tool_engine),
-                // ExoPlayer is not this app's default for a film, so being on it is a state worth
-                // colouring — it is what the user switched to.
-                active = engine == EXO,
-                icon = MobileIcons.SwapHoriz,
-                onClick = {
-                    onToast(if (engine == EXO) switchedToMpv else switchedToExo)
-                    player.toggleVodEngine()
-                },
-            )
-        }
-        if (isLive) {
-            CtrlButton(MobileIcons.FormatListBulleted, stringResource(R.string.content_channel_overlay_title), {
-                onOpenSheet(PlayerSheet.CHANNELS)
+            // Phone-only, and rightly so: a television's brightness belongs to the television.
+            PlayerControl.BRIGHTNESS -> CtrlButton(MobileIcons.BrightnessMedium, stringResource(R.string.player_tool_brightness), {
+                onOpenSheet(PlayerSheet.BRIGHTNESS)
             })
+            // Live has no speed to change - the stream arrives at the rate it arrives.
+            PlayerControl.SPEED -> if (!isLive) {
+                SpeedButton(
+                    rate = formatSpeed(speed),
+                    label = stringResource(R.string.player_tool_speed),
+                    active = speed != 1.0,
+                    onClick = { onOpenSheet(PlayerSheet.SPEED) },
+                )
+            }
+            PlayerControl.SUBTITLES -> CtrlButton(
+                icon = MobileIcons.ClosedCaption,
+                label = stringResource(R.string.player_tool_subtitles),
+                onClick = { onOpenSheet(PlayerSheet.SUBTITLES) },
+            )
+            PlayerControl.AUDIO -> if (audioCount > 1) {
+                CtrlButton(MobileIcons.Audiotrack, stringResource(R.string.player_tool_audio), {
+                    onOpenSheet(PlayerSheet.AUDIO)
+                })
+            }
+            // Adding what is on to Favourites without leaving it. From here there is no list row
+            // to hold down, so the player has to carry the toggle itself.
+            PlayerControl.FAVOURITE -> CtrlButton(
+                icon = if (favorite) MobileIcons.Favorite else MobileIcons.FavoriteBorder,
+                label = stringResource(
+                    if (favorite) R.string.content_favorited else R.string.content_favorite,
+                ),
+                onClick = onToggleFavorite,
+                active = favorite,
+            )
+            // H3 - the television's catch-up glyph, not History.
+            PlayerControl.CATCH_UP -> if (onCatchup != null) {
+                CtrlButton(MobileIcons.Catchup, stringResource(R.string.content_catchup_jump), onCatchup)
+            }
+            // L3 - live has two engines now, so the button is real there too. It is NOT the VOD
+            // toggle: on live it is the television's "compatibility mode", pinned per channel, so a
+            // channel only mpv can play opens on mpv next time without being asked again. Null means
+            // there is nothing sensible to swap - a replay, a rewind, or a protected channel whose
+            // key only one engine can obtain.
+            PlayerControl.ENGINE -> if (isLive) {
+                if (onToggleLiveEngine != null) {
+                    EngineToggle(
+                        engine = stringResource(
+                            if (liveOnExo) R.string.player_engine_exo else R.string.player_engine_mpv,
+                        ),
+                        label = stringResource(R.string.player_tool_engine),
+                        // Teal while pinned to mpv, exactly as on the television: being on the
+                        // compatibility engine is the state worth colouring, because it is the one
+                        // the user chose.
+                        active = !liveOnExo,
+                        icon = MobileIcons.SwapHoriz,
+                        onClick = {
+                            onToast(if (liveOnExo) switchedToMpv else switchedToExo)
+                            onToggleLiveEngine()
+                        },
+                    )
+                }
+            } else {
+                EngineToggle(
+                    engine = engineName.orEmpty(),
+                    label = stringResource(R.string.player_tool_engine),
+                    // ExoPlayer is not this app's default for a film, so being on it is a state
+                    // worth colouring - it is what the user switched to.
+                    active = engineName == EXO,
+                    icon = MobileIcons.SwapHoriz,
+                    onClick = {
+                        onToast(if (engineName == EXO) switchedToMpv else switchedToExo)
+                        player.toggleVodEngine()
+                    },
+                )
+            }
+            PlayerControl.ASPECT -> CtrlButton(
+                icon = MobileIcons.AspectRatio,
+                label = stringResource(R.string.player_tool_aspect),
+                onClick = { onOpenSheet(PlayerSheet.ASPECT) },
+            )
+            // Phone-only today; the television reaches the same list with Left.
+            PlayerControl.CHANNEL_LIST -> if (isLive) {
+                CtrlButton(MobileIcons.FormatListBulleted, stringResource(R.string.content_channel_overlay_title), {
+                    onOpenSheet(PlayerSheet.CHANNELS)
+                })
+            }
+            // Shrink into the app's own small player and keep browsing. Not the system's floating
+            // window: that one goes over *other* apps and is what pressing Home gives, so it is
+            // not a button.
+            PlayerControl.MINI_PLAYER ->
+                CtrlButton(MobileIcons.PictureInPictureAlt, stringResource(R.string.settings_mini_player), onMini)
+            // Dropping the picture is the phone's biggest battery and data saving, so it is a
+            // button on the bar rather than something only the notification offers.
+            // H3 - the television's headphones glyph, not a music note.
+            PlayerControl.AUDIO_ONLY -> CtrlButton(
+                icon = MobileIcons.Headphones,
+                label = stringResource(R.string.player_tool_audio_only),
+                onClick = onAudioOnly,
+                active = audioOnly,
+            )
+            PlayerControl.MULTIVIEW -> if (onMultiview != null) {
+                CtrlButton(MobileIcons.GridView, stringResource(R.string.multiview_button), onMultiview)
+            }
+            // Record the channel already playing (D3). Null until the setting is on, exactly as
+            // on the television.
+            PlayerControl.RECORD -> if (onRecordThis != null) {
+                CtrlButton(
+                    icon = MobileIcons.LiveTv,
+                    label = stringResource(
+                        if (recordingThis) R.string.recording_stop else R.string.recording_record,
+                    ),
+                    onClick = onRecordThis,
+                    active = recordingThis,
+                )
+            }
+            PlayerControl.INFO -> CtrlButton(MobileIcons.Info, stringResource(R.string.player_tool_info), {
+                onOpenSheet(PlayerSheet.INFO)
+            })
+            // H1's decision: the television's rule, on both apps. A report is about what Info is
+            // showing, there is nothing to report without it, and the great majority of users
+            // never file one - so keeping it out of the bar keeps the bar short.
+            // H3 - the television's share glyph, not a bug.
+            PlayerControl.REPORT -> if (infoOpen) {
+                CtrlButton(MobileIcons.Share, stringResource(R.string.player_tool_report), onReport)
+            }
         }
-        CtrlButton(MobileIcons.Info, stringResource(R.string.player_tool_info), {
-            onOpenSheet(PlayerSheet.INFO)
-        })
-        // Reporting a bad stream is only useful while it is misbehaving, which is here — by the time
-        // the user has walked to a settings page the stream has usually recovered or been left.
-        CtrlButton(MobileIcons.BugReport, stringResource(R.string.player_tool_report), onReport)
-        // Dropping the picture is the phone's biggest battery and data saving, so it is a button on
-        // the bar rather than something only the notification offers.
-        CtrlButton(
-            icon = MobileIcons.MusicNote,
-            label = stringResource(R.string.player_tool_audio_only),
-            onClick = onAudioOnly,
-            active = audioOnly,
-            pinned = true,
-        )
-        // Shrink into the app's own small player and keep browsing. Not the system's floating window:
-        // that one goes over *other* apps and is what pressing Home gives, so it is not a button.
-        CtrlButton(MobileIcons.PictureInPictureAlt, stringResource(R.string.settings_mini_player), onMini)
+    }
+
+    val media = PlayerControl.clusterFor(tv = false, cluster = ControlCluster.MEDIA)
+    val tools = PlayerControl.clusterFor(tv = false, cluster = ControlCluster.TOOLS)
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    if (landscape) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
+            ) {
+                media.forEach { render(it) }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
+            ) {
+                tools.forEach { render(it) }
+            }
+        }
+    } else {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
+        ) {
+            (media + tools).forEach { render(it) }
+        }
     }
 }
 

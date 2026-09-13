@@ -39,6 +39,11 @@ val liveModule = module {
             audioOnlyStore = get(),
             userDataWriter = get(),
             cast = get(),
+            recordings = get(),
+            // L2 - live's second engine, its own instance for the whole session. See PlayerModule
+            // for why it is not one of Multiview's pooled tiles.
+            exo = get(),
+            forceMpvStore = get(),
             player = get(),
         )
     }

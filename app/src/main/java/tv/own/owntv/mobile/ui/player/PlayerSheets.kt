@@ -42,7 +42,7 @@ import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
-import tv.own.owntv.player.OwnTVPlayer
+import tv.own.owntv.player.PlaybackEngine
 import tv.own.owntv.player.StreamInfoRow
 import tv.own.owntv.player.ZoomMode
 import tv.own.owntv.player.displayText
@@ -52,7 +52,12 @@ import tv.own.owntv.player.titleRes
 @Composable
 fun PlayerSheetHost(
     sheet: PlayerSheet,
-    player: OwnTVPlayer,
+    /**
+     * The engine holding the stream. Every sheet here is about what is playing — its audio and
+     * subtitle tracks, its volume, its zoom, its delays — so on a live channel running on ExoPlayer
+     * they must come from that engine, not from a stopped mpv with no tracks to list.
+     */
+    player: PlaybackEngine,
     channels: List<ChannelEntity>,
     brightness: Float,
     onBrightness: (Float) -> Unit,
@@ -91,7 +96,7 @@ fun PlayerSheetHost(
 
 /** 0–150%: above 100 is the boost, the same range the television offers. */
 @Composable
-private fun VolumeSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
+private fun VolumeSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     val volume by player.volume.collectAsStateWithLifecycle()
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_tool_volume)) {
         SliderRow(
@@ -141,7 +146,7 @@ private fun SliderRow(value: Float, label: String, onChange: (Float) -> Unit) {
  */
 @Composable
 private fun SubtitleSheet(
-    player: OwnTVPlayer,
+    player: PlaybackEngine,
     canAddSubtitles: Boolean,
     onSearch: () -> Unit,
     onPickLocalSubtitle: () -> Unit,
@@ -185,7 +190,7 @@ private fun SubtitleSheet(
  * whether it now matches the speech is to hear the speech.
  */
 @Composable
-private fun SubtitleTimingRow(player: OwnTVPlayer) {
+private fun SubtitleTimingRow(player: PlaybackEngine) {
     val delay by player.subDelayMs.collectAsStateWithLifecycle()
     Column(
         Modifier.fillMaxWidth().padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall),
@@ -236,7 +241,7 @@ private const val AV_SYNC_STEP_MS = 25
 private const val AV_SYNC_LIMIT_MS = 5_000
 
 @Composable
-private fun AudioSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
+private fun AudioSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     val tracks = remember { player.audioTracks() }
     val delay by player.audioDelayMs.collectAsStateWithLifecycle()
     val remembered by player.audioDelayRemembered.collectAsStateWithLifecycle()
@@ -308,7 +313,7 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-private fun AspectSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
+private fun AspectSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     val current by player.zoomMode.collectAsStateWithLifecycle()
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_tool_aspect)) {
         ZoomMode.entries.forEach { mode ->
@@ -324,7 +329,7 @@ private fun AspectSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
 private val SPEEDS = listOf(0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)
 
 @Composable
-private fun SpeedSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
+private fun SpeedSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     val current by player.speed.collectAsStateWithLifecycle()
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_tool_speed)) {
         val locale = LocalConfiguration.current.locales[0]
@@ -350,7 +355,7 @@ private fun SpeedSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
 
 /** The technical readout, rendered from core's own table so it matches the television's line for line. */
 @Composable
-private fun StreamInfoSheet(player: OwnTVPlayer, onDismiss: () -> Unit) {
+private fun StreamInfoSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     var rows by remember { mutableStateOf(emptyList<StreamInfoRow>()) }
     LaunchedEffect(player) { rows = player.streamInfo() }
     val res = LocalResources.current

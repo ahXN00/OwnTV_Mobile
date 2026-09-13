@@ -11,6 +11,91 @@ The first build of the mobile app. There is no user-facing app yet: this release
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
 release automation.
 
+### ⏺️ Record Live TV
+
+Live TV can be recorded, and the recordings live in **Downloads → Live TV**, beside Movies and Series.
+
+- **From the guide**, **from the channel list**, or **from the player while you are watching** — the
+  Record button appears on live channels once the setting is on. A recording keeps going when you
+  change channel or leave the player.
+- **Record every showing** of a programme on a channel, as a standing rule.
+- **Catch-up as a recording** — a programme already broadcast, saved from your provider's archive.
+- **It costs one of your provider's connections**, and says so before it starts rather than failing
+  into a spinner.
+- The status pill appears **over the player** while one is running, so a recording is not invisible for
+  most of its life.
+
+### 🔲 Multiview — several channels at once
+
+Watch live channels side by side, driven by taps. **Landscape is the real mode**; portrait stacks them
+rather than drawing four postage stamps.
+
+- Open it from the player's **Multiview** button, or mark channels with **Add to Multiview** from the
+  channel list and then tap any channel — tapping plays straight away while channels are waiting,
+  instead of opening the channel page first.
+- **The Settings number is a ceiling, not a size.** The grid opens with two and grows only when you
+  ask, up to your maximum.
+- **Tap** a tile to give it the sound, **double-tap** for fullscreen, **long-press** for its menu:
+  change channel, add a tile, sound only, remove.
+- **Filling a tile starts at the categories**, across every playlist, with a search box — a flat list
+  of every channel is tens of thousands of rows on a phone.
+- **A tile never sits blank**: it says whether the provider had no connection spare or this phone could
+  not decode another channel.
+- **Leaving the grid stops everything**, rather than leaving one channel playing and one connection
+  spent.
+
+**Multiview has settings on the phone at last** — the on/off switch and the tile ceiling, under
+*Settings → Playback*. Without them the feature could not be switched on here at all.
+
+### 🔌 How many channels your provider allows
+
+Most providers never say. OwnTV now finds out by trying, once, when a playlist is added — before any
+channels are saved, so nothing you are watching is interrupted — and warns you *before* refusing a
+tile or a recording instead of after.
+
+- A playlist's **Test** is now **Info**; **Re-test** sits inside it, behind a warning that playback
+  will stop and that it can take up to two minutes, with **Skip**.
+
+### 📂 Files where you want them
+
+- **Downloads and recordings can be saved to a folder you pick**, through Android's own folder picker
+  — the only kind of folder a phone from Google Play is allowed to reach.
+- **Export moves a recording or download** into a folder of your own, and keeps working next week
+  rather than losing permission with the app's process.
+- The storage header shows the **folder's name**, not a raw `content://…` address.
+- Downloads tabs are **Live TV / Movies / Series**.
+
+### ▶️ Live TV on the ExoPlayer engine
+
+The phone can now play live on the second engine, with the same watchdogs the television uses — a
+picture that never arrives while the audio plays, segment URLs a provider refuses, a stream that opens
+and delivers nothing. The engine button in the player HUD applies to live channels, and a channel can
+be **pinned to compatibility mode** on its own.
+
+### 📱 Fixes and smaller things
+
+- **"Add to Multiview" appears in the channel menu.** It was written but never shown: the menu only
+  draws actions listed in the shared action file, and this one was missing from it — the same omission
+  that cost the phone its Record row.
+- **Two channels could play their sound at once.** Four tiles starting together each asked "is any tile
+  filled yet?" before any had registered itself, so several decided they were first and each turned its
+  own sound on. Which tile has the sound is now settled before any stream opens.
+- **The channel you tapped kept playing underneath the grid.** It was started full screen and then
+  stopped a fraction of a second later — a race the stop lost. Nothing is started that is about to be
+  stopped.
+- **A tile that could not be played no longer plays its sound.** The picture failing does not stop the
+  audio track.
+- **A menu or picker opened before its data arrived stayed empty for ever.** A sheet is drawn by a host
+  that kept the version it was first given, so a picker opened while its categories were still loading
+  showed a search box and nothing else until the screen was rotated.
+- **A picker in landscape showed only its search box** — the list was given half a landscape phone's
+  height, which is barely one row.
+- **The player's channel button goes through the categories**, so a channel in another category or
+  another playlist can be reached from the player.
+- **An episode download appeared in no list at all.**
+- **File sizes say MB again.**
+- **The landscape player HUD has its two clusters and the gap between them**, like the television's.
+
 ### 📺 Live TV, episodes and profiles say more
 
 - **Upcoming programmes carry their synopsis**, not just a time and a title, on a channel's page.

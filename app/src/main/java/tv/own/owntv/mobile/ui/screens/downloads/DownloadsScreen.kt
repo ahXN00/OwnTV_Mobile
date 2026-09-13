@@ -2,6 +2,7 @@ package tv.own.owntv.mobile.ui.screens.downloads
 
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import androidx.activity.compose.rememberLauncherForActivityResult
+import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,13 +31,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import androidx.compose.ui.text.style.TextOverflow
 import tv.own.owntv.core.database.entity.DownloadEntity
 import tv.own.owntv.core.model.DownloadStatus
+import tv.own.owntv.core.model.MediaType
+import tv.own.owntv.core.storage.MediaFolders
+import tv.own.owntv.mobile.ui.components.ExportDocument
+import tv.own.owntv.core.storage.MediaTarget
 import tv.own.owntv.core.storage.StorageAccess
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.SectionHeader
+import tv.own.owntv.mobile.ui.components.SettingRow
+import tv.own.owntv.mobile.ui.screens.recordings.RecordingsScreen
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import java.text.NumberFormat
 
@@ -59,17 +68,27 @@ fun DownloadsScreen(
     val root by vm.downloadRoot.collectAsStateWithLifecycle()
     val playing by vm.playing.collectAsStateWithLifecycle()
 
-    var tab by remember { mutableStateOf(DownloadTab.ACTIVE) }
+    val wifiOnly by vm.wifiOnly.collectAsStateWithLifecycle()
+    val chosenFolder by vm.chosenFolder.collectAsStateWithLifecycle()
+    val folderLost by vm.folderLost.collectAsStateWithLifecycle()
+
+    // The system folder picker. A phone bound for Google Play cannot hold all-files access, so this
+    // is the only way it writes to a folder the user chose rather than one Android handed it.
+    val chooseFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { tree -> if (tree != null) vm.setDownloadTree(tree) }
+
+    var tab by remember { mutableStateOf(DownloadsTab.LIVE) }
     var menuFor by remember { mutableStateOf<DownloadEntity?>(null) }
-    var volumePicker by remember { mutableStateOf(false) }
+    var optionsSheet by remember { mutableStateOf(false) }
     var savingCopyOf by remember { mutableStateOf<DownloadEntity?>(null) }
 
     val saveCopy = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("video/*"),
+        ExportDocument("video/*"),
     ) { uri ->
         val download = savingCopyOf
         savingCopyOf = null
-        if (uri != null && download != null) vm.saveCopy(download, uri)
+        if (uri != null && download != null) vm.export(download, uri)
     }
 
     LaunchedEffect(playing) {
@@ -79,21 +98,32 @@ fun DownloadsScreen(
         }
     }
 
-    val shown = downloads.filter { tab.holds(it.status) }
+    val shown = downloads.filter { tab.holds(it.mediaType) }
+    // The statuses, now headings rather than chips, in the order the television lists them.
+    val sections = DownloadSection.entries
+        .map { section -> section to shown.filter { section.holds(it.status) } }
+        .filter { it.second.isNotEmpty() }
 
     Column(modifier.fillMaxSize()) {
         StorageHeader(
             storage = storage,
             speedMbps = speed,
-            onPickVolume = { volumePicker = true },
+            root = root,
+            onOpenOptions = { optionsSheet = true },
         )
         FilterChipRow(
-            labels = DownloadTab.entries.map { stringResource(it.labelRes) },
-            selectedIndex = DownloadTab.entries.indexOf(tab),
-            onSelect = { tab = DownloadTab.entries[it] },
+            labels = DownloadsTab.entries.map { stringResource(it.labelRes) },
+            selectedIndex = DownloadsTab.entries.indexOf(tab),
+            onSelect = { tab = DownloadsTab.entries[it] },
         )
 
-        if (shown.isEmpty()) {
+        if (tab == DownloadsTab.LIVE) {
+            RecordingsScreen(
+                onPlayerOpened = onPlayerOpened,
+                embedded = true,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (shown.isEmpty()) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -109,15 +139,20 @@ fun DownloadsScreen(
             }
         } else {
             LazyColumn(Modifier.fillMaxSize()) {
-                items(shown, key = { it.id }) { download ->
-                    DownloadRow(
-                        download = download,
-                        onClick = {
-                            if (download.status == DownloadStatus.COMPLETED) vm.play(download)
-                            else menuFor = download
-                        },
-                        onLongClick = { menuFor = download },
-                    )
+                sections.forEach { (section, items) ->
+                    item(key = "header_${section.name}") {
+                        SectionHeader(title = stringResource(section.labelRes))
+                    }
+                    items(items, key = { it.id }) { download ->
+                        DownloadRow(
+                            download = download,
+                            onClick = {
+                                if (download.status == DownloadStatus.COMPLETED) vm.play(download)
+                                else menuFor = download
+                            },
+                            onLongClick = { menuFor = download },
+                        )
+                    }
                 }
             }
         }
@@ -135,23 +170,40 @@ fun DownloadsScreen(
         )
     }
 
-    if (volumePicker) {
-        VolumePicker(
+    if (optionsSheet) {
+        DownloadOptionsSheet(
             volumes = vm.volumes,
             current = root,
-            onPick = { vm.setDownloadRoot(it); volumePicker = false },
-            onDismiss = { volumePicker = false },
+            wifiOnly = wifiOnly,
+            chosenFolder = chosenFolder,
+            folderLost = folderLost,
+            onPick = vm::setDownloadRoot,
+            onChooseFolder = {
+                // Opens where downloads currently go, when that is somewhere the picker can show.
+                chooseFolder.launch(root.takeIf { MediaTarget.isDocument(it) }?.let(Uri::parse))
+            },
+            onWifiOnly = vm::setWifiOnly,
+            onDismiss = { optionsSheet = false },
         )
     }
 }
 
-/** Queued counts as active: from the user's side it is a download that has not arrived yet. */
-private enum class DownloadTab(val labelRes: Int) {
+/**
+ * The three things this screen keeps, in the order Favourites and History use — and the same three
+ * the television shows.
+ *
+ * They used to be Active / Completed / Failed. A status is not a *kind* of thing: it changes on its
+ * own while you watch, so the chip you were looking at empties and the item you were following moves
+ * to another one. The statuses are still there, as headings down the list, where they can all be
+ * seen at once. Live TV holds recordings: a recording is a download of a live channel.
+ */
+private enum class DownloadSection(val labelRes: Int) {
     ACTIVE(R.string.content_downloads_active),
     COMPLETED(R.string.content_downloads_completed_group),
     FAILED(R.string.content_downloads_failed_group),
     ;
 
+    /** Queued counts as active: from the user's side it is a download that has not arrived yet. */
     fun holds(status: DownloadStatus): Boolean = when (this) {
         ACTIVE -> status == DownloadStatus.RUNNING || status == DownloadStatus.PAUSED ||
             status == DownloadStatus.QUEUED
@@ -160,11 +212,29 @@ private enum class DownloadTab(val labelRes: Int) {
     }
 }
 
+private enum class DownloadsTab(val labelRes: Int) {
+    LIVE(R.string.common_nav_live_tv),
+    MOVIES(R.string.common_nav_movies),
+    SERIES(R.string.common_nav_series),
+    ;
+
+    /**
+     * The rule is core's, not this screen's — an EPISODE belongs under Series, and writing that out
+     * here is what hid every episode download from this list.
+     */
+    fun holds(type: MediaType): Boolean = when (this) {
+        MOVIES -> MediaFolders.folderFor(type) == MediaFolders.MOVIES
+        SERIES -> MediaFolders.folderFor(type) == MediaFolders.SERIES
+        LIVE -> false // recordings come from their own screen
+    }
+}
+
 @Composable
 private fun StorageHeader(
     storage: tv.own.owntv.core.download.DownloadStorageInfo?,
     speedMbps: Double,
-    onPickVolume: () -> Unit,
+    root: String,
+    onOpenOptions: () -> Unit,
 ) {
     val unknown = stringResource(R.string.content_downloads_unknown_size)
     Column(
@@ -203,10 +273,14 @@ private fun StorageHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = onPickVolume) {
+            // The screen's only settings control, and it lives here rather than in the top bar:
+            // there used to be a gear up there *and* a folder glyph down here, two buttons for two
+            // halves of one question. Not a folder glyph either — what it opens is the folder list
+            // itself, and a folder that opens folders says nothing.
+            IconButton(onClick = onOpenOptions) {
                 Icon(
-                    imageVector = MobileIcons.Folder,
-                    contentDescription = stringResource(R.string.settings_download_folder),
+                    imageVector = MobileIcons.Tune,
+                    contentDescription = stringResource(R.string.content_downloads_options),
                     // Without a tint this inherits a content colour meant for a filled button and
                     // comes out black on the dark card.
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -221,6 +295,21 @@ private fun StorageHeader(
                     .padding(end = MobileDimens.GapSmall, bottom = MobileDimens.GapSmall),
             )
         }
+        // The folder everything lands in, read at a glance. It is a fact about the whole screen
+        // rather than a control, so it sits with the free-space line instead of behind the button
+        // that changes it.
+        // A folder the user picked is stored as its `content://…%2F…` URI, which is unreadable and
+        // means nothing to anyone looking for their files. Shown decoded, as `OwnTV/Films`.
+        root.takeIf { it.isNotBlank() }?.let { StorageAccess.folderLabel(it) ?: it }?.let { path ->
+            Text(
+                text = path,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = MobileDimens.GapSmall, bottom = MobileDimens.GapSmall),
+            )
+        }
     }
 }
 
@@ -232,10 +321,18 @@ private fun DownloadRow(download: DownloadEntity, onClick: () -> Unit, onLongCli
     } else {
         0f
     }
+    // Two lines under the title, not one: how far it has got, and *where it went*. A row that said
+    // only "1.2 GB downloaded" left the user with no idea which folder to look in, which is the one
+    // thing a saved file is for. Matches the television's three-line row.
+    val location = MediaFolders.crumb(
+        download.filePath,
+        stringResource(R.string.content_downloads_folder_separator),
+    )
     Column {
         MobileListRow(
             title = download.title,
-            subtitle = statusLine(download, unknown),
+            subtitle = listOfNotNull(statusLine(download, unknown), location).joinToString("\n"),
+            subtitleMaxLines = 2,
             leading = {
                 Icon(
                     imageVector = MobileIcons.Movie,
@@ -312,6 +409,28 @@ private fun DownloadMenu(
                 vm.pause(download); onDismiss()
             }
         }
+        // Where the file actually is, spelled out in full and copied on a tap. When it is in the
+        // app's own storage a phone will not open that folder for you — no file manager has browsed
+        // it since Android 11 — so the useful act is handing the user the location itself. A folder
+        // the user picked IS browsable, and is shown decoded (`Films/OwnTV/x.mkv`) rather than as the
+        // `content://…%2F…` URI it is stored as, which is unreadable and useless in a file manager.
+        download.filePath?.let { stored ->
+            val path = StorageAccess.folderLabel(stored) ?: stored
+            HorizontalDivider()
+            MobileListRow(
+                title = stringResource(R.string.settings_backup_location),
+                subtitle = path,
+                subtitleMaxLines = 3,
+                leading = {
+                    Icon(
+                        imageVector = MobileIcons.Folder,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                },
+                onClick = { vm.copyPath(path); onDismiss() },
+            )
+        }
         HorizontalDivider()
         MenuRow(R.string.common_delete, MobileIcons.Delete, destructive = true) {
             vm.delete(download); onDismiss()
@@ -319,17 +438,50 @@ private fun DownloadMenu(
     }
 }
 
+/**
+ * Everything this screen can be told: which volume downloads are written to, and whether they wait
+ * for Wi-Fi.
+ *
+ * One sheet, flat. The folder used to be a second sheet opened from inside the first, which is why
+ * picking one appeared to do nothing — two modal sheets swapping in the same frame, over a choice
+ * that is usually between a single entry and itself. The volumes are listed here directly, ticked,
+ * with the path each one writes to.
+ *
+ * The list is only the roots the app can write to without asking a permission: a phone has a
+ * document picker for everywhere else, and demanding all-files access to save a film is not a trade
+ * a user should have to make.
+ */
 @Composable
-private fun VolumePicker(
+private fun DownloadOptionsSheet(
     volumes: List<StorageAccess.StorageRoot>,
     current: String,
+    wifiOnly: Boolean,
+    /** The folder picked through the system picker, ready to read, or null when none is. */
+    chosenFolder: String?,
+    /** True when that folder can no longer be written to — revoked permission, or storage removed. */
+    folderLost: Boolean,
     onPick: (String) -> Unit,
+    onChooseFolder: () -> Unit,
+    onWifiOnly: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     MobileBottomSheet(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_download_folder_title),
+        title = stringResource(R.string.content_downloads_options),
     ) {
+        // Said before the list rather than after it: the folder being unreachable is the reason the
+        // user is most likely here, and a failed download looks identical to a failed network.
+        if (folderLost) {
+            Text(
+                text = stringResource(R.string.content_storage_folder_lost),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(
+                    horizontal = MobileDimens.GapLarge,
+                    vertical = MobileDimens.GapSmall,
+                ),
+            )
+        }
         volumes.forEach { volume ->
             val path = volume.file.absolutePath
             MobileListRow(
@@ -337,7 +489,10 @@ private fun VolumePicker(
                     if (volume.kind == StorageAccess.RootKind.REMOVABLE) R.string.content_storage_removable
                     else R.string.content_storage_internal,
                 ),
-                subtitle = volume.volumeName ?: path,
+                // The path, always — the folder the files land in is the thing being chosen, and a
+                // volume label on its own ("sdcard1") does not say where to go and look.
+                subtitle = path,
+                subtitleMaxLines = 2,
                 leading = {
                     Icon(
                         imageVector = if (volume.kind == StorageAccess.RootKind.REMOVABLE) {
@@ -351,6 +506,9 @@ private fun VolumePicker(
                 },
                 trailing = {
                     // An unset folder means the default, which is the first volume in the list.
+                    // An unset folder means the default, which is the first volume in the list —
+                    // but only while the user has not picked one of their own, which is neither
+                    // blank nor equal to any volume's path.
                     val chosen = if (current.isBlank()) volume == volumes.firstOrNull() else current == path
                     if (chosen) {
                         Icon(
@@ -363,6 +521,51 @@ private fun VolumePicker(
                 onClick = { onPick(path) },
             )
         }
+        // Anywhere else on the device. A phone cannot be given all-files access without failing Play
+        // review, so the system picker is how it reaches a folder of the user's own choosing — and
+        // once picked, that folder is a row of its own so it can be ticked like the volumes above.
+        if (chosenFolder != null) {
+            MobileListRow(
+                title = stringResource(R.string.content_storage_chosen_folder),
+                subtitle = chosenFolder,
+                subtitleMaxLines = 2,
+                leading = {
+                    Icon(
+                        imageVector = MobileIcons.Folder,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                trailing = {
+                    if (!folderLost) {
+                        Icon(
+                            imageVector = MobileIcons.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                },
+                onClick = onChooseFolder,
+            )
+        }
+        MobileListRow(
+            title = stringResource(R.string.content_storage_choose_folder),
+            leading = {
+                Icon(
+                    imageVector = MobileIcons.Folder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            onClick = onChooseFolder,
+        )
+        HorizontalDivider()
+        SettingRow(
+            title = stringResource(R.string.settings_downloads_wifi_only),
+            subtitle = stringResource(R.string.settings_downloads_wifi_only_description),
+            checked = wifiOnly,
+            onCheckedChange = onWifiOnly,
+        )
     }
 }
 
@@ -389,8 +592,13 @@ private fun MenuRow(
 private fun gigabytes(bytes: Long, unknown: String): String =
     if (bytes <= 0) unknown else decimal(bytes / 1_073_741_824.0)
 
+/**
+ * A download's size, with its unit. `common_size_mb` carries the unit because a number on its own is
+ * not a size — the completed row read "233,8 downloaded", which says nothing at all.
+ */
+@Composable
 private fun megabytes(bytes: Long, unknown: String): String =
-    if (bytes <= 0) unknown else decimal(bytes / 1_048_576.0)
+    if (bytes <= 0) unknown else stringResource(R.string.common_size_mb, decimal(bytes / 1_048_576.0))
 
 private fun decimal(value: Double): String = NumberFormat.getNumberInstance().apply {
     minimumFractionDigits = 1

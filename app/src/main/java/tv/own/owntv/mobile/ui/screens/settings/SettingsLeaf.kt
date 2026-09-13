@@ -26,6 +26,13 @@ enum class SettingsLeaf(
     @param:StringRes val keywordsRes: Int,
     @param:StringRes val summaryRes: Int? = null,
     val icon: ImageVector,
+    /**
+     * Whether the group's own page lists this leaf. Subtitle appearance is reached from inside Video
+     * player, where it belongs — it is a setting *of* the player, not a sibling of it — so listing it
+     * again beside Video player offered the same page by two routes and made Playback look like it
+     * held two unrelated things.
+     */
+    val listedInGroup: Boolean = true,
 ) {
     PLAYLISTS(
         SettingsGroup.SOURCES, "playlists",
@@ -89,6 +96,16 @@ enum class SettingsLeaf(
         R.string.settings_subtitle_appearance, R.string.settings_search_keywords_subtitle_appearance,
         R.string.settings_vp_section_subtitles_summary,
         MobileIcons.ClosedCaption,
+        listedInGroup = false,
+    ),
+    // Recording is a leaf under Playback, not a group of its own. A group holding exactly one page
+    // still has to be opened to find out it holds one page, which is a press that tells nobody
+    // anything — and the television puts it here too.
+    RECORDING(
+        SettingsGroup.PLAYBACK, "recording",
+        R.string.recording_settings_group, R.string.settings_search_keywords_recording,
+        R.string.recording_description,
+        MobileIcons.LiveTv,
     ),
 
     HOME(
@@ -118,4 +135,4 @@ fun settingsLeafOf(route: String?): SettingsLeaf? =
 
 /** The leaves of one group, in declaration order — what a group page lists at its head. */
 fun leavesOf(group: SettingsGroup): List<SettingsLeaf> =
-    SettingsLeaf.entries.filter { it.group == group }
+    SettingsLeaf.entries.filter { it.group == group && it.listedInGroup }

@@ -24,6 +24,7 @@ import tv.own.owntv.core.database.dao.ProgressDao
 import tv.own.owntv.core.database.dao.SeriesDao
 import tv.own.owntv.core.database.dao.SeriesSortOrderDao
 import tv.own.owntv.core.database.dao.resolveExistingProfileId
+import tv.own.owntv.core.database.entity.DownloadEntity
 import tv.own.owntv.core.database.entity.EpisodeEntity
 import tv.own.owntv.core.database.entity.FavoriteEntity
 import tv.own.owntv.core.database.entity.MetadataCacheEntity
@@ -33,6 +34,7 @@ import tv.own.owntv.core.database.entity.SeriesEntity
 import tv.own.owntv.core.download.DownloadManager
 import tv.own.owntv.core.metadata.MetadataMode
 import tv.own.owntv.core.metadata.MetadataRepository
+import tv.own.owntv.core.model.DownloadStatus
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.repository.SeriesRepository
 import tv.own.owntv.core.settings.SettingsRepository
@@ -121,6 +123,39 @@ class DetailViewModel(
         if (o.seasonsDescending) numbers.reversed() else numbers
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+
+    // --- Download state, so the download button reflects what is actually happening ---
+    // The screen only ever asked the manager to start a transfer and then never watched it, which is
+    // why the icon never changed. Shaped exactly like the television's MovieViewModel/SeriesViewModel.
+
+    /** Every download row of this profile, keyed by film id — the film's own button reads one entry. */
+    val downloadStates: StateFlow<Map<Long, DownloadEntity>> = profileId
+        .flatMapLatest { pid -> if (pid < 0) flowOf(emptyList()) else downloadManager.observe(pid) }
+        .map { list -> list.filter { it.mediaType == MediaType.MOVIE }.associateBy { it.itemId } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** Episode download rows keyed by episode id — one per episode row and episode sheet. */
+    val episodeDownloadStates: StateFlow<Map<Long, DownloadEntity>> = profileId
+        .flatMapLatest { pid -> if (pid < 0) flowOf(emptyList()) else downloadManager.observe(pid) }
+        .map { list -> list.filter { it.mediaType == MediaType.EPISODE }.associateBy { it.itemId } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** Every episode download of the open show — the show-level button's aggregate. */
+    val seriesDownloads: StateFlow<List<DownloadEntity>> = target
+        .flatMapLatest { t ->
+            if (t?.tab != LibraryTab.SERIES) flowOf(emptyList()) else downloadManager.observeForSeries(t.id)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The rows behind the header button: one film, or every episode of the show. */
+    val itemDownloads: StateFlow<List<DownloadEntity>> =
+        combine(target, downloadStates, seriesDownloads) { t, movies, episodes ->
+            when (t?.tab) {
+                LibraryTab.MOVIES -> listOfNotNull(movies[t.id])
+                LibraryTab.SERIES -> episodes
+                else -> emptyList()
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val isFavorite: StateFlow<Boolean> = combine(target, profileId) { t, pid -> t to pid }
         .flatMapLatest { (t, pid) ->
@@ -261,7 +296,16 @@ class DetailViewModel(
         }
     }
 
-    /** Download the film, or every episode of the season on screen. */
+    /**
+     * Download the film, or **every episode of the show** — which is what the button has always
+     * said, and what the television has always done.
+     *
+     * It used to take the episodes of the season on screen, and the season on screen is null until
+     * either the user taps a season chip or the show has an episode they have already watched. So on
+     * a show opened for the first time the filter matched nothing and the button did nothing at all.
+     * The episodes are read from the database here rather than from the listed ones, the same way
+     * `SeriesViewModel.downloadSeries` does, so what is queued never depends on what is on screen.
+     */
     fun download() {
         viewModelScope.launch {
             val pid = profileId.value.takeIf { it >= 0 } ?: return@launch
@@ -283,7 +327,7 @@ class DetailViewModel(
             }
             val current = show.value ?: return@launch
             if (!AdultCategoryClassifier.allows(pid, current.categoryId, profileDao, categoryDao)) return@launch
-            episodes.value.filter { it.seasonNumber == _season.value }.forEach { downloadEpisode(current, it, pid) }
+            seriesDao.episodesBySeriesOnce(current.id).forEach { downloadEpisode(current, it, pid) }
         }
     }
 
@@ -294,6 +338,16 @@ class DetailViewModel(
             if (!AdultCategoryClassifier.allows(pid, current.categoryId, profileDao, categoryDao)) return@launch
             downloadEpisode(current, episode, pid)
         }
+    }
+
+    /** Start the failed rows over — the button that showed the failure is the one that retries it. */
+    fun retryDownloads(rows: List<DownloadEntity>) {
+        rows.filter { it.status == DownloadStatus.FAILED }.forEach { downloadManager.retry(it) }
+    }
+
+    /** Cancel what is in flight, or remove what has already been saved. Both are one tap, both undoable. */
+    fun deleteDownloads(rows: List<DownloadEntity>) {
+        rows.forEach { downloadManager.delete(it) }
     }
 
     private suspend fun downloadEpisode(show: SeriesEntity, episode: EpisodeEntity, profileId: Long) {

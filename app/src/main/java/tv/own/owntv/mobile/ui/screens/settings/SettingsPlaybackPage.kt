@@ -24,6 +24,9 @@ import tv.own.owntv.core.player.SurroundMode
 import tv.own.owntv.core.settings.LiveBuffer
 import tv.own.owntv.core.settings.LiveLatency
 import tv.own.owntv.core.settings.SeekSteps
+import tv.own.owntv.core.live.DEFAULT_MULTIVIEW_TILES
+import tv.own.owntv.core.live.MAX_MULTIVIEW_TILES
+import tv.own.owntv.core.live.MIN_MULTIVIEW_TILES
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.settings.SubtitleStyle
 import tv.own.owntv.mobile.R
@@ -36,7 +39,7 @@ import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 /** Which picker is open. One at a time, so one nullable holds them all. */
 private enum class PlaybackSheet {
     LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
-    RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER,
+    RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER, MULTIVIEW_TILES,
 
     /**
      * The per-playlist overrides, two levels each: pick the playlist, then pick its value. The second
@@ -122,6 +125,8 @@ fun SettingsVideoPlayerPage(
     val externalMovies = s.externalPlayerMovies.pref(false)
     val externalSeries = s.externalPlayerSeries.pref(false)
     val externalOn = externalLive || externalMovies || externalSeries
+    val multiviewEnabled = s.multiviewEnabled.pref(false)
+    val multiviewTiles = s.multiviewTiles.pref(DEFAULT_MULTIVIEW_TILES)
 
     SettingsPage(modifier) {
         settingsSection(R.string.settings_vp_section_engine)
@@ -189,6 +194,26 @@ fun SettingsVideoPlayerPage(
                     if (on && !afrSafe) afrWarning = true else vm.edit { setAutoFrameRate(on) }
                 },
             )
+
+            // Multiview. The phone had neither of these: the feature defaults to off and there was
+            // no way to turn it on, so the grid was unreachable however well it worked.
+            SettingRow(
+                title = stringResource(R.string.settings_multiview),
+                subtitle = stringResource(R.string.settings_multiview_description),
+                checked = multiviewEnabled,
+                onCheckedChange = { on -> vm.edit { setMultiviewEnabled(on) } },
+            )
+
+            if (multiviewEnabled) {
+                SettingRow(
+                    title = stringResource(R.string.settings_multiview_tiles_max),
+                    subtitle = stringResource(R.string.settings_multiview_description),
+                    // "Max 4", not "4": the number is a ceiling. The grid opens with two and grows
+                    // only when the user asks, so a bare number would read as "every grid is this big".
+                    value = stringResource(R.string.settings_multiview_tiles_max_value, multiviewTiles),
+                    onClick = { sheet = PlaybackSheet.MULTIVIEW_TILES },
+                )
+            }
 
             SettingRow(
                 title = stringResource(R.string.settings_external_player),
@@ -427,6 +452,15 @@ fun SettingsVideoPlayerPage(
             choices = EnginePreference.entries.map { SettingsChoice(it, engineLabel(it)) },
             selected = liveEngine,
             onSelect = { picked -> vm.edit { setLiveEnginePreference(picked) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.MULTIVIEW_TILES -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_multiview_tiles_max),
+            choices = (MIN_MULTIVIEW_TILES..MAX_MULTIVIEW_TILES).map {
+                SettingsChoice(it, stringResource(R.string.settings_multiview_tiles_max_value, it))
+            },
+            selected = multiviewTiles,
+            onSelect = { picked -> vm.edit { setMultiviewTiles(picked) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.VOD_ENGINE -> SettingsChoiceSheet(

@@ -30,6 +30,35 @@ import tv.own.owntv.player.PlayerDiagnostics
 val playerModule = module {
     // Tails own-process logcat for MediaCodec/AudioTrack errors the engine can't expose.
     single { PlayerDiagnostics() }
+    // Multiview's engines, one per tile. Live playback here is mpv, which is a single fullscreen
+    // engine by design; four pictures at once is what the ExoPlayer live engine exists for, and the
+    // pool is the only thing that ever builds more than one of it.
+    single {
+        tv.own.owntv.player.LiveEnginePool {
+            tv.own.owntv.player.LivePreviewEngine(
+                context = androidContext(),
+                streamingHttp = get(),
+                diagnostics = get(),
+                settings = get(),
+                connectivity = get(),
+                playbackPrefs = get(),
+            )
+        }
+    }
+    // L2 - live's own ExoPlayer engine, the second engine the phone's HUD can now swap to. It is
+    // DELIBERATELY not borrowed from the pool above: leaving Multiview calls releaseAll(), which
+    // would take the channel the user is watching down with the tiles. One instance, session-long,
+    // the same arrangement the television has.
+    single {
+        tv.own.owntv.player.LivePreviewEngine(
+            context = androidContext(),
+            streamingHttp = get(),
+            diagnostics = get(),
+            settings = get(),
+            connectivity = get(),
+            playbackPrefs = get(),
+        )
+    }
     // Shared between the activity (which enters PiP) and the player screen (which knows whether the
     // picture is on screen at all).
     single { PipController() }

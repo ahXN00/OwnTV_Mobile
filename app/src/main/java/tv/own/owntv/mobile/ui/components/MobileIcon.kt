@@ -126,6 +126,15 @@ object MobileIcons {
     val Add: ImageVector by lazy {
         glyph() { line(12f, 5f, 12f, 19f); line(5f, 12f, 19f, 12f) }
     }
+    /** Four tiles — Multiview, and the same idea as the television's LIST_GRID mark. */
+    val GridView: ImageVector by lazy {
+        glyph() {
+            box(4f, 4f, 11f, 11f, 1.5f)
+            box(13f, 4f, 20f, 11f, 1.5f)
+            box(4f, 13f, 11f, 20f, 1.5f)
+            box(13f, 13f, 20f, 20f, 1.5f)
+        }
+    }
     val Check: ImageVector by lazy {
         glyph() { line(4f, 13f, 9.5f, 18.5f, 20f, 6f) }
     }
@@ -184,6 +193,55 @@ object MobileIcons {
             line(12f, 7f, 12f, 12f, 16f, 14f)
         }
     }
+    /**
+     * Catch-up: a television with a replay loop inside it, and a single antenna.
+     *
+     * Drawn to match the television app's `OwnTVIcon.CATCHUP` (H3). It used to be [History] here and
+     * a screen-with-a-loop there — the same function wearing two faces, which is one of the four
+     * mismatches Feature H exists to remove. One antenna rather than a V: it says "television" for
+     * the cost of a single line and stays clear of the loop's arrowhead.
+     */
+    val Catchup: ImageVector by lazy {
+        glyph() {
+            line(2.6f, 6.8f, 21.4f, 6.8f, 21.4f, 19.8f, 2.6f, 19.8f, 2.6f, 6.8f)
+            line(12.6f, 6.8f, 16.2f, 3.2f)
+            arc(12f, 13.4f, 4.3f, -30f, 285f)
+        }
+    }
+
+    /**
+     * Over-ear headphones — a headband arc and two earcups.
+     *
+     * Drawn to match the television's `OwnTVIcon.HEADPHONES` (H3). It was a [MusicNote] here, which
+     * says "audio" but not "sound only, no picture", and the television has never used one.
+     */
+    val Headphones: ImageVector by lazy {
+        glyph() {
+            arc(12f, 13f, 8f, 180f, 180f)
+            line(4f, 13f, 4f, 19f)
+            dot(4f, 16.5f, 2.2f)
+            line(20f, 13f, 20f, 19f)
+            dot(20f, 16.5f, 2.2f)
+        }
+    }
+
+    /**
+     * Share: three nodes and the two lines between them.
+     *
+     * Drawn to match the television's `OwnTVIcon.SHARE` (H3). Reporting a stream was a [BugReport]
+     * here and this there; the television's is the reference, and "share this readout" is nearer to
+     * what the button does than "file a bug" is.
+     */
+    val Share: ImageVector by lazy {
+        glyph() {
+            ring(6f, 12f, 2.4f)
+            ring(18f, 6f, 2.4f)
+            ring(18f, 18f, 2.4f)
+            line(8f, 11f, 16f, 7f)
+            line(8f, 13f, 16f, 17f)
+        }
+    }
+
     val Schedule: ImageVector by lazy {
         glyph() { ring(12f, 12f, 9f); line(12f, 6.5f, 12f, 12f, 16.5f, 14f) }
     }

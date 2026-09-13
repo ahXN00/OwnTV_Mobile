@@ -86,6 +86,8 @@ fun SettingsPlaylistsPage(
     var editSource by remember { mutableStateOf<SourceEntity?>(null) }
     var refreshFor by remember { mutableStateOf<SourceEntity?>(null) }
     var confirmDelete by remember { mutableStateOf<SourceEntity?>(null) }
+    // Set while the "this will stop playback and take a while" confirmation is on screen.
+    var confirmRetest by remember { mutableStateOf<SourceEntity?>(null) }
 
     SettingsPage(modifier) {
         settingsNote(R.string.settings_sources_description)
@@ -127,8 +129,10 @@ fun SettingsPlaylistsPage(
                 title = stringResource(R.string.settings_sources_edit),
                 onClick = { editSource = source; menuSource = null },
             )
+            // "Info", not "Test": the expensive measurement now lives behind Re-test inside the
+            // sheet, and this answers the question it always really answered — is it alive?
             MobileListRow(
-                title = stringResource(R.string.settings_test),
+                title = stringResource(R.string.settings_sources_info),
                 onClick = { vm.testSource(source); menuSource = null },
             )
             if (syncing) {
@@ -252,23 +256,71 @@ fun SettingsPlaylistsPage(
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         Text(stringResource(R.string.setup_testing))
                     }
-                    is SettingsViewModel.SourceTestState.Done -> TestReport(state.result)
+                    // The measurement is slow by nature, so it says which stream it is on rather
+                    // than spinning silently for two minutes and looking like a hang.
+                    is SettingsViewModel.SourceTestState.Measuring -> Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
+                    ) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(
+                            stringResource(
+                                R.string.settings_sources_probe_running,
+                                state.progress.stream,
+                                state.progress.maxStreams,
+                            ),
+                        )
+                    }
+                    is SettingsViewModel.SourceTestState.Done -> TestReport(state.result, state.limit)
+                }
+                // While measuring the only honest action is one that abandons it; afterwards, the
+                // one that repeats it.
+                if (state is SettingsViewModel.SourceTestState.Measuring) {
+                    TextButton(onClick = vm::skipConnectionMeasurement) {
+                        Text(stringResource(R.string.settings_sources_probe_skip))
+                    }
+                } else if (state is SettingsViewModel.SourceTestState.Done) {
+                    sources.firstOrNull { it.name == state.sourceName }?.let { src ->
+                        TextButton(onClick = { confirmRetest = src }) {
+                            Text(stringResource(R.string.settings_sources_retest))
+                        }
+                    }
                 }
             }
         }
+    }
+
+    // Measuring opens real streams, so the user is told plainly that playback stops and that it is
+    // slow, and gets to say no.
+    confirmRetest?.let { src ->
+        AlertDialog(
+            onDismissRequest = { confirmRetest = null },
+            title = { Text(stringResource(R.string.settings_sources_probe_title)) },
+            text = { Text(stringResource(R.string.settings_sources_probe_warning)) },
+            confirmButton = {
+                TextButton(onClick = { confirmRetest = null; vm.retestSource(src) }) {
+                    Text(stringResource(R.string.settings_sources_retest))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRetest = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
     }
 }
 
 /** The test's own verdict and its lines of detail — both sentences are core's, shared with the TV. */
 @Composable
-private fun TestReport(result: SourceTestResult) {
+private fun TestReport(result: SourceTestResult, limit: tv.own.owntv.core.live.ConnectionLimit?) {
     val res = LocalContext.current.resources
     Text(
         text = result.headline(res),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurface,
     )
-    result.detailLines(res).forEach { line ->
+    result.detailLines(res, limit).forEach { line ->
         Text(
             text = line,
             style = MaterialTheme.typography.bodyMedium,
