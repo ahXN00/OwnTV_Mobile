@@ -27,8 +27,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
@@ -63,6 +66,14 @@ fun MobileListRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
+    /**
+     * Whether this row is the chosen one in its list.
+     *
+     * A tick drawn in [trailing] says so to someone looking at it and to nobody else: the glyph is
+     * decorative, so a screen reader reads the title and stops. This puts the same fact in the
+     * semantics, where TalkBack announces it as "selected".
+     */
+    selected: Boolean = false,
 ) {
     val press = remember { MutableInteractionSource() }
     // The hairline that divides one row from the next, inset to where the title starts rather than
@@ -90,13 +101,19 @@ fun MobileListRow(
             .background(pressTint)
             .drawWithContent {
                 drawContent()
+                // The inset follows the title, so in Arabic it starts from the right edge — a
+                // hairline that always began on the left would run under the icon and stop short of
+                // the text it is meant to underline.
+                val inset = dividerInset.toPx()
+                val rtl = layoutDirection == LayoutDirection.Rtl
                 drawLine(
                     color = dividerColour,
-                    start = Offset(dividerInset.toPx(), 0f),
-                    end = Offset(size.width, 0f),
+                    start = Offset(if (rtl) 0f else inset, 0f),
+                    end = Offset(if (rtl) size.width - inset else size.width, 0f),
                     strokeWidth = 1f,
                 )
             }
+            .semantics { this.selected = selected }
             .glassClickable(press, onClick = onClick, onLongClick = onLongClick)
             .padding(
                 horizontal = MobileDimens.ListRowPaddingH,

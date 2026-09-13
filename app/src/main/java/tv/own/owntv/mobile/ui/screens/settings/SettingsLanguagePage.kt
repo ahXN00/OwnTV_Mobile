@@ -155,6 +155,7 @@ private fun LanguageRow(
         title = title,
         subtitle = subtitle,
         onClick = onClick,
+        selected = selected,
         trailing = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),

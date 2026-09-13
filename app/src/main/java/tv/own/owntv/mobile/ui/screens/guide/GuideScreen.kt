@@ -49,6 +49,7 @@ import tv.own.owntv.core.epg.displayLogoUrl
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileSlider
+import tv.own.owntv.mobile.ui.components.BrowseCategorySheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
@@ -105,6 +106,7 @@ fun GuideScreen(
     var optionsOpen by remember { mutableStateOf(false) }
     var sheetFor by remember { mutableStateOf<Pair<ChannelEntity, EpgProgrammeEntity>?>(null) }
     var menuFor by remember { mutableStateOf<ChannelEntity?>(null) }
+    var categoryMenuFor by remember { mutableStateOf<LiveCategory?>(null) }
 
     // A different category, day or search is a different list; the old scroll position means nothing.
     LaunchedEffect(selected, day, query, mode) { listState.scrollToItem(0) }
@@ -128,6 +130,11 @@ fun GuideScreen(
             labels = categories.map { it.label() },
             selectedIndex = categories.indexOfFirst { it.key == selected },
             onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
+            // All and Favorites are not folders: there is nothing to hide or move.
+            onLongPress = { index ->
+                categoryMenuFor = categories.getOrNull(index)?.takeIf { it.builtIn == null }
+            },
+            onLongPressLabel = stringResource(R.string.settings_customize_categories),
         )
         DayStrip(selected = day, onSelect = vm::selectDay)
 
@@ -219,6 +226,14 @@ fun GuideScreen(
             vm = vm,
             onOpenChannel = onOpenChannel,
             onDismiss = { sheetFor = null },
+        )
+    }
+    categoryMenuFor?.let { category ->
+        BrowseCategorySheet(
+            title = category.label(),
+            onHide = { vm.hideCategory(category.key) },
+            onMove = { kind -> vm.moveCategory(category.key, kind) },
+            onDismiss = { categoryMenuFor = null },
         )
     }
 }

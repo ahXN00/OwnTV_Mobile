@@ -45,6 +45,7 @@ import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
 import tv.own.owntv.mobile.ui.components.ChannelLogoImage
+import tv.own.owntv.mobile.ui.components.BrowseCategorySheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.TwoPane
@@ -111,6 +112,7 @@ fun LiveScreen(
 
     var menuFor by remember { mutableStateOf<ChannelEntity?>(null) }
     var categoryPicker by remember { mutableStateOf(false) }
+    var categoryMenuFor by remember { mutableStateOf<LiveCategory?>(null) }
     // Survives a rotation, so turning a tablet keeps the channel you were watching beside the list.
     var previewing by rememberSaveable { mutableStateOf<Long?>(null) }
     val twoPane = isExpandedWidth()
@@ -146,6 +148,11 @@ fun LiveScreen(
                 selectedIndex = categories.indexOfFirst { it.key == selected },
                 onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
                 modifier = Modifier.padding(end = MobileDimens.TouchTarget),
+                // All, Favorites, History and Catch-up are not folders: there is nothing to hide or move.
+                onLongPress = { index ->
+                    categoryMenuFor = categories.getOrNull(index)?.takeIf { it.builtIn == null }
+                },
+                onLongPressLabel = stringResource(R.string.settings_customize_categories),
             )
             IconButton(
                 onClick = { categoryPicker = true },
@@ -242,6 +249,15 @@ fun LiveScreen(
             vm = vm,
             onOpenCatchup = { onOpenChannel(channel.id, true) },
             onDismiss = { menuFor = null },
+        )
+    }
+
+    categoryMenuFor?.let { category ->
+        BrowseCategorySheet(
+            title = category.label(),
+            onHide = { vm.hideCategory(category.key) },
+            onMove = { kind -> vm.moveCategory(category.key, kind) },
+            onDismiss = { categoryMenuFor = null },
         )
     }
 }

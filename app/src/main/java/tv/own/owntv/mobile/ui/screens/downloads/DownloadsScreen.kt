@@ -493,6 +493,7 @@ private fun DownloadOptionsSheet(
                 // volume label on its own ("sdcard1") does not say where to go and look.
                 subtitle = path,
                 subtitleMaxLines = 2,
+                selected = if (current.isBlank()) volume == volumes.firstOrNull() else current == path,
                 leading = {
                     Icon(
                         imageVector = if (volume.kind == StorageAccess.RootKind.REMOVABLE) {
@@ -529,6 +530,7 @@ private fun DownloadOptionsSheet(
                 title = stringResource(R.string.content_storage_chosen_folder),
                 subtitle = chosenFolder,
                 subtitleMaxLines = 2,
+                selected = !folderLost,
                 leading = {
                     Icon(
                         imageVector = MobileIcons.Folder,

@@ -198,6 +198,7 @@ fun CustomizeCategoriesPane(
                 },
                 onLongClick = { menuFor = row },
                 leading = spanTick(row.key in selectedKeys),
+                selected = row.key in selectedKeys,
             )
         }
     }

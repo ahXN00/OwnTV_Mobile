@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -590,7 +591,7 @@ private fun TrendingActionButton(
         if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = Modifier
-            .height(MobileDimens.TouchTarget)
+            .defaultMinSize(minHeight = MobileDimens.TouchTarget)
             .clip(RoundedCornerShape(9.dp))
             .background(container)
             .clickable(onClick = onClick)

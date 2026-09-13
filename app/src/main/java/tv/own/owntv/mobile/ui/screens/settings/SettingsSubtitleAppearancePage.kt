@@ -12,6 +12,7 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.settings.SubtitleStyle
 import tv.own.owntv.core.theme.parseAccentHex
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.ColorPickerSheet
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -103,6 +104,9 @@ fun SettingsSubtitleAppearancePage(
         }
     }
 
+    // Opened from the page, not from inside the colour sheet, so the two never stack.
+    var picker by remember { mutableStateOf(false) }
+
     val dismiss = { sheet = null }
     when (sheet) {
         // One size for both engines: a phone has one screen, and the TV app's split exists because
@@ -120,6 +124,7 @@ fun SettingsSubtitleAppearancePage(
         SubtitleSheet.COLOR -> SubtitleColorSheet(
             color = color,
             onColor = { hex -> vm.edit { setSubtitleColor(hex) } },
+            onOpenPicker = { sheet = null; picker = true },
             onDismiss = dismiss,
         )
         SubtitleSheet.POSITION -> SettingsChoiceSheet(
@@ -148,19 +153,30 @@ fun SettingsSubtitleAppearancePage(
         )
         null -> Unit
     }
+
+    if (picker) {
+        ColorPickerSheet(
+            title = stringResource(R.string.settings_subtitle_color),
+            presets = SUB_COLOR_PRESETS.map { (_, hex) -> hex },
+            initial = color,
+            onPick = { hex -> vm.edit { setSubtitleColor(hex) } },
+            onDismiss = { picker = false },
+        )
+    }
 }
 
 /**
- * The text colour: the presets as a list, and any other colour as six hex digits.
+ * The text colour: the presets as a list, then the colour picker, then six hex digits.
  *
- * The hex field is what makes this its own sheet rather than another picker — a preset list cannot
- * express "the exact grey my other player uses", and an unchecked field would store a value no
- * renderer can read. Nothing is written until the entry parses, and a bad one says so in place.
+ * Three ways in, because a preset list cannot express "the exact grey my other player uses" and
+ * typing a code is a poor way to find a colour you have not chosen yet. Nothing is written until the
+ * entry parses, and a bad one says so in place.
  */
 @Composable
 private fun SubtitleColorSheet(
     color: String,
     onColor: (String) -> Unit,
+    onOpenPicker: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var hexInput by remember { mutableStateOf(color.removePrefix("#")) }
@@ -174,6 +190,7 @@ private fun SubtitleColorSheet(
             title = stringResource(R.string.settings_subtitle_default),
             subtitle = stringResource(R.string.settings_subtitle_color_default_description),
             trailing = selectedTick(!SubtitleStyle.hasColor(color)),
+            selected = !SubtitleStyle.hasColor(color),
             onClick = {
                 hexInput = ""
                 hexError = false
@@ -184,6 +201,7 @@ private fun SubtitleColorSheet(
             MobileListRow(
                 title = stringResource(labelRes),
                 trailing = selectedTick(color.equals(hex, ignoreCase = true)),
+                selected = color.equals(hex, ignoreCase = true),
                 onClick = {
                     hexInput = hex.removePrefix("#")
                     hexError = false
@@ -191,6 +209,10 @@ private fun SubtitleColorSheet(
                 },
             )
         }
+        MobileListRow(
+            title = stringResource(R.string.settings_color_picker),
+            onClick = onOpenPicker,
+        )
         MobileTextField(
             value = hexInput,
             onValueChange = { typed -> hexInput = typed.take(6); hexError = false },

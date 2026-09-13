@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import tv.own.owntv.core.theme.GlassSurface
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -40,6 +42,10 @@ fun FilterChipRow(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** What a long press on a chip offers, where there is anything to offer — hide and move, on a
+     *  category strip. A strip with nothing behind a chip leaves this null. */
+    onLongPress: ((Int) -> Unit)? = null,
+    onLongPressLabel: String? = null,
 ) {
     Row(
         modifier = modifier
@@ -66,7 +72,15 @@ fun FilterChipRow(
                         selected = chosen,
                     )
                     .clip(ChipShape)
-                    .glassClickable(press, onClick = { onSelect(index) })
+                    // The chosen chip is told apart by its accent alone, which says nothing to a
+                    // screen reader. TalkBack announces this one as "selected".
+                    .semantics { selected = chosen }
+                    .glassClickable(
+                        press,
+                        onClick = { onSelect(index) },
+                        onLongClick = onLongPress?.let { { it(index) } },
+                        onLongClickLabel = onLongPressLabel,
+                    )
                     .padding(horizontal = MobileDimens.ChipPaddingH),
                 contentAlignment = Alignment.Center,
             ) {

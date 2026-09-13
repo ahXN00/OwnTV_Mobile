@@ -4,8 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -230,7 +230,7 @@ private fun GlassPreview() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall)
-            .height(MobileDimens.TouchTarget * 2)
+            .defaultMinSize(minHeight = MobileDimens.TouchTarget * 2)
             .glassSurface(GlassSurface.PANELS, SquircleShape(MobileDimens.SheetCorner)),
     ) {
         Text(

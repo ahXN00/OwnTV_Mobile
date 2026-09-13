@@ -11,6 +11,44 @@ The first build of the mobile app. There is no user-facing app yet: this release
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
 release automation.
 
+### 🎨 A real colour picker, everywhere a colour is chosen
+
+Every colour setting offered a short list of named colours and a box for a six-character code. That is
+fine if you already know the code and useless if you do not — and the selection highlight did not even
+have the box, so it was eight fixed colours or nothing.
+
+All three colour settings — **the accent colour**, **the selection highlight** and **the subtitle text
+colour** — now open the same picker the television has: a rainbow strip, a saturation-and-brightness
+square, a live preview of what you have, and the hex code, which fills itself in as you drag. The
+television works its picker with a remote, so its bar and square are enter-to-edit controls; here they
+are dragged directly.
+
+The picker sits inside the setting it belongs to, under that setting's presets, so Accent and Selection
+highlight are reached the same way. The Accent row also now reports the colour actually in use — a
+custom colour overrides the preset, and the row used to keep naming the preset regardless.
+
+### 🏷️ Hide or move a category without leaving the screen
+
+Long-press a category on **Live TV**, in the **Library** or in the **Guide** for Hide and for Move — to
+the top, up, down, or to the bottom. Reordering follows the same menu Settings → Customize uses rather
+than introducing a second way to do it.
+
+Both routes write the same thing, so a change made here shows up in Settings → Customize and the other
+way round. Hiding the category you are currently looking at returns the list to All. The television
+gained this from community pull request #131 → #146; underneath, both apps now order their categories
+through one shared implementation instead of two that had to agree.
+
+### ♿ The app says what it is doing, not just shows it
+
+- **A screen reader now announces which row or chip is chosen.** A tick and an accent colour say
+  "selected" to an eye and to nothing else. Thirteen places were affected — the language list, profiles,
+  storage folders, the category picker, every choice sheet, the Customize panes and the subtitle
+  colours.
+- **The line between list rows starts from the right in Arabic.** It was always drawn from the left, so
+  in a right-to-left layout it ran under the icon and stopped short of the text it underlines.
+- **Three controls no longer clip their text at a large font setting** — the glass preview, the player's
+  speed and engine buttons, and the buttons on the Home hero. They grow instead.
+
 ### ⏺️ Record Live TV
 
 Live TV can be recorded, and the recordings live in **Downloads → Live TV**, beside Movies and Series.

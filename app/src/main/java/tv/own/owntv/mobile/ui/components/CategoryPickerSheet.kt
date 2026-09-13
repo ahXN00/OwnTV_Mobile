@@ -52,6 +52,7 @@ fun CategoryPickerSheet(
             itemsIndexed(matches, key = { _, (index, _) -> index }) { _, (index, label) ->
                 MobileListRow(
                     title = label,
+                    selected = index == selectedIndex,
                     trailing = if (index == selectedIndex) {
                         { Icon(MobileIcons.Check, contentDescription = null) }
                     } else {

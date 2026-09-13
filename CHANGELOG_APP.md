@@ -16,6 +16,9 @@
 
 ### New features
 
+- **🎨 A real colour picker for the accent, the selection highlight and subtitle text**
+- **🏷️ Long-press a category to hide or move it, from Live TV, the Library or the Guide** (#131, thanks @pt5pnzghm6-sys0)
+- **♿ A screen reader now announces which row or chip is selected**
 - **⏺️ Record Live TV — from the guide, the channel list or while you are watching**
 - **🔁 Record every showing of a programme on a channel**
 - **⏪ Save a catch-up programme from your provider's archive**

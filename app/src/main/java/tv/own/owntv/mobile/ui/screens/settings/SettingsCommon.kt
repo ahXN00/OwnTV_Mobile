@@ -255,6 +255,10 @@ data class SettingsChoice<T>(val value: T, val label: String, val description: S
  * [description] is the line the TV app's dialogs carry under their title, for the few pickers whose
  * consequence is not obvious from the options — the playlist selector, whose choice applies to every
  * screen and is remembered.
+ *
+ * [footer] is for the one setting whose answer is not always in the list: the accent, where a colour
+ * picker sits under the presets. It belongs inside this sheet rather than on the page, because it
+ * answers the same question the presets do.
  */
 @Composable
 fun <T> SettingsChoiceSheet(
@@ -264,6 +268,7 @@ fun <T> SettingsChoiceSheet(
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
     description: String? = null,
+    footer: (@Composable () -> Unit)? = null,
 ) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = title) {
         if (description != null) {
@@ -283,6 +288,7 @@ fun <T> SettingsChoiceSheet(
                 title = choice.label,
                 subtitle = choice.description,
                 onClick = { onSelect(choice.value); onDismiss() },
+                selected = choice.value == selected,
                 trailing = if (choice.value == selected) {
                     {
                         Icon(
@@ -297,5 +303,6 @@ fun <T> SettingsChoiceSheet(
                 },
             )
         }
+        footer?.invoke()
     }
 }

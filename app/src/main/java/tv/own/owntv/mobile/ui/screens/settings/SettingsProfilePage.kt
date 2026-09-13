@@ -80,6 +80,7 @@ fun SettingsProfilePage(
                         }
                     },
                     onLongClick = { editing = profile },
+                    selected = profile.id == activeId,
                     trailing = if (profile.id == activeId) {
                         {
                             Icon(

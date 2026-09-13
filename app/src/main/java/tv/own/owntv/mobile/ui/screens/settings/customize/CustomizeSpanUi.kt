@@ -240,6 +240,7 @@ internal fun SortSheet(
                 title = stringResource(labelRes),
                 onClick = { onSelect(mode); onDismiss() },
                 leading = spanTick(mode == current),
+                selected = mode == current,
             )
         }
     }
@@ -261,6 +262,7 @@ internal fun FilterSheet(
                 title = stringResource(filter.labelRes()),
                 onClick = { onSelect(filter); onDismiss() },
                 leading = spanTick(filter == current),
+                selected = filter == current,
             )
         }
     }
@@ -285,6 +287,7 @@ internal fun NewCategoryBehaviorSheet(
                 title = stringResource(labelRes),
                 onClick = { onSelect(hide); onDismiss() },
                 leading = spanTick(hide == hideNew),
+                selected = hide == hideNew,
             )
         }
     }

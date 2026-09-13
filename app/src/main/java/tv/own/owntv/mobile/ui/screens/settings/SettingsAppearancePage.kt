@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +34,9 @@ import tv.own.owntv.core.theme.ThemeMode
 import tv.own.owntv.core.theme.UiZoom
 import tv.own.owntv.core.theme.roles
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.ColorPickerSheet
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
+import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.labelRes
@@ -58,8 +59,12 @@ fun SettingsAppearancePage(
     val zoom = vm.settings.uiZoomPercent.pref(UiZoom.DEFAULT)
     val animations = vm.settings.animationLevel.pref(AnimationLevel.FULL)
     val highlightWidth = vm.settings.focusHighlightWidth.pref(2)
+    val customAccent = vm.settings.customAccent.pref("")
 
     var sheet by remember { mutableStateOf<AppearanceSheet?>(null) }
+    // The colour picker is opened from the page rather than from inside another sheet, so the
+    // two never stack: the highlight sheet closes and hands over.
+    var picker by remember { mutableStateOf<ColorTarget?>(null) }
     // The zoom the low-memory warning is holding, and whether its risk has already been accepted.
     var pendingLowZoom by remember { mutableStateOf<Int?>(null) }
     var lowZoomAccepted by remember { mutableStateOf(zoom < UiZoom.LOW_RAM_WARN) }
@@ -79,13 +84,10 @@ fun SettingsAppearancePage(
             SettingRow(
                 title = stringResource(R.string.settings_accent),
                 subtitle = stringResource(R.string.settings_accent_description),
-                value = stringResource(accent.labelRes),
+                // A custom colour wins over the preset in the theme, so it is what the row reports.
+                value = customAccent.ifBlank { stringResource(accent.labelRes) },
                 onClick = { sheet = AppearanceSheet.ACCENT },
             )
-
-            // On the accent row's own plate: it sets the same thing the row above it does, and on a
-            // plate of its own it read as a field belonging to nothing.
-            AccentHexField(vm)
         }
         settingsGroup(key = "highlight") {
             SettingRow(
@@ -155,15 +157,54 @@ fun SettingsAppearancePage(
         )
         AppearanceSheet.ACCENT -> SettingsChoiceSheet(
             title = stringResource(R.string.settings_accent),
-            choices = AccentColor.entries.map { SettingsChoice(it, stringResource(it.labelRes)) },
-            selected = accent,
+            choices = AccentColor.entries.map { SettingsChoice<AccentColor?>(it, stringResource(it.labelRes)) },
+            // A custom colour overrides the preset in the theme, so while one is set no preset is
+            // the answer and none of them is ticked.
+            selected = accent.takeIf { customAccent.isBlank() },
             // A preset and a custom hex are two ways to answer the same question, so choosing a
             // preset clears the hex — otherwise the hex would keep winning and the taps do nothing.
-            onSelect = { color -> vm.edit { setCustomAccent(""); setAccent(color) } },
+            onSelect = { color -> color?.let { picked -> vm.edit { setCustomAccent(""); setAccent(picked) } } },
+            onDismiss = { sheet = null },
+            footer = {
+                MobileListRow(
+                    title = stringResource(R.string.settings_color_picker),
+                    subtitle = customAccent.ifBlank { null },
+                    selected = customAccent.isNotBlank(),
+                    onClick = { sheet = null; picker = ColorTarget.ACCENT },
+                )
+            },
+        )
+        AppearanceSheet.HIGHLIGHT -> HighlightSheet(
+            vm,
+            onOpenPicker = { sheet = null; picker = ColorTarget.HIGHLIGHT },
             onDismiss = { sheet = null },
         )
-        AppearanceSheet.HIGHLIGHT -> HighlightSheet(vm, onDismiss = { sheet = null })
         null -> Unit
+    }
+
+    picker?.let { target ->
+        val isDark = themeMode != ThemeMode.LIGHT
+        val accentHexes = AccentColor.entries.map { "#%06X".format(it.roles(isDark).primary and 0xFFFFFF) }
+        when (target) {
+            ColorTarget.ACCENT -> ColorPickerSheet(
+                title = stringResource(R.string.settings_accent),
+                presets = accentHexes,
+                initial = customAccent,
+                // A preset accent and a custom colour answer the same question, and the custom one
+                // wins in the theme — so picking here is what makes the choice stick.
+                onPick = { hex -> vm.edit { setCustomAccent(hex) } },
+                onDismiss = { picker = null },
+            )
+            ColorTarget.HIGHLIGHT -> ColorPickerSheet(
+                title = stringResource(R.string.settings_selection_highlight),
+                // Gold and white lead, because they are what people ask for when they want the
+                // cursor to shout; the accents follow.
+                presets = listOf("#F5B400", "#FFFFFF") + accentHexes,
+                initial = vm.settings.focusHighlight.pref(""),
+                onPick = { hex -> vm.edit { setFocusHighlight(hex) } },
+                onDismiss = { picker = null },
+            )
+        }
     }
 
     pendingLowZoom?.let { target ->
@@ -315,7 +356,7 @@ private fun AppearancePreview() {
 
 /** The ring's colour and thickness. Blank colour means "follow the accent", which is the default. */
 @Composable
-private fun HighlightSheet(vm: SettingsViewModel, onDismiss: () -> Unit) {
+private fun HighlightSheet(vm: SettingsViewModel, onOpenPicker: () -> Unit, onDismiss: () -> Unit) {
     val isDark = vm.settings.themeMode.pref(ThemeMode.DARK) != ThemeMode.LIGHT
     val current = vm.settings.focusHighlight.pref("")
     val width = vm.settings.focusHighlightWidth.pref(2)
@@ -344,44 +385,14 @@ private fun HighlightSheet(vm: SettingsViewModel, onDismiss: () -> Unit) {
                 modifier = Modifier,
             )
         }
+        // Any colour at all, for the ring that is not one of the eight above.
+        SettingRow(
+            title = stringResource(R.string.settings_color_picker),
+            value = current.ifBlank { stringResource(R.string.settings_subtitle_default) },
+            onClick = onOpenPicker,
+        )
     }
 }
 
-/**
- * A colour typed in rather than chosen: six hex digits, applied only once they are all there.
- *
- * It is validated as you type rather than on a button, because a half-typed colour is not an error
- * the user has made yet — the message only appears once six characters are in and wrong.
- */
-@Composable
-private fun AccentHexField(vm: SettingsViewModel) {
-    val stored = vm.settings.customAccent.pref("")
-    var text by remember(stored) { mutableStateOf(stored.removePrefix("#")) }
-    val complete = text.length == 6
-    val valid = complete && text.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
-    OutlinedTextField(
-        value = text,
-        onValueChange = { raw ->
-            text = raw.trimStart('#').take(6)
-            when {
-                text.isEmpty() -> vm.edit { setCustomAccent("") }
-                text.length == 6 && text.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' } ->
-                    vm.edit { setCustomAccent("#" + text.uppercase()) }
-            }
-        },
-        singleLine = true,
-        isError = complete && !valid,
-        label = { Text(stringResource(R.string.settings_hex_code)) },
-        prefix = { Text("#") },
-        // Only when there is something to say. A line under the field is a warning, and the field's
-        // own label already says what belongs in it.
-        supportingText = if (complete && !valid) {
-            { Text(stringResource(R.string.settings_hex_error)) }
-        } else {
-            null
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapSmall),
-    )
-}
+/** Which colour the picker is being opened for. */
+private enum class ColorTarget { ACCENT, HIGHLIGHT }

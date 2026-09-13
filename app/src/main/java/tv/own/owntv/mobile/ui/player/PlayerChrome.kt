@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -258,7 +259,7 @@ private fun TextControl(
     val tint = if (active) LocalAccentOnVideo.current else if (held) Color.White else OnVideo
     Row(
         Modifier
-            .height(48.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .clip(ButtonShape)
             .holdToReveal(label, onExpanded = { held = it }, onClick = onClick)
             .padding(horizontal = 12.dp),

@@ -57,6 +57,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.CategoryPickerSheet
+import tv.own.owntv.mobile.ui.components.BrowseCategorySheet
 import tv.own.owntv.mobile.ui.components.FilterChipRow
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -131,6 +132,7 @@ fun LibraryScreen(
     var menuFor by remember { mutableStateOf<VodItem?>(null) }
     var sheetOpen by remember { mutableStateOf(false) }
     var categoryPicker by remember { mutableStateOf(false) }
+    var categoryMenuFor by remember { mutableStateOf<VodCategory?>(null) }
 
     val twoPane = isExpandedWidth()
     // Beside the grid, something is always open: the pane is a preview of the grid, so it falls back
@@ -182,6 +184,11 @@ fun LibraryScreen(
                 selectedIndex = categories.indexOfFirst { it.key == selected },
                 onSelect = { index -> categories.getOrNull(index)?.let { vm.select(it.key) } },
                 modifier = Modifier.padding(end = MobileDimens.TouchTarget * 2),
+                // All, Favorites and History are not folders: there is nothing to hide or move.
+                onLongPress = { index ->
+                    categoryMenuFor = categories.getOrNull(index)?.takeIf { it.builtIn == null }
+                },
+                onLongPressLabel = stringResource(R.string.settings_customize_categories),
             )
             Row(Modifier.align(Alignment.CenterEnd)) {
                 IconButton(onClick = { categoryPicker = true }) {
@@ -298,6 +305,15 @@ fun LibraryScreen(
             originName = categories.firstOrNull { it.key == selected }?.label(tab).orEmpty(),
             vm = vm,
             onDismiss = { menuFor = null },
+        )
+    }
+
+    categoryMenuFor?.let { category ->
+        BrowseCategorySheet(
+            title = category.label(tab),
+            onHide = { vm.hideCategory(category.key) },
+            onMove = { kind -> vm.moveCategory(category.key, kind) },
+            onDismiss = { categoryMenuFor = null },
         )
     }
 }

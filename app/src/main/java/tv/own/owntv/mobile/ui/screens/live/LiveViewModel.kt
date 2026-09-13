@@ -25,7 +25,9 @@ import tv.own.owntv.core.content.AdultCategoryClassifier
 import tv.own.owntv.core.customize.CustomizationStore
 import tv.own.owntv.core.customize.CustomizeKeys
 import tv.own.owntv.core.customize.SectionCustomizations
-import tv.own.owntv.core.customize.applyCustomizationsWithCustoms
+import tv.own.owntv.core.customize.CategoryRailEditor
+import tv.own.owntv.core.customize.MoveKind
+import tv.own.owntv.core.customize.railCategories
 import tv.own.owntv.core.database.dao.CategoryDao
 import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.ContentOrderDao
@@ -155,14 +157,9 @@ class LiveViewModel(
         ctx.flatMapLatest { channelDao.observeCatchupCount(it.liveSourceIds.ifEmpty { listOf(-1L) }) }.distinctUntilChanged(),
         ctx.flatMapLatest { profileDao.observeById(it.profileId) },
     ) { cats, cust, sort, catchupCount, profile ->
-        val kids = profile?.isKids == true
-        val visibleCats = if (kids) cats.filterNot { AdultCategoryClassifier.isAdult(it.name) } else cats
-        val visibleCustoms =
-            if (kids) cust.customCategories.filterNot { AdultCategoryClassifier.isAdult(it.name) }
-            else cust.customCategories
-        val folders = visibleCats.applyCustomizationsWithCustoms(
+        val folders = cats.railCategories(
             cust,
-            visibleCustoms,
+            kids = profile?.isKids == true,
             alphaRest = sort == SettingsRepository.SortMode.ALPHA,
         )
         buildList {
@@ -180,6 +177,37 @@ class LiveViewModel(
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Hide and reorder a category from the strip, through the same editor Settings → Customize uses. */
+    private val categoryEditor = CategoryRailEditor(customize, categoryDao, profileDao)
+
+    /** Hide the long-pressed category. It comes back from Settings → Customize. */
+    fun hideCategory(key: LiveKey) {
+        viewModelScope.launch {
+            val c = ctx.value
+            if (c.profileId < 0) return@launch
+            categoryEditor.hide(c.profileId, MediaType.LIVE, key)
+            // The strip is about to lose this chip; leaving it selected would show a folder that is
+            // no longer there.
+            if (selected.value == key) select(LiveKey.All)
+        }
+    }
+
+    /** Move the long-pressed category one step through the strip, and keep it there. */
+    fun moveCategory(key: LiveKey, kind: MoveKind) {
+        viewModelScope.launch {
+            val c = ctx.value
+            if (c.profileId < 0) return@launch
+            categoryEditor.move(
+                profileId = c.profileId,
+                sourceIds = c.liveSourceIds,
+                type = MediaType.LIVE,
+                alphaRest = sortMode.value == SettingsRepository.SortMode.ALPHA,
+                key = key,
+                kind = kind,
+            )
+        }
+    }
 
     private val _selected = MutableStateFlow<LiveKey>(LiveKey.All)
     val selected: StateFlow<LiveKey> = _selected
