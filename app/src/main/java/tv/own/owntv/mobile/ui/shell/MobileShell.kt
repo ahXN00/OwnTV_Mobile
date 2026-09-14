@@ -14,8 +14,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.model.SourceType
+import kotlinx.coroutines.delay
+import tv.own.owntv.core.update.UpdateManager
 import tv.own.owntv.mobile.ui.screens.settings.SettingsChoice
 import tv.own.owntv.mobile.ui.screens.settings.SettingsChoiceSheet
+import tv.own.owntv.mobile.ui.screens.settings.UpdateSheet
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -318,6 +321,40 @@ fun MobileShell(
                 Toast.LENGTH_LONG,
             ).show()
         }
+    }
+
+    // The startup update check, the television's setting and the television's five-second delay —
+    // long enough that the check never competes with the first screen for the network.
+    //
+    // Where the two apps differ: the television posts a corner toast for every outcome, because a
+    // remote has somewhere to point at it. Here nothing is shown unless there is genuinely an update
+    // — "checking…" and "you are up to date" are answers to a question nobody asked, and on a phone
+    // they would land on top of what the user opened the app to do. A failure is silent for the same
+    // reason; Settings → App → Check for updates says it out loud, on request.
+    val updateManager: UpdateManager = koinInject()
+    val updateCheckOnStart by settings.updateCheckOnStart.collectAsStateWithLifecycle(initialValue = false)
+    val updateState by updateManager.state.collectAsStateWithLifecycle()
+    var updateChecked by remember { mutableStateOf(false) }
+    var updateSheetOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(updateCheckOnStart) {
+        if (updateCheckOnStart && !updateChecked) {
+            updateChecked = true
+            delay(5_000)
+            updateManager.check()
+        }
+    }
+    LaunchedEffect(updateState) {
+        if (updateState is UpdateManager.State.Available) updateSheetOpen = true
+    }
+    // Not over the player, and not over setup: both own the whole screen for a reason.
+    if (updateSheetOpen && !fullscreen) {
+        UpdateSheet(
+            onDismiss = {
+                updateSheetOpen = false
+                // Back to Idle, or the next recomposition reopens the sheet on the same release.
+                updateManager.reset()
+            },
+        )
     }
 
     Scaffold(

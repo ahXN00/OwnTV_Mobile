@@ -54,10 +54,14 @@ import java.text.DateFormat
 import java.util.Date
 
 /**
- * Language, and what the app opens on.
+ * Language, what the app opens on, and the update check.
  *
- * There is no update check here and there never will be: a phone gets its updates from the store it
- * was installed from, and an app that installs its own APK needs a permission this one refuses.
+ * **This page once said there would never be an update check here**, on the grounds that a phone
+ * gets its updates from the store it came from. This app does not come from a store — it is
+ * sideloaded — so nothing else was ever going to tell anyone a new version existed. It is the
+ * television's updater exactly: core's `UpdateManager` and core's strings, in a sheet instead of a
+ * dialog. It needs `REQUEST_INSTALL_PACKAGES`, which the manifest now declares and explains.
+ *
  * About and the error log used to be here too; a page of facts and a log are not preferences, so
  * both are More pages now — see [AboutPage] and [SettingsErrorLogPage].
  */
@@ -72,9 +76,12 @@ fun SettingsAppPage(
     val mode = vm.startupMode.pref(StartupMode.HOME)
     val channel = vm.startupChannel.pref(null)
 
+    val updateOnStart = vm.settings.updateCheckOnStart.pref(true)
+
     val context = LocalContext.current
     var startupSheet by remember { mutableStateOf(false) }
     var channelSheet by remember { mutableStateOf(false) }
+    var updateSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     SettingsPage(modifier) {
@@ -97,8 +104,25 @@ fun SettingsAppPage(
                 },
                 onClick = { startupSheet = true },
             )
+
+            SettingRow(
+                title = stringResource(R.string.settings_check_updates),
+                subtitle = stringResource(R.string.settings_check_updates_description),
+                onClick = { updateSheet = true },
+            )
+
+            SettingRow(
+                title = stringResource(R.string.settings_update_startup),
+                subtitle = stringResource(R.string.settings_update_startup_description),
+                checked = updateOnStart,
+                onCheckedChange = { on -> vm.edit { setUpdateCheckOnStart(on) } },
+            )
         }
 
+    }
+
+    if (updateSheet) {
+        UpdateSheet(onDismiss = { updateSheet = false }, checkOnOpen = true)
     }
 
     if (startupSheet) {

@@ -25,6 +25,8 @@ plugins {
     // Kotlin is provided by AGP 9's built-in Kotlin support; this plugin pins the Compose compiler
     // to the same version the TV app and core use.
     alias(libs.plugins.compose.compiler)
+    // Consumes :baselineprofile's recording and packages it as baseline.prof.
+    alias(libs.plugins.baselineprofile)
 }
 
 android {
@@ -202,6 +204,14 @@ androidComponents {
     }
 }
 
+// A baseline profile is a list of code paths, not machine code, so one recording serves both ABI
+// flavors. `mergeIntoMain` writes it to `src/main/generated/baselineProfiles/` rather than the
+// recording flavor's own source set, so a profile recorded on an arm phone also ships in the
+// x86_64 APK — and so there is one file to review in a diff instead of two.
+baselineProfile {
+    mergeIntoMain = true
+}
+
 // --- hardcoded-literal gate ----------------------------------------------------------------
 //
 // The same check CI runs, moved onto the developer's own machine. CI is still the enforcing gate —
@@ -366,4 +376,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Records the profile this module then packages. Recording needs a real device, so this is
+    // never exercised by CI; see baselineprofile/BaselineProfileGenerator.kt.
+    baselineProfile(project(":baselineprofile"))
 }

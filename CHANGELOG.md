@@ -11,6 +11,31 @@ The first build of the mobile app. There is no user-facing app yet: this release
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
 release automation.
 
+### ⬆️ The app tells you when there is a new version
+
+This app is sideloaded, so until now nothing was ever going to tell anyone a new version existed —
+the Releases page only says so to whoever thinks to look at it. The television has had an in-app
+updater since long before this app existed, and this is that updater, unchanged: core's
+`UpdateManager` state machine, core's strings, core's release-notes rendering.
+
+- **Settings → App → Check for updates** looks now and says what it found.
+- **Check updates on startup** (on by default, and the same preference the television stores) checks
+  five seconds after the app opens.
+- An update offers **What's new** — the release body, which is this repository's `CHANGELOG_APP.md`
+  — then downloads and hands the APK to the system installer.
+
+**Where it differs from the television, deliberately.** The television posts a corner toast for
+every outcome, including "checking…" and "you are up to date". Here the startup check is silent
+unless it actually finds something: those are answers to a question nobody asked, and on a phone
+they would land on top of whatever the user opened the app to do. Ask on the Settings row and it
+answers every time, including its failures.
+
+**It needs `REQUEST_INSTALL_PACKAGES`**, which this app's manifest previously listed among
+permissions it would never declare — the reasoning being that Google Play scrutinises it on a media
+player. That reasoning still holds and Play is still out of scope; the permission is declared for
+the updater and nothing else, and the manifest says so. If this app ever goes to Play, the
+permission and these rows come out together.
+
 ### 🔎 Set how big everything is during setup, not after it
 
 A request on the television's tracker (#179) pointed out something true of both apps: the settings

@@ -5,11 +5,18 @@
     <!-- INTERNET, ACCESS_NETWORK_STATE, FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC and
          POST_NOTIFICATIONS merge in from :core, which does the networking and runs the sync and
          download workers. MODIFY_AUDIO_SETTINGS merges in from :player-core, which owns VolumeBoost.
-         Nothing else is declared here yet, and four of the TV app's permissions never will be:
-           - REQUEST_INSTALL_PACKAGES — no in-app updater in this app,
+         Three of the TV app's permissions are still deliberately absent:
            - WRITE_EPG_DATA — Watch Next is an Android TV surface,
            - MANAGE/READ/WRITE_EXTERNAL_STORAGE — a phone has a document picker; use SAF,
            - the leanback / optional-touchscreen uses-feature pair — this app is touch-first. -->
+
+    <!-- The in-app updater, the same one the television has: distribution is sideloaded, so the app
+         is the only thing that can tell you a new version exists. This was once listed above as a
+         permission this app would never declare, on the grounds that Google Play scrutinises it on a
+         media player. That is still true, and it is the owner's decision to carry it: Play is out of
+         scope, and an update nobody hears about is not an update. **If this app ever goes to Play,
+         this line and the update rows in Settings → App come out together.** -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- androidx.tvprovider declares both TV-provider permissions in its own manifest, and :core
          depends on it because LauncherIntegrationRepository (the facade core's sync worker calls)

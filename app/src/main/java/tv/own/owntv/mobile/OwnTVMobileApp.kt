@@ -70,6 +70,10 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
         // could open. Without this, core's sync worker tried to write to the TV content provider
         // after every catalog sync — using the two permissions this app's manifest removes.
         CoreBuildInfo.tvHome = false
+        // This app's own releases, not the television's. Left at its default, an update check here
+        // would offer OwnTV-v*.apk — a different applicationId, which the installer refuses after
+        // the whole download.
+        CoreBuildInfo.releaseRepo = "ahXN00/OwnTV_Mobile"
         // First thing after the context exists: a crash from here on leaves a trace on disk instead
         // of dying with the process, with the playback ring attached.
         CrashRecorder.diagnostics = { tv.own.owntv.player.LiveDiagnosticsLog.snapshot() }

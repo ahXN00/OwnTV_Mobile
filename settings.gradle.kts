@@ -47,3 +47,5 @@ providers.gradleProperty("owntv.corePath").orNull?.takeIf { it.isNotBlank() }?.l
 
 rootProject.name = "OwnTVMobile"
 include(":app")
+// Records the baseline profile against :app. Never built by CI — recording needs a real device.
+include(":baselineprofile")

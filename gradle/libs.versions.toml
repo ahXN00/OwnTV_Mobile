@@ -50,6 +50,11 @@ junit = "4.13.2"
 junitExt = "1.3.0"
 espressoCore = "3.7.0"
 
+# Macrobenchmark and the baseline-profile Gradle plugin. The plugin's version is the benchmark
+# library's — they ship together and must not be split. Same versions as the TV app.
+benchmark = "1.5.0-rc02"
+uiautomator = "2.4.0"
+
 # --- OwnTV core library (https://github.com/ahXN00/OwnTV_Core) ---
 # Both artifacts always ship on the same version; never split them. Bumping this is how the mobile
 # app takes a core change, and core's release workflow opens that bump as a PR automatically. For
@@ -130,7 +135,11 @@ zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmark" }

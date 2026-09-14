@@ -9,13 +9,15 @@
 > Issue numbers that are part of a title (e.g. `(#7)`) are fine; explanatory parentheticals are not.
 > Descriptions belong in CHANGELOG.md, never here.
 >
-> This app has no in-app update dialog, so unlike the TV app's copy this file feeds the release page
-> only. It is still kept separate, because a release page full of paragraphs is unreadable.
+> This file feeds both the release page and the in-app update sheet, which shows the release body as
+> its "What's new" — the same as the TV app's copy. It is kept separate from CHANGELOG.md because
+> neither a release page nor an update sheet full of paragraphs is readable.
 
 ## v0.1.0 — unreleased
 
 ### New features
 
+- **⬆️ The app tells you when there is a new version, and installs it**
 - **🔎 Set how big the interface and its text are during setup** (#179)
 - **🎨 A real colour picker for the accent, the selection highlight and subtitle text**
 - **🏷️ Long-press a category to hide or move it, from Live TV, the Library or the Guide** (#131, thanks @pt5pnzghm6-sys0)
