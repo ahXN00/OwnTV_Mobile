@@ -5,6 +5,23 @@ the core library — a version here lines up with neither. Release tags are plai
 release workflow reads this file to write the release notes, taking the section whose heading matches
 the tag.
 
+## v1.0.1 — unreleased
+
+### 🩹 Catch-up plays, and Settings search finds everything
+
+- **Stalker catch-up plays.** Picking a past programme on a portal playlist did nothing at all — no
+  picture, no message. The archive request carried a reference the provider could not resolve, so it
+  answered with an empty response and the app gave up in silence. Fixed in core (`core-1.0.43`) and
+  confirmed against a real portal. The lookup is faster too: finding the programme used to take up to
+  eight requests to the provider and got slower the later in the day it aired; four at the worst now.
+- **Catch-up says when it cannot play.** Where "Watch from start" or "Go back to…" cannot reach the
+  archive — a provider with no recording behind the channel, most often — the app now says so instead
+  of returning to the live picture without a word.
+- **Settings search finds every setting.** Twenty-two settings on the Video player page could not be
+  found by name — Multiview, both player engine pickers, the seek and rewind steps, the volume and
+  zoom defaults, the language preferences, the per-playlist overrides — and neither could custom DNS,
+  the nav bar customization, Keep watching or the start-on-a-channel option.
+
 ## v1.0.0 — 2026-09-14
 
 Initial release.

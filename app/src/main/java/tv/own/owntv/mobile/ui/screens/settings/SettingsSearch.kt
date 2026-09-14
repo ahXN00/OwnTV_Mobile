@@ -48,12 +48,40 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.APPEARANCE, null, R.string.settings_animations, R.string.settings_search_keywords_animation),
 
         SettingsRowEntry(SettingsGroup.LAYOUT, null, R.string.settings_browsing_lists, R.string.settings_search_keywords_browsing),
+        SettingsRowEntry(SettingsGroup.LAYOUT, null, R.string.settings_nav_bar_customization, R.string.settings_search_keywords_sidebar),
+        SettingsRowEntry(SettingsGroup.LAYOUT, SettingsLeaf.HOME, R.string.settings_live_keep_watching, R.string.settings_search_keywords_home),
 
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_quick_hdr, R.string.settings_search_keywords_hdr),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_surround_sound, R.string.settings_search_keywords_surround),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_quick_autoplay, R.string.settings_search_keywords_autoplay),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_latency, R.string.settings_search_keywords_latency),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_preroll, R.string.settings_search_keywords_live_preroll),
+        // The rest of the Video player page. Twenty-two rows had no entry at all, so searching for
+        // "multiview", "engine" or "zoom" by name found nothing on a page that holds all three. They
+        // share the generic video keyword set on purpose: each one's own title is the specific word a
+        // user types, and the keywords are only there to catch the synonyms it does not contain.
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_multiview, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_multiview_tiles_max, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_tv_player, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_movies_series_player, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_engine_per_playlist, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_player_choices, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_external_player, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_auto_frame_rate, R.string.settings_search_keywords_afr),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_default_zoom, R.string.settings_search_keywords_zoom),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_saved_zoom, R.string.settings_search_keywords_zoom),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_seek_step, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_rewind_step, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_tune_timeout, R.string.settings_search_keywords_latency),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_latency_per_playlist, R.string.settings_search_keywords_latency),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_preroll_per_playlist, R.string.settings_search_keywords_live_preroll),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_default_volume, R.string.settings_search_keywords_sound),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_saved_volume, R.string.settings_search_keywords_sound),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_audio_sync, R.string.settings_search_keywords_sound),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_saved_audio_delay, R.string.settings_search_keywords_sound),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_preferred_audio_language, R.string.settings_search_keywords_sound),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_preferred_subtitle_language, R.string.settings_search_keywords_subtitle_appearance),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_resume_playback, R.string.settings_search_keywords_autoplay),
         SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_background_playback, R.string.settings_search_keywords_background_playback),
         SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_pip, R.string.settings_search_keywords_pip),
         // The mobility layer. All seven reuse the three keyword sets they belong to rather than
@@ -69,12 +97,15 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.PLAYBACK, null, R.string.settings_gesture_sensitivity, R.string.settings_search_keywords_gestures),
 
         SettingsRowEntry(SettingsGroup.NETWORK, null, R.string.common_proxy, R.string.settings_search_keywords_proxy),
+        // Custom DNS sits next to the proxy on the same page and the television has always indexed it.
+        SettingsRowEntry(SettingsGroup.NETWORK, null, R.string.settings_dns, R.string.settings_search_keywords_dns),
 
         // No entries for the download folder, Wi-Fi-only, Clear history, Backup, Local sync, the
         // error log, About or Profiles: none of them is in Settings any more, and a result for
         // something that is not here is a lie about where it lives. The no-results state is left
         // exactly as it was — it must not gain a line explaining where anything went.
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_app_startup, R.string.settings_search_keywords_startup),
+        SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_startup_specific_channel, R.string.settings_search_keywords_startup),
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_check_updates, R.string.settings_search_keywords_updates),
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_update_startup, R.string.settings_search_keywords_update_auto),
         // Detailed logging sits in the video player's own diagnostics block, not on the App page —

@@ -13,6 +13,15 @@
 > its "What's new" — the same as the TV app's copy. It is kept separate from CHANGELOG.md because
 > neither a release page nor an update sheet full of paragraphs is readable.
 
+## v1.0.1 — unreleased
+
+### Fixes
+
+- **⏪ Catch-up plays on Stalker portal playlists**
+- **⏪ Catch-up loads faster**
+- **💬 Catch-up says when a provider has no recording, instead of doing nothing**
+- **🔎 Settings search finds every setting, including Multiview and the player engines**
+
 ## v1.0.0 — 2026-09-14
 
 - **Initial release**

@@ -47,6 +47,7 @@ import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.cast.CastHandoff
 import tv.own.owntv.mobile.cast.CastRequest
+import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PlaybackService
 import kotlinx.coroutines.Job
@@ -1246,7 +1247,12 @@ class LiveTuner(
             if (!dataSaver.allowsStreaming()) return@launch
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
             if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao)) return@launch
-            val url = archiveUrls.forProgramme(channel, programme) ?: return@launch
+            val url = archiveUrls.forProgramme(channel, programme) ?: run {
+                // Silence here is indistinguishable from a broken button: the tap did nothing, said
+                // nothing, and left the user to guess whether the app or the provider was at fault.
+                catchupUnavailable()
+                return@launch
+            }
             val source = withContext(Dispatchers.IO) { sourceDao.getById(channel.sourceId) }
             // isArchive: providers cut archive segments mid-GOP, and the engine needs to tolerate it.
             _replaying.value = true
@@ -1297,6 +1303,21 @@ class LiveTuner(
         val ch = _channel.value?.takeIf { it.catchup } ?: return
         _replaying.value = false
         timeshift.beginAt(ch, offsetSec)
+    }
+
+    /**
+     * Tell the user the archive could not be opened.
+     *
+     * Every catch-up path here returned quietly when no URL could be built, so a provider without a
+     * recording and a bug in the app looked identical from the sofa. The television says the same
+     * sentence through its own in-app toast; this is the phone's half of that.
+     */
+    private fun catchupUnavailable() {
+        android.widget.Toast.makeText(
+            context,
+            context.getString(R.string.content_epg_catchup_unavailable),
+            android.widget.Toast.LENGTH_SHORT,
+        ).show()
     }
 
     /** Offsets worth offering in the catch-up sheet, nearest first; empty without an archive. */
@@ -1373,7 +1394,12 @@ class LiveTuner(
         val (url, sourceUa) = withContext(Dispatchers.IO) {
             val source = sourceDao.getById(ch.sourceId) ?: return@withContext null
             archiveUrls.forTimeshift(ch, source, startMs, offsetSec, tz)?.let { it to source.userAgent }
-        } ?: return false
+        } ?: run {
+            // The timeshift hands back to the live edge from here, which on its own is indistinguishable
+            // from "Go back to…" doing nothing at all.
+            catchupUnavailable()
+            return false
+        }
         if (timeshift.offsetSec.value == null) return false // user jumped back to live meanwhile
         // The rewind plays out of the archive on mpv, so the live ExoPlayer engine stops first. This
         // is the one that cost two connections and made two sounds: drag the bar back ten minutes and
