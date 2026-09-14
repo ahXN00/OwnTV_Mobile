@@ -13,7 +13,11 @@
 > its "What's new" — the same as the TV app's copy. It is kept separate from CHANGELOG.md because
 > neither a release page nor an update sheet full of paragraphs is readable.
 
-## v0.1.0 — unreleased
+## v1.0.0 — 2026-09-14
+
+- **Initial release**
+
+## v0.1.0 — pre-release
 
 ### New features
 

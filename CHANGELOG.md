@@ -1,11 +1,15 @@
 # Changelog
 
 OwnTV Mobile is the phone and tablet app. It is versioned independently of the OwnTV TV app and of
-the core library — a `v0.x` here lines up with neither. Release tags are plain `v0.1.0`, and the
+the core library — a version here lines up with neither. Release tags are plain `v1.0.0`, and the
 release workflow reads this file to write the release notes, taking the section whose heading matches
 the tag.
 
-## v0.1.0 — unreleased
+## v1.0.0 — 2026-09-14
+
+Initial release.
+
+## v0.1.0 — pre-release
 
 The first build of the mobile app. There is no user-facing app yet: this release exists to prove the
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
