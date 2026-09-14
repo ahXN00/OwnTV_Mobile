@@ -9,7 +9,7 @@
 
 <p align="center">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Android%20phone%20%26%20tablet-3DDC84?logo=android&logoColor=white">
-  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white">
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&logoColor=white">
   <img alt="Compose" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white">
   <img alt="Player" src="https://img.shields.io/badge/engines-libmpv%20%2B%20ExoPlayer-FB8C00">
   <img alt="License" src="https://img.shields.io/badge/license-GPLv3-blue">
@@ -43,6 +43,9 @@ Serial Number, Device IDs and Signature)**.
 
 This is an **open-source** project — the code is original (not derived from any other app) and was
 **built with the help of AI**.
+
+> ### 📖 New here? **[User Guide →](extras/USER_GUIDE.md)**
+> Every feature, where to find it, and the gestures — on one page.
 
 > ### 📱 Already using OwnTV on your television?
 > **Local sync** carries your playlists, profiles, favourites and watch history across your own
@@ -123,13 +126,30 @@ Scan to join from your phone:
 
 ---
 
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="extras/screenshots/Home.png" alt="Home" width="240"><br><sub>Home — Now Trending</sub></td>
+    <td align="center"><img src="extras/screenshots/LiveTV.png" alt="Live TV" width="240"><br><sub>Live TV</sub></td>
+    <td align="center"><img src="extras/screenshots/Guide.png" alt="TV Guide" width="240"><br><sub>TV Guide</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="extras/screenshots/Player.png" alt="The player, full screen" width="740"><br>
+  <sub>The player — live channel, full screen</sub>
+</p>
+
+---
+
 ## 🧱 Tech stack
 
 | | |
 |---|---|
-| Language | Kotlin 2.4.10 |
+| Language | Kotlin 2.4.20 |
 | UI | Jetpack Compose, Material 3 |
-| Build | AGP 9.3.2, `minSdk` 26, `targetSdk` 36 |
+| Build | AGP 9.4.0, `minSdk` 26, `targetSdk` 36 |
 | Engine | [`tv.own.owntv:core`](https://github.com/ahXN00/OwnTV_Core) + `:player-core` — Room, sync, EPG, backup, libmpv and Media3 |
 | DI | Koin |
 | Networking / images | OkHttp · Coil |
@@ -152,8 +172,13 @@ tools/i18n/              the locale catalogue and the consumer-side string check
 extras/                  logos, credits artwork, and the TV parity checklist
 ```
 
-**Feature parity with the television** — every TV feature, where it landed here, and why the four
-dropped ones cannot exist on a phone: [`extras/PARITY_CHECKLIST.md`](extras/PARITY_CHECKLIST.md).
+## 📚 Docs (`extras/`)
+
+- 📖 **[User Guide](extras/USER_GUIDE.md)** — every feature and where to find it.
+- 📄 **[Master Product Brief](extras/OwnTV_Master_Product_Brief.md)** — the full as-built feature and
+  architecture reference.
+- ✅ **[Parity checklist](extras/PARITY_CHECKLIST.md)** — every television feature, where it landed
+  here, and why the dropped ones cannot exist on a phone.
 
 ---
 
@@ -229,9 +254,8 @@ If your language is already available, contribute interface translations across 
 <img src="extras/Weblate_logo.svg" alt="Weblate" width="200">
 
 OwnTV speaks 26 languages because people translate it on
-[**Hosted Weblate**](https://hosted.weblate.org/projects/owntv/), which hosts the project free of
-charge for libre software. Thank you to Weblate and to every translator who has given the app their
-language.
+[**Weblate**](https://weblate.org/), which hosts the project free of charge for libre software.
+Thank you to Weblate and to every translator who has given the app their language.
 
 <img src="extras/tmdb_logo.svg" alt="TMDB" width="200">
 

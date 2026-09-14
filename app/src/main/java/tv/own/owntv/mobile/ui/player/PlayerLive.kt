@@ -348,7 +348,7 @@ internal fun LiveStateBadge(offsetSec: Int?, modifier: Modifier = Modifier) {
         )
         Text(
             if (behind) {
-                stringResource(R.string.player_live_offset, formatTimestamp(offsetSec!! * 1000L))
+                stringResource(R.string.player_live_offset, formatTimestamp(offsetSec * 1000L))
             } else {
                 stringResource(R.string.player_live)
             },

@@ -424,6 +424,7 @@ class SettingsViewModel(
         if (list.isEmpty()) flowOf(emptyList()) else categoryDao.observe(list.map { it.id }, type)
     }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun customizations(type: MediaType): Flow<SectionCustomizations> = settings.activeProfileId
         .flatMapLatest { pid ->
             if (pid < 0) flowOf(SectionCustomizations()) else customize.observe(pid, type)

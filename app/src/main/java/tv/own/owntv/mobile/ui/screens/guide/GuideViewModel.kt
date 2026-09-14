@@ -103,7 +103,9 @@ sealed interface EpgMatchSummary {
  * hundreds of rows; a phone shows one day at a time and reads a row's programmes as that row comes
  * into view, so opening the Guide costs one query rather than the lineup.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
+// `debounce` is still a preview API. Both uses below are the same idea — a search box and a
+// settling guide should not re-query on every keystroke or every row that arrives.
+@OptIn(ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
 class GuideViewModel(
     private val channelDao: ChannelDao,
     private val categoryDao: CategoryDao,

@@ -125,7 +125,9 @@ fun SetupFlow(
             Step.DISCLAIMER -> step = Step.DISPLAY_SIZE
             Step.CHOICE -> step = Step.DISCLAIMER
             Step.CREATE_PROFILE -> step = Step.CHOICE
-            Step.ADD_CONTENT -> if (firstRun) step = Step.CREATE_PROFILE else onCancel?.invoke()
+            // Not `onCancel?.invoke()`: `firstRun` IS `onCancel == null`, so this branch is only
+            // reached when there is one, and the compiler knows it.
+            Step.ADD_CONTENT -> if (firstRun) step = Step.CREATE_PROFILE else onCancel()
             Step.EXISTING -> step = Step.ADD_CONTENT
             Step.FORM -> { vm.reset(); step = Step.ADD_CONTENT }
             Step.RESTORE -> { vm.reset(); step = backupOrigin }

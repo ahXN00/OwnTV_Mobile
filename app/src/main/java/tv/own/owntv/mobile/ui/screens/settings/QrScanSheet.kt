@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -25,7 +24,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -116,7 +115,6 @@ private fun CameraPreview(onScanned: (String, Int) -> Unit) {
  * One frame, decoded. The Y plane alone is exactly what a QR reader wants — it is a black-and-white
  * pattern, and skipping the colour planes is what keeps this cheap enough to run on every frame.
  */
-@OptIn(ExperimentalGetImage::class)
 private fun ImageProxy.decodeQr(): String? = runCatching {
     val buffer = planes[0].buffer
     val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }

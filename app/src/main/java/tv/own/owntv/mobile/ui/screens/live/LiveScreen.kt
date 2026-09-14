@@ -32,7 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import kotlinx.coroutines.flow.SharedFlow
@@ -371,10 +370,6 @@ private fun ChannelLogo(channel: ChannelEntity, number: Int?) {
         }
     }
 }
-
-/** Rows the pager has not loaded yet come back null; [peek] avoids asking it to load them. */
-private fun LazyPagingItems<ChannelEntity>.peek(index: Int): ChannelEntity? =
-    itemSnapshotList.getOrNull(index)
 
 private val LOGO_SIZE = 32.dp
 private val TRAILING_ICON = 18.dp

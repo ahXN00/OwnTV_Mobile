@@ -20,7 +20,6 @@ import tv.own.owntv.mobile.ui.screens.DevRoute
 import tv.own.owntv.mobile.ui.screens.MoreLeaf
 import tv.own.owntv.mobile.ui.screens.MoreLeafPage
 import tv.own.owntv.mobile.ui.screens.MoreScreen
-import tv.own.owntv.mobile.ui.screens.PlaceholderScreen
 import tv.own.owntv.mobile.ui.player.PlayerScreen
 import tv.own.owntv.mobile.ui.screens.downloads.DownloadsScreen
 import tv.own.owntv.mobile.ui.screens.guide.GuideScreen
@@ -44,9 +43,12 @@ import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
  * Every route in the app.
  *
  * A destination is a route rather than an expanding block so that the system back gesture is what
- * closes it, and so each keeps its own scroll state. `PlaceholderScreen` survives for the handful of
- * `MobileDestination` values that have no screen of their own — Movies and Series are the Library
- * under a fixed tab, for instance — and not because anything here is unbuilt.
+ * closes it, and so each keeps its own scroll state.
+ *
+ * The `when` below is exhaustive over [MobileDestination] and deliberately has no `else`: a
+ * destination added without a screen is then a compile error rather than a blank page at runtime.
+ * It carried one until Plan 4 finished, along with a `PlaceholderScreen` to fill it; every
+ * destination has had a real screen for some time, so both are gone.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -129,7 +131,6 @@ fun MobileNavHost(
                         onOpenRoute = { navController.navigate(it) },
                         onAddSource = { navController.navigate(SETUP_ROUTE) },
                     )
-                    else -> PlaceholderScreen(destination = destination, scrollToTop = scrollToTop)
                 }
                 }
             }

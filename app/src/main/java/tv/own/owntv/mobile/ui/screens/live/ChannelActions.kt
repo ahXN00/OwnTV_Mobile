@@ -331,6 +331,8 @@ private fun RenameChannelDialog(
  *
  * The Guide opens this same sheet, which is why it takes plain values rather than a view model.
  */
+// `debounce` is still a preview API; one lookup per word rather than one per letter is worth it.
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 @Composable
 internal fun EpgMatchSheet(
     channelName: String,
