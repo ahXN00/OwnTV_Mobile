@@ -15,7 +15,6 @@ import tv.own.owntv.core.i18n.AppLocale
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.sync.work.KoinWorkerFactory
 import tv.own.owntv.core.util.CrashRecorder
-import tv.own.owntv.mobile.dev.devModule
 import tv.own.owntv.mobile.di.downloadsModule
 import tv.own.owntv.mobile.di.guideModule
 import tv.own.owntv.mobile.di.homeModule
@@ -25,6 +24,7 @@ import tv.own.owntv.mobile.di.playerModule
 import tv.own.owntv.mobile.di.searchModule
 import tv.own.owntv.mobile.di.settingsModule
 import tv.own.owntv.mobile.di.shellModule
+import tv.own.owntv.mobile.ui.theme.subtitleFontResource
 
 /**
  * The mobile shell's Application. Deliberately a near-copy of the TV app's `OwnTVApp` for the parts
@@ -82,16 +82,19 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
         // before Koin so the very first source flow already reaches the player.
         tv.own.owntv.core.player.LiveSessionLimit.report =
             tv.own.owntv.player.LiveStreamQuirks::rememberSessionLimit
-        // SubtitleFontAssets.resourceOf is deliberately NOT set: four of the five faces are res/font
-        // files the TV app ships, and this app has no fonts of its own yet. The engine falls back to
-        // the built-in face until Plan 4 gives this shell its typography.
+        // Which font file the engine hands to libass, so a subtitle is drawn in the face the user
+        // chose. This used to be left unset, on the grounds that the app had no fonts of its own —
+        // true when the line was written, and untrue since Phase 1 shipped all six families as
+        // res/font files. The result was a Subtitle font setting that reached the app's own subtitle
+        // layer and nothing else.
+        tv.own.owntv.player.SubtitleFontAssets.resourceOf = { it.subtitleFontResource }
         startKoin {
             androidLogger(if (BuildConfig.DEBUG) Level.ERROR else Level.NONE)
             androidContext(this@OwnTVMobileApp)
             modules(
                 coreModule, databaseModule, dataModule, playerModule, shellModule,
                 liveModule, libraryModule, guideModule, homeModule, searchModule,
-                downloadsModule, settingsModule, devModule,
+                downloadsModule, settingsModule,
             )
         }
     }

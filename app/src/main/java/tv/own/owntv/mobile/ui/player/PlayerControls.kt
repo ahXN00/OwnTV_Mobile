@@ -44,6 +44,7 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.core.player.PlayerControl
 import tv.own.owntv.core.player.ControlCluster
 import tv.own.owntv.mobile.cast.CastRouteButton
+import tv.own.owntv.mobile.ui.components.rememberClockTick
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.theme.LocalMobileMotion
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -367,14 +368,16 @@ private fun LiveBar(
     programmes: List<LiveProgramme>,
     onScrubLive: (Int) -> Unit,
 ) {
+    val liveEdgeMs by rememberClockTick()
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (archiveWindowSec > 0) {
             MobileLiveTimeline(
                 offsetSec = offsetSec ?: 0,
                 programmes = programmes,
-                // Now. Read per composition, exactly as the television reads it — the bar's ticks are
-                // recomputed on the minute, not on the second.
-                liveEdgeMs = System.currentTimeMillis(),
+                // Now, and it keeps being now. Read once per composition this stood still, so a
+                // player left open drew its programme ticks against the moment the controls last
+                // appeared rather than against the live edge.
+                liveEdgeMs = liveEdgeMs,
                 accent = LocalAccentOnVideo.current,
                 onScrub = onScrubLive,
                 modifier = Modifier.weight(1f).padding(end = MobileDimens.GapSmall),

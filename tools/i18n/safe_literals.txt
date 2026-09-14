@@ -25,6 +25,7 @@
 1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	pip_action
 1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	toggle
 1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	tv.own.owntv.mobile.PIP
+1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	ahXN00/OwnTV_Mobile
 1	protocol	app/src/main/java/tv/own/owntv/mobile/cast/CastPlaybackEngine.kt	CAST
 1	file-path	app/src/main/java/tv/own/owntv/mobile/cast/CastRequest.kt	.aac
 1	file-path	app/src/main/java/tv/own/owntv/mobile/cast/CastRequest.kt	.m3u8
@@ -141,11 +142,9 @@
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreLeaf.kt	localsync
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreLeaf.kt	more/$slug
 1	uri	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreLeaf.kt	profiles
-1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Dev harness
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Rebuild Now Trending
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	Theme gallery
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	dev_gallery
-1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/MoreScreen.kt	dev_harness
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/downloads/DownloadsScreen.kt	\0
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/downloads/DownloadsScreen.kt	header_${section.name}
 1	mime	app/src/main/java/tv/own/owntv/mobile/ui/screens/downloads/DownloadsScreen.kt	video/*
@@ -211,8 +210,28 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelActions.kt	−
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelDetailScreen.kt	jump-back
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveScreen.kt	live
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	$label — $reason
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	$reason — gave up after ${ladderBudgetMs.value / 1000}s
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	${if (onMpv) "mpv" else "exoplayer"} (setting)
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' falling back to $label ($reason)
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' opened on mpv
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' — giving up: $detail
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' — no fallback left ($detail)
+2	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}': $detail
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	ExoPlayer
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	LiveEngine
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	live '${channel.name}' ExoPlayer -> mpv: $reason
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	engine toggle '${channel.name}' -> ${if (goToMpv) "mpv" else "exoplayer"}
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	engine: $message
+2	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer (drm)
+3	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv (panel refuses segments)
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv (pinned)
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv couldn't play it: ${failure.second}
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv handoff for '${channel.name}' abandoned — the channel changed while ExoPlayer released
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv never opened it (${MPV_OPEN_TIMEOUT_MS / 1000}s, no picture and no error)
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	no picture within ${ladderBudgetMs.value / 1000}s of tuning
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	tune '${channel.name}' -> $why [${preference.name}]
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveViewModel.kt	\0
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveViewModel.kt	manual
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/recordings/RecordingsScreen.kt	\0
@@ -518,6 +537,13 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsWeatherPage.kt	enabled
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsWeatherPage.kt	location
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsWeatherPage.kt	unit
+4	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	\0
+2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	##
+2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	###
+2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	*
+2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	**
+2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	-
+2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	•
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/customize/BulkRenameSheets.kt	\0
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/customize/CustomizeCategoriesPane.kt	\0
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/customize/CustomizeCategoriesPane.kt	actions
@@ -545,11 +571,3 @@
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileGlass.kt	\0
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileGlass.kt	glassPress
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/theme/MobileTheme.kt	\0
-4	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	\0
-2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	##
-2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	###
-2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	*
-2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	**
-2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	-
-2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	•
-1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	ahXN00/OwnTV_Mobile

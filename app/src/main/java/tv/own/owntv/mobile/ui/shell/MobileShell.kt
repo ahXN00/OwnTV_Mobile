@@ -230,8 +230,12 @@ fun MobileShell(
     // Sound only has no picture, and a floating window with nothing in it is a smudge over the list the
     // user went back to. It docks instead, as a bar — which is also the shape that has room for a title
     // and the transport buttons, the only things left to show.
-    val audioOnly by tuner.player.audioOnly.collectAsStateWithLifecycle()
-    val audioOnlyMedia by tuner.player.audioOnlyMedia.collectAsStateWithLifecycle()
+    // The engine that actually has the stream — live is on ExoPlayer by default, and mpv is stopped
+    // there, so these two were permanently false for a live channel and a sound-only channel still
+    // got the floating window it has no picture to fill.
+    val playingEngine by tuner.activeEngine.collectAsStateWithLifecycle()
+    val audioOnly by playingEngine.audioOnly.collectAsStateWithLifecycle()
+    val audioOnlyMedia by playingEngine.audioOnlyMedia.collectAsStateWithLifecycle()
     // Casting has the same shape of problem as sound only: the picture is on the television, so a
     // floating window here would be an empty black square following the user around.
     val cast: CastController = koinInject()
@@ -471,6 +475,7 @@ fun MobileShell(
                         val live = channel
                         MiniPlayer(
                             player = tuner.player,
+                            engine = playingEngine,
                             title = live?.name ?: film?.title.orEmpty(),
                             subtitle = if (live != null) nowNext?.now?.title else film?.subtitle,
                             artworkUrl = live?.displayLogoUrl ?: film?.posterUrl,
@@ -620,6 +625,7 @@ fun MobileShell(
                     val live = channel
                     FloatingMiniPlayer(
                         player = tuner.player,
+                        engine = playingEngine,
                         title = live?.name ?: film?.title.orEmpty(),
                         isLive = live != null,
                         artworkUrl = live?.displayLogoUrl ?: film?.posterUrl,

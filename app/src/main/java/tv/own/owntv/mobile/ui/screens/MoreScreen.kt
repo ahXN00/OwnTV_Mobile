@@ -107,11 +107,6 @@ fun MoreScreen(
                         leading = { Icon(MobileIcons.Build, contentDescription = null) },
                         onClick = { onDevRoute(DevRoute.GALLERY) },
                     )
-                    MobileListRow(
-                        title = "Dev harness",
-                        leading = { Icon(MobileIcons.Build, contentDescription = null) },
-                        onClick = { onDevRoute(DevRoute.HARNESS) },
-                    )
                     RebuildTrendingRow()
                 }
             }
@@ -164,10 +159,17 @@ private fun RebuildTrendingRow(
     )
 }
 
-/** The two Plan 3 / Phase 1 scaffolding screens, reachable only in a dev build. */
+/**
+ * The Phase 1 component gallery, reachable only in a dev build.
+ *
+ * The Plan 3 import harness stood beside it until Plan 4 was finished. It existed to drive a sync
+ * and a restore before there were real screens to do either, and there are now: the setup flow adds
+ * a playlist, Settings → Playlists re-syncs one, and More → Backup restores. It was also the last
+ * English-only text in the app, so deleting it empties `tools/i18n/hardcoded_baseline.txt` and makes
+ * the translation gate absolute — a literal can no longer be excused by a file that already lists it.
+ */
 enum class DevRoute(val route: String) {
     GALLERY("dev_gallery"),
-    HARNESS("dev_harness"),
 }
 
 @Composable

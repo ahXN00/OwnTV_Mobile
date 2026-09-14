@@ -39,6 +39,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.delay
@@ -79,6 +83,28 @@ fun MultiviewScreen(
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     BackHandler(enabled = menuFor == null) { onExit() }
+
+    /*
+     * Leaving the app closes the grid, exactly as Back does.
+     *
+     * Four tiles are four decoders and four of the playlist's connections. Nothing stopped them when
+     * the app went off screen: pressing Home left all four streaming into a window nobody could see,
+     * draining the battery and holding connections that a recording — or the television in the next
+     * room — then could not have.
+     *
+     * `ON_STOP`, not `ON_PAUSE`: a notification shade or a permission dialog is not leaving. A
+     * rotation does not reach here at all, because the activity declares `configChanges` for it and
+     * is never recreated. Picture-in-Picture cannot reach here either — it needs a playing engine,
+     * and opening the grid stopped both of the single-stream ones.
+     */
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) onExit()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Box(modifier.fillMaxSize().background(Color.Black)) {
         // Landscape: two per row. Portrait: one per row, stacked.

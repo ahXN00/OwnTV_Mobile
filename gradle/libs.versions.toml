@@ -2,34 +2,34 @@
 # --- Build toolchain ---
 # Kept in lockstep with OwnTV_Core and the TV app: all three compile the same core sources through a
 # composite build during local development, and Gradle cannot mix two AGP/Kotlin versions there.
-agp = "9.3.2"
-kotlin = "2.4.10"
+agp = "9.4.0"
+kotlin = "2.4.20"
 
 # --- AndroidX / Jetpack ---
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
-composeBom = "2026.08.00"
+composeBom = "2026.09.00"
 # Window size classes / adaptive layouts — a phone-and-tablet concern the TV app has no use for, and
 # the one dependency here that the TV catalog does not carry. Versioned separately from the BOM.
 adaptive = "1.3.0"
 lifecycle = "2.11.0"
-navigationCompose = "2.10.0"
+navigationCompose = "2.10.1"
 work = "2.11.2"
 
 # --- Paging ---
 paging = "3.5.1"
 # Correct squircle maths for the Aurora glass. Hand-rolled continuous curvature looks wrong at
 # small radii, and this is the supported implementation of it.
-graphicsShapes = "1.0.1"
+graphicsShapes = "1.1.0"
 
 # --- Kotlin libs ---
 coroutines = "1.11.0"
 
 # --- Third party ---
-coil = "3.6.0"
+coil = "3.6.2"
 # Media3 — only the subtitle view. The player itself is core's; this app draws the image
 # subtitles (PGS/VOBSUB/DVB) the engine hands to ExoPlayer, and nothing else from media3.
-media3 = "1.11.0"
+media3 = "1.11.1"
 koin = "4.2.2"
 # Google Cast. Phone-only, and deliberately absent from the TV app's catalogue and from core: an
 # Android TV box IS the receiver, so a sender SDK there would be an app casting to itself.
@@ -40,7 +40,7 @@ mediarouter = "1.8.1"
 
 # CameraX, for one screen only: reading the QR code the television shows when pairing for local
 # sync. Phone-only by nature — a television has no camera, so it shows the code and never reads one.
-camerax = "1.5.1"
+camerax = "1.6.2"
 # The decoder itself is zxing, which core already carries for GENERATING these codes. Same library,
 # other direction; no ML Kit, no Play-services dependency, nothing extra to ship.
 zxing = "3.5.4"
@@ -52,7 +52,9 @@ espressoCore = "3.7.0"
 
 # Macrobenchmark and the baseline-profile Gradle plugin. The plugin's version is the benchmark
 # library's — they ship together and must not be split. Same versions as the TV app.
-benchmark = "1.5.0-rc02"
+# Stable, deliberately: this was left on 1.5.0-rc02 after the final release came out, and a release
+# candidate is not what an app's own release should be built with.
+benchmark = "1.5.0"
 uiautomator = "2.4.0"
 
 # --- OwnTV core library (https://github.com/ahXN00/OwnTV_Core) ---
@@ -62,11 +64,10 @@ uiautomator = "2.4.0"
 # artifacts and this number is then ignored.
 owntvCore = "1.0.41"
 
-# libmpv (FFmpeg-based) — the codec engine :player-core wraps. Must be declared by every app that
-# uses the player, because OwnTVPlayer implements MPVLib.EventObserver and :player-core only takes
-# libmpv as `implementation`, so the type is invisible to consumers otherwise. Keep this on the same
-# version as core's own catalog: two copies of the native library would be a packaging conflict.
-libmpv = "1.0.0"
+# libmpv is deliberately NOT declared here. `:player-core` exposes it as `api`, so it reaches this
+# app's compile classpath with core — which it must, because OwnTVPlayer implements
+# MPVLib.EventObserver. Core's catalog owns the version, and one owner is the point: two hosts each
+# naming their own would be two copies of a native library and a packaging conflict.
 
 [libraries]
 # The shared engine, from its own repository. Everything below the UI — database, sync, EPG, backup,
@@ -74,7 +75,6 @@ libmpv = "1.0.0"
 owntv-core = { group = "tv.own.owntv", name = "core", version.ref = "owntvCore" }
 owntv-player-core = { group = "tv.own.owntv", name = "player-core", version.ref = "owntvCore" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
-libmpv = { group = "dev.jdtech.mpv", name = "libmpv", version.ref = "libmpv" }
 
 # Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

@@ -310,11 +310,11 @@ dependencies {
     // The shared playback engine. It renders nothing itself, which is exactly why the same engine
     // serves the TV HUD and this app's touch controls. Always on core's version.
     implementation(libs.owntv.player.core)
-    // ...and libmpv itself, because OwnTVPlayer's supertype is MPVLib.EventObserver. Core now
-    // exposes it as `api`, so a local build against core's source no longer needs this line — but
-    // the PINNED artifact below 1.0.6 still hides it behind `implementation`, and CI builds from the
-    // pin. DELETE this and the catalog entry once owntvCore is 1.0.6 or newer.
-    implementation(libs.libmpv)
+    // libmpv is NOT declared here. `:player-core` exposes it as `api`, so it arrives on this app's
+    // compile classpath with core — which it must, because `OwnTVPlayer`'s supertype is
+    // `MPVLib.EventObserver`. It was declared explicitly while the pin was older than `1.0.6`, where
+    // core still hid it behind `implementation`; the pin is far past that, and two hosts each naming
+    // their own version is how a packaging conflict over a native library starts.
 
     // Core
     implementation(libs.androidx.core.ktx)

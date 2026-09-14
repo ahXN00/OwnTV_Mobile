@@ -34,7 +34,6 @@ import tv.own.owntv.mobile.MainActivity
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.MediaMeta
-import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
 
 /**
@@ -56,7 +55,6 @@ import tv.own.owntv.player.PlaybackSession
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlaybackService : Service() {
 
-    private val player: OwnTVPlayer by inject()
     private val cast: CastController by inject()
     private val tuner: LiveTuner by inject()
     private val session: PlaybackSession by inject()
@@ -75,14 +73,21 @@ class PlaybackService : Service() {
         super.onCreate()
         // Post once, synchronously, before anything can await a network image: a service that has not
         // called startForeground() within a few seconds of being started is killed outright.
-        startForeground(build(Shown(player.currentMeta.value, player.isPlaying.value, player.audioOnly.value)))
+        val local = tuner.currentEngine
+        startForeground(build(Shown(local.currentMeta.value, local.isPlaying.value, local.audioOnly.value)))
         // Whichever engine has the stream. While casting the notification must read the receiver, or
         // it would sit there saying paused at 00:00 for something playing perfectly well next door.
+        //
+        // And on this device it is the ACTIVE engine, not mpv: live plays on ExoPlayer by default,
+        // so reading mpv left the notification permanently showing "paused", with no channel name,
+        // for the whole of Live TV.
         cast.engine
             .flatMapLatest { remote ->
                 if (remote == null) {
-                    combine(player.currentMeta, player.isPlaying, player.audioOnly) { meta, playing, audioOnly ->
-                        Shown(meta, playing, audioOnly)
+                    tuner.activeEngine.flatMapLatest { here ->
+                        combine(here.currentMeta, here.isPlaying, here.audioOnly) { meta, playing, audioOnly ->
+                            Shown(meta, playing, audioOnly)
+                        }
                     }
                 } else {
                     combine(remote.currentMeta, remote.isPlaying, cast.deviceName) { meta, playing, device ->
@@ -111,11 +116,14 @@ class PlaybackService : Service() {
         // The buttons drive the receiver when there is one: they are the same three transport
         // controls, and which box is decoding is not something the user should have to think about.
         val remote = cast.engine.value
+        // The local fallback is the ACTIVE engine, not mpv — otherwise every one of these buttons
+        // was a no-op throughout a live channel, on the notification and on the lock screen alike.
+        val local = tuner.currentEngine
         when (intent?.action) {
-            ACTION_TOGGLE -> remote?.togglePlayPause() ?: player.togglePlayPause()
-            ACTION_BACK -> remote?.seekBy(-SEEK_MS) ?: player.seekBy(-SEEK_MS)
-            ACTION_FORWARD -> remote?.seekBy(SEEK_MS) ?: player.seekBy(SEEK_MS)
-            ACTION_AUDIO_ONLY -> player.enterAudioOnly()
+            ACTION_TOGGLE -> remote?.togglePlayPause() ?: local.togglePlayPause()
+            ACTION_BACK -> remote?.seekBy(-SEEK_MS) ?: local.seekBy(-SEEK_MS)
+            ACTION_FORWARD -> remote?.seekBy(SEEK_MS) ?: local.seekBy(SEEK_MS)
+            ACTION_AUDIO_ONLY -> local.enterAudioOnly()
             ACTION_STOP -> tuner.stop() // which stops this service in turn
         }
         // Not sticky: a service the system restarts with no stream behind it would post a notification

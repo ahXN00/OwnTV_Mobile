@@ -37,6 +37,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -238,7 +240,7 @@ fun PlayerScreen(
     // quick-panel controls afterwards used to land here on a black rectangle with sound; expanding a
     // sound-only mini player did the same. Sound only lives in the docked bar, which is where its
     // own button sends it.
-    LaunchedEffect(Unit) { player.exitAudioOnly() }
+    LaunchedEffect(activeEngine) { activeEngine.exitAudioOnly() }
     // How far a value moves per centimetre of finger. 100 is the untouched behaviour.
     val gestureSensitivity by settings.gestureSensitivityPct.collectAsStateWithLifecycle(100)
 
@@ -465,13 +467,30 @@ fun PlayerScreen(
                     hud = if (activeEngine.volume.value == 0) {
                         GestureFeedback.Muted
                     } else {
-                        GestureFeedback.Level(volume = true, percent = player.volume.value)
+                        GestureFeedback.Level(volume = true, percent = activeEngine.volume.value)
                     }
                 },
                 sensitivity = gestureSensitivity / 100f,
             ),
     ) {
-        VideoStage(player = player, modifier = Modifier.fillMaxSize())
+        VideoStage(
+            player = player,
+            // Where the picture actually is, so entering the little window is the picture shrinking
+            // into the corner rather than the whole screen fading into it. Cleared on the way out,
+            // or the system would be handed a rectangle from a screen that is no longer there.
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coords ->
+                    val box = coords.boundsInWindow()
+                    pip.videoBounds = android.graphics.Rect(
+                        box.left.toInt(),
+                        box.top.toInt(),
+                        box.right.toInt(),
+                        box.bottom.toInt(),
+                    )
+                },
+        )
+        DisposableEffect(Unit) { onDispose { pip.videoBounds = null } }
 
         // A radio channel has no picture to show and never will, so the rectangle it would fill shows
         // what is playing instead. Not a screen of its own — the controls and the gestures are still

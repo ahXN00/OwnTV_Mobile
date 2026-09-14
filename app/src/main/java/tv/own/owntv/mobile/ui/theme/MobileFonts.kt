@@ -72,6 +72,29 @@ private val PoppinsFamily = FontFamily(
     Font(R.font.poppins_bold, FontWeight.Bold),
 )
 
+/**
+ * The font *file* the playback engine copies into libass's font directory, so mpv draws a subtitle
+ * in the face the user chose rather than in its own built-in one.
+ *
+ * `0` means "no bundled file", which is the right answer for the two system faces — libass asks
+ * fontconfig for those by name. One weight each: libass picks a file, not a variable-font axis, and
+ * a subtitle is not drawn bold.
+ *
+ * This is the television's `subtitleFontResource`, over the same nine font files. Without it the
+ * setting reached the app's own subtitle layer and nothing else, so a font chosen on the television
+ * and synced here was quietly ignored for most subtitles.
+ */
+val AppFontFamily.subtitleFontResource: Int
+    get() = when (this) {
+        AppFontFamily.LORA -> R.font.lora_variable
+        AppFontFamily.PLAYFAIR_DISPLAY -> R.font.playfair_display_variable
+        AppFontFamily.DANCING_SCRIPT -> R.font.dancing_script_variable
+        AppFontFamily.POPPINS -> R.font.poppins_regular
+        AppFontFamily.SYSTEM_SANS,
+        AppFontFamily.MONOSPACE,
+        -> 0
+    }
+
 fun AppFontFamily.asComposeFamily(): FontFamily = when (this) {
     AppFontFamily.LORA -> LoraFamily
     AppFontFamily.SYSTEM_SANS -> FontFamily.SansSerif

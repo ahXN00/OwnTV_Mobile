@@ -22,9 +22,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import tv.own.owntv.core.i18n.AppLocale
@@ -46,6 +48,7 @@ import tv.own.owntv.mobile.ui.theme.MobileTheme
  * activity hosts it. Nothing in this app draws a fragment; this is the base class the platform's own
  * cast picker requires in order to open at all.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainActivity : FragmentActivity() {
 
     private val tuner: LiveTuner by inject()
@@ -54,7 +57,18 @@ class MainActivity : FragmentActivity() {
     private val localeStore: LocaleStore by inject()
     private val settings: SettingsRepository by inject()
 
-    private val player get() = tuner.player
+    /**
+     * The engine actually holding the stream — mpv for a film, a download or a recording, ExoPlayer
+     * for a live channel, which is now the default there.
+     *
+     * This used to be `tuner.player`, which is mpv and mpv alone. mpv is *stopped* while a live
+     * channel plays, so everything below reported "nothing is playing" for the whole of Live TV: the
+     * screen was allowed to sleep mid-match, the little floating window never opened on Home, and
+     * the window's own transport buttons drove an idle engine. Read at the moment of use, because a
+     * lifecycle callback has no time to wait on a flow — and `currentEngine` is the answer now,
+     * where the flow's value can still be a frame behind the engine that was just started.
+     */
+    private val engine get() = tuner.currentEngine
 
     /** Both read on a lifecycle callback, where there is no time to suspend on a preference. */
     private var pipEnabled = true
@@ -79,9 +93,9 @@ class MainActivity : FragmentActivity() {
     private val pipActions = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.getStringExtra(EXTRA_PIP_ACTION)) {
-                PIP_TOGGLE -> player.togglePlayPause()
-                PIP_BACK -> player.seekBy(-PIP_SEEK_MS)
-                PIP_FORWARD -> player.seekBy(PIP_SEEK_MS)
+                PIP_TOGGLE -> engine.togglePlayPause()
+                PIP_BACK -> engine.seekBy(-PIP_SEEK_MS)
+                PIP_FORWARD -> engine.seekBy(PIP_SEEK_MS)
             }
         }
     }
@@ -94,7 +108,12 @@ class MainActivity : FragmentActivity() {
         // The buttons say Play or Pause depending on what is happening, so they are rebuilt whenever
         // that changes — a PiP window whose button lies is worse than one with no buttons.
         lifecycleScope.launch {
-            player.isPlaying.collectLatest { if (pip.inPip.value) applyPipParams() }
+            // Whichever engine has the stream, and re-subscribed when that changes: a handover from
+            // ExoPlayer to mpv mid-channel would otherwise leave the window watching a flow that has
+            // stopped moving.
+            tuner.activeEngine
+                .flatMapLatest { it.isPlaying }
+                .collectLatest { if (pip.inPip.value) applyPipParams() }
         }
         lifecycleScope.launch { settings.pipEnabled.collect { pipEnabled = it } }
         lifecycleScope.launch { settings.backgroundPlayback.collect { backgroundPlayback = it } }
@@ -133,7 +152,8 @@ class MainActivity : FragmentActivity() {
         // Nothing to float while casting: the picture is on the television, and a little window here
         // would show a black rectangle with the receiver's transport buttons under it.
         if (cast.engine.value != null) return
-        if (!player.isPlaying.value || player.audioOnly.value || player.audioOnlyMedia.value) return
+        val playing = engine
+        if (!playing.isPlaying.value || playing.audioOnly.value || playing.audioOnlyMedia.value) return
         runCatching { enterPictureInPictureMode(pipParams()) }
     }
 
@@ -173,18 +193,19 @@ class MainActivity : FragmentActivity() {
      * subscription's stream is a bigger thing than the button they pressed.
      */
     private fun closedThePipWindow() {
-        if (!player.hasActiveStream) return
+        if (!tuner.hasStream) return
+        val playing = engine
         // Sound-only first, then stop. The window is gone, so there is no surface and no reason to keep
         // a video decoder alive — and it settles what the play button in the quick panel will do next.
         //
         // Flagged as *this* class's doing, exactly as the screen-off path flags it, so coming back
         // undoes it. Without that, tapping the quick-panel controls opened the app with sound and a
         // black screen — and there is no full-screen sound-only mode in this app.
-        if (!player.audioOnly.value) {
+        if (!playing.audioOnly.value) {
             droppedVideoForBackground = true
-            player.enterAudioOnly()
+            playing.enterAudioOnly()
         }
-        if (player.isPlaying.value) player.togglePlayPause()
+        if (playing.isPlaying.value) playing.togglePlayPause()
     }
 
     /** The playback notification was tapped. The player is a navigation destination, so the shell
@@ -223,12 +244,13 @@ class MainActivity : FragmentActivity() {
             return
         }
         if (pip.inPip.value) return
-        if (!player.hasActiveStream) return
+        if (!tuner.hasStream) return
+        val playing = engine
         if (!backgroundPlayback) {
             // Remembered, so a stream the user paused themselves is not resumed for them on return.
-            if (player.isPlaying.value) {
+            if (playing.isPlaying.value) {
                 pausedForBackground = true
-                player.togglePlayPause()
+                playing.togglePlayPause()
             }
             return
         }
@@ -237,9 +259,9 @@ class MainActivity : FragmentActivity() {
         if (!audioOnScreenOff) return
         // Not if they are already in sound-only mode on purpose — coming back must not hand them a
         // picture they switched off themselves.
-        if (player.audioOnly.value) return
+        if (playing.audioOnly.value) return
         droppedVideoForBackground = true
-        player.enterAudioOnly()
+        playing.enterAudioOnly()
     }
 
     /** Back on screen at full size, so the window was tapped rather than closed. */
@@ -252,11 +274,11 @@ class MainActivity : FragmentActivity() {
         super.onStart()
         if (droppedVideoForBackground) {
             droppedVideoForBackground = false
-            player.exitAudioOnly()
+            engine.exitAudioOnly()
         }
         if (pausedForBackground) {
             pausedForBackground = false
-            if (player.hasActiveStream && !player.isPlaying.value) player.togglePlayPause()
+            if (tuner.hasStream && !engine.isPlaying.value) engine.togglePlayPause()
         }
     }
 
@@ -269,8 +291,13 @@ class MainActivity : FragmentActivity() {
      * clear it, which is exactly why the screen still went dark mid-film.
      */
     private fun keepScreenOnWhileThereIsAPicture() = lifecycleScope.launch {
-        combine(player.isPlaying, player.audioOnly, player.audioOnlyMedia) { playing, off, radio ->
-            playing && !off && !radio
+        // Asked of whichever engine holds the stream, and re-asked when that changes. Read from mpv
+        // alone, this stayed false for the whole of a live channel — so the screen dimmed and locked
+        // in the middle of a match, exactly as it would while reading a page.
+        tuner.activeEngine.flatMapLatest { playing ->
+            combine(playing.isPlaying, playing.audioOnly, playing.audioOnlyMedia) { on, off, radio ->
+                on && !off && !radio
+            }
         }.distinctUntilChanged().collect { keep ->
             if (keep) {
                 window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -286,9 +313,13 @@ class MainActivity : FragmentActivity() {
 
     private fun pipParams(): PictureInPictureParams {
         val ctx = AppLocale.wrap(this, localeStore.currentTag.value)
-        val playing = player.isPlaying.value
+        val playing = engine.isPlaying.value
         val builder = PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(16, 9))
+            // The picture's own shape, not a fixed 16:9. A 2.35:1 film in a 16:9 window is a small
+            // picture with black bands above and below it, inside a window that is already tiny.
+            // Clamped to what the platform accepts — it throws outside roughly 1:2.39 to 2.39:1 —
+            // and expressed in thousandths, because Rational takes integers.
+            .setAspectRatio(pipAspect())
             .setActions(
                 listOf(
                     pipAction(
@@ -309,7 +340,26 @@ class MainActivity : FragmentActivity() {
                 ),
             )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) builder.setAutoEnterEnabled(false)
+        // Where the picture is right now, so the window grows out of it instead of the whole screen
+        // cross-fading into a rectangle in the corner. Absent — nothing is drawing a picture — the
+        // system falls back to that cross-fade, which is what always happened before.
+        pip.videoBounds?.takeIf { !it.isEmpty }?.let { builder.setSourceRectHint(it) }
         return builder.build()
+    }
+
+    /**
+     * The little window's shape: the picture's own, clamped to what the platform will accept.
+     *
+     * `setAspectRatio` throws outside roughly 1:2.39 … 2.39:1, and a provider is entirely capable of
+     * reporting something absurd, so the value is bounded before it is handed over. Thousandths
+     * because [Rational] takes two integers, and a thousandth is finer than any panel can show.
+     */
+    private fun pipAspect(): Rational {
+        val aspect = (tuner.videoAspect ?: DEFAULT_ASPECT)
+            .takeIf { it.isFinite() && it > 0f }
+            ?.coerceIn(MIN_PIP_ASPECT, MAX_PIP_ASPECT)
+            ?: DEFAULT_ASPECT
+        return Rational((aspect * 1000).toInt(), 1000)
     }
 
     private fun pipAction(icon: Int, label: String, action: String): RemoteAction = RemoteAction(
@@ -344,5 +394,21 @@ class MainActivity : FragmentActivity() {
         /** Fixed, not the user's seek step: three buttons is all a PiP window has room for, and a
          *  window is not where anyone sets up a 90-second jump. */
         private const val PIP_SEEK_MS = 10_000L
+
+        /** What a stream with no shape of its own yet gets, and what everything used to get. */
+        private const val DEFAULT_ASPECT = 16f / 9f
+
+        /**
+         * The shapes a Picture-in-Picture window may take — deliberately INSIDE the platform's own
+         * limits rather than on them.
+         *
+         * It rejects anything outside roughly 1:2.39 … 2.39:1. Clamping to exactly 1/2.39 and then
+         * rounding down to thousandths produces 0.418, which is a hair *under* the limit and is
+         * refused — and because entering the window is wrapped in `runCatching`, the refusal would
+         * not crash: it would silently never open the window at all, which is worse than the fixed
+         * 16:9 this replaced. A little margin costs nothing; no real stream sits on that edge.
+         */
+        private const val MIN_PIP_ASPECT = 0.43f
+        private const val MAX_PIP_ASPECT = 2.35f
     }
 }

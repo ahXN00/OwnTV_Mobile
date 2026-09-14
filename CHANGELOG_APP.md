@@ -17,6 +17,17 @@
 
 ### New features
 
+- **📺 The screen stays awake while you watch Live TV**
+- **🎛️ The notification, lock screen, small player and floating window control a live channel**
+- **⏪ Rewinding a live channel no longer starts a second stream**
+- **🔊 Sound only, screen-off picture dropping and mobile-data sound only work on live channels**
+- **🪜 A live channel that will not play now tries the other format and the other player**
+- **⏱️ "Give up after" now really gives up, instead of a spinner that never ends**
+- **⚙️ Live TV player, Live latency, Pre-buffer and Prefer HLS per playlist now reach the player**
+- **🔤 Choose the font your subtitles are drawn in**
+- **🖼️ The floating window takes the picture's own shape**
+- **👆 A small thumb slide no longer closes the player**
+- **🕒 The Guide's "On now" keeps meaning now**
 - **🚀 The app opens faster from cold**
 - **⬆️ The app tells you when there is a new version, and installs it**
 - **🔎 Set how big the interface and its text are during setup** (#179)

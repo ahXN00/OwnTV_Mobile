@@ -3,38 +3,3 @@
 # One tab-separated line per (file, normalised content) with its occurrence count.
 # Phase 1 deletes occurrences until this file is empty; the CI guard then becomes absolute.
 # Format: <count>\t<relative path>\t<content with \t/\n escaped>
-
-5	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	\0
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	*/*
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	Import M3U
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	Import Xtream
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	M3U url
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	Reload
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	Restore backup
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	Xtream server
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	backup password
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	channels ${state.channelCount} · movies ${state.movieCount} · series ${state.seriesCount}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	pass
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	profile ${state.profileId} · sources ${state.sourceIds}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	restore.own
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	status: ${state.status}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessScreen.kt	user
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	\0
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	(${sync.warnings.size} warnings)
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	Dev
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	M3U
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	Xtream
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	idle
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	import failed: ${it::class.simpleName}: ${it.message}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	inspect failed: ${it::class.simpleName}: ${it.message}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	live ${stage.liveProcessed} · movies ${stage.moviesProcessed} ·
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	opened database
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	reloaded
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	restored ${it.items} items · sealed=$sealed · ${found.sections}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	restoring…
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	series ${stage.seriesProcessed}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	starting…
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	sync cancelled
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	sync failed: ${sync.message}
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	sync ok
-1	app/src/main/java/tv/own/owntv/mobile/dev/DevHarnessViewModel.kt	threw: ${it::class.simpleName}: ${it.message}

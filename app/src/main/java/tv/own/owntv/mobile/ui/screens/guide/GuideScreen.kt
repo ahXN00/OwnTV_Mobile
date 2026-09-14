@@ -56,6 +56,7 @@ import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.components.mobileGroupPlate
+import tv.own.owntv.mobile.ui.components.rememberClockTick
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.screens.live.LiveCategory
 import tv.own.owntv.mobile.ui.theme.MobileDimens
@@ -272,9 +273,14 @@ private fun OnNowList(
 ) {
     val onNow by vm.onNow.collectAsStateWithLifecycle()
     val revision by vm.revision.collectAsStateWithLifecycle()
+    // "On now" has to keep meaning now. Without this the list answered the question once, when it
+    // opened, and then stood still: an hour later the bars were where they had been and the titles
+    // were the programmes that had already finished.
+    val nowMs by rememberClockTick()
 
-    // A new match clears what was read, so the rows on screen have to ask for it again.
-    LaunchedEffect(listState, channels, revision) {
+    // A new match clears what was read, so the rows on screen have to ask for it again — and so does
+    // the clock moving on, which is what makes a finished programme give way to the one after it.
+    LaunchedEffect(listState, channels, revision, nowMs) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { it.index } }
             .distinctUntilChanged()
             .collect { indices ->
@@ -310,7 +316,7 @@ private fun OnNowList(
                 onLongClick = { onMenu(channel) },
             )
             if (now != null) {
-                NowProgress(now)
+                NowProgress(now, nowMs)
                 slot.next?.let { next ->
                     Text(
                         text = nextLabel + separator + times.format(Date(next.startMs)) + separator + next.title,
@@ -333,11 +339,11 @@ private fun OnNowList(
     }
 }
 
-/** How much of the current programme has already gone. */
+/** How much of the current programme has already gone, at [nowMs] — which moves. */
 @Composable
-private fun NowProgress(programme: EpgProgrammeEntity) {
+private fun NowProgress(programme: EpgProgrammeEntity, nowMs: Long) {
     val span = (programme.stopMs - programme.startMs).coerceAtLeast(1)
-    val done = (System.currentTimeMillis() - programme.startMs).toFloat() / span
+    val done = (nowMs - programme.startMs).toFloat() / span
     LinearProgressIndicator(
         progress = { done.coerceIn(0f, 1f) },
         modifier = Modifier

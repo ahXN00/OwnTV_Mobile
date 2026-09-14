@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.settings.SubtitleStyle
+import tv.own.owntv.core.theme.AppFontFamily
 import tv.own.owntv.core.theme.parseAccentHex
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.ColorPickerSheet
@@ -22,7 +23,7 @@ import tv.own.owntv.mobile.ui.screens.settings.customize.selectedTick
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /** Which appearance picker is open. One at a time, so one nullable holds them all. */
-private enum class SubtitleSheet { SIZE, COLOR, POSITION, BACKGROUND }
+private enum class SubtitleSheet { SIZE, FONT, COLOR, POSITION, BACKGROUND }
 
 /**
  * How subtitles are drawn — size, colour, where they sit and how solid their backing is.
@@ -41,6 +42,7 @@ fun SettingsSubtitleAppearancePage(
 
     val enabled = s.subtitleStyleEnabled.pref(false)
     val scale = s.subtitleScaleExo.pref(SubtitleStyle.SCALE_DEFAULT)
+    val font = s.subtitleFont.pref(null)
     val color = s.subtitleColor.pref(SubtitleStyle.COLOR_DEFAULT)
     val position = s.subtitlePosition.pref(SubtitleStyle.Position.DEFAULT)
     val background = s.subtitleBgOpacity.pref(SubtitleStyle.OPACITY_DEFAULT)
@@ -61,6 +63,17 @@ fun SettingsSubtitleAppearancePage(
                     subtitle = stringResource(R.string.settings_subtitle_size_description),
                     value = stringResource(subSizeLabelRes(scale)),
                     onClick = { sheet = SubtitleSheet.SIZE },
+                )
+
+                // The face a subtitle is drawn in, both by the engine and by this app's own subtitle
+                // layer. The row was missing while all six font files were already in the APK, so a
+                // choice made on the television and synced here had nothing to act on.
+                SettingRow(
+                    title = stringResource(R.string.settings_subtitle_font),
+                    subtitle = stringResource(R.string.settings_choose_font),
+                    value = font?.let { stringResource(it.labelRes()) }
+                        ?: stringResource(R.string.settings_subtitle_default),
+                    onClick = { sheet = SubtitleSheet.FONT },
                 )
 
                 SettingRow(
@@ -94,6 +107,7 @@ fun SettingsSubtitleAppearancePage(
                         vm.edit {
                             setSubtitleScaleExo(SubtitleStyle.SCALE_DEFAULT)
                             setSubtitleScaleMpv(SubtitleStyle.SCALE_DEFAULT)
+                            setSubtitleFont(null)
                             setSubtitleColor(SubtitleStyle.COLOR_DEFAULT)
                             setSubtitlePosition(SubtitleStyle.Position.DEFAULT)
                             setSubtitleBgOpacity(SubtitleStyle.OPACITY_DEFAULT)
@@ -119,6 +133,19 @@ fun SettingsSubtitleAppearancePage(
             },
             selected = nearestSubSize(scale),
             onSelect = { picked -> vm.edit { setSubtitleScaleExo(picked); setSubtitleScaleMpv(picked) } },
+            onDismiss = dismiss,
+        )
+        // Default first, then the six families. Default means "whatever the stream or the engine
+        // would have used", which is not the same as picking the system sans face by hand.
+        SubtitleSheet.FONT -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_subtitle_font),
+            choices = listOf(
+                SettingsChoice<AppFontFamily?>(null, stringResource(R.string.settings_subtitle_default)),
+            ) + AppFontFamily.entries.map {
+                SettingsChoice<AppFontFamily?>(it, stringResource(it.labelRes()))
+            },
+            selected = font,
+            onSelect = { picked -> vm.edit { setSubtitleFont(picked) } },
             onDismiss = dismiss,
         )
         SubtitleSheet.COLOR -> SubtitleColorSheet(
@@ -256,7 +283,8 @@ private fun subSizeLabelRes(scale: Float): Int =
     SUB_SIZES.minByOrNull { kotlin.math.abs(it.first - scale) }?.second
         ?: R.string.settings_subtitle_normal
 
-/** The text-colour presets, as "#RRGGBB". A phone has no room for a hue wheel worth using. */
+/** The text-colour presets, as "#RRGGBB" — the quick answers, with the picker and a hex field behind
+ *  them for the colour a list of five cannot express. */
 private val SUB_COLOR_PRESETS = listOf(
     R.string.settings_subtitle_color_white to "#FFFFFF",
     R.string.settings_subtitle_color_yellow to "#FFEB3B",

@@ -50,7 +50,9 @@ import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
 import tv.own.owntv.mobile.ui.theme.MobileDimens
+import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.OwnTVPlayer
+import tv.own.owntv.player.PlaybackEngine
 import tv.own.owntv.player.ZoomMode
 
 /** How wide the window is at each of the three sizes the pinch moves between. */
@@ -101,7 +103,14 @@ private val BUTTON_ICON = 18.dp
  */
 @Composable
 fun FloatingMiniPlayer(
+    /** Handed to [VideoStage], which resolves the live engine itself — see its own comment. */
     player: OwnTVPlayer,
+    /**
+     * The engine actually holding the stream. Everything this window READS and DRIVES comes from
+     * here: live plays on ExoPlayer, where `player` is a stopped mpv, so the window's play/pause
+     * button did nothing and its glyph said "paused" over a moving picture.
+     */
+    engine: PlaybackEngine,
     title: String,
     onExpand: () -> Unit,
     onStop: () -> Unit,
@@ -111,11 +120,17 @@ fun FloatingMiniPlayer(
     isLive: Boolean = false,
     artworkUrl: String? = null,
     settings: SettingsRepository = koinInject(),
+    tuner: LiveTuner = koinInject(),
 ) {
-    val playing by player.isPlaying.collectAsStateWithLifecycle()
-    val audioOnly by player.audioOnlyMedia.collectAsStateWithLifecycle()
-    val videoAspect by player.videoAspect.collectAsStateWithLifecycle()
-    val step by player.seekStepMs.collectAsStateWithLifecycle()
+    val playing by engine.isPlaying.collectAsStateWithLifecycle()
+    val audioOnly by engine.audioOnlyMedia.collectAsStateWithLifecycle()
+    // The picture's shape is the one thing [PlaybackEngine] cannot answer — neither engine publishes
+    // it through the shared interface — so it is asked of the two directly, the way [VideoStage]
+    // does. Widening the interface would be a core change this needs nothing else from.
+    val liveOnExo by tuner.liveOnExo.collectAsStateWithLifecycle()
+    val videoAspect by (if (liveOnExo) tuner.exoEngine.videoAspect else player.videoAspect)
+        .collectAsStateWithLifecycle()
+    val step by engine.seekStepMs.collectAsStateWithLifecycle()
     val size by settings.pipSize.collectAsStateWithLifecycle(SettingsRepository.PipSize.MEDIUM)
     val snapToEdges by settings.pipSnap.collectAsStateWithLifecycle(true)
     val scope = rememberCoroutineScope()
@@ -238,17 +253,17 @@ fun FloatingMiniPlayer(
                         WindowButton(MobileIcons.OpenInFull, R.string.player_pip_expand, onExpand)
                     } else {
                         WindowButton(MobileIcons.FastRewind, R.string.player_skip_back) {
-                            player.seekBy(-step)
+                            engine.seekBy(-step)
                         }
                     }
                     WindowButton(
                         icon = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
                         labelRes = R.string.settings_remote_action_play_pause,
-                        onClick = player::togglePlayPause,
+                        onClick = engine::togglePlayPause,
                     )
                     if (!isLive) {
                         WindowButton(MobileIcons.FastForward, R.string.player_skip_forward) {
-                            player.seekBy(step)
+                            engine.seekBy(step)
                         }
                     }
                     WindowButton(MobileIcons.Close, R.string.content_close, onStop)

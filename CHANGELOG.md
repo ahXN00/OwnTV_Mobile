@@ -11,6 +11,78 @@ The first build of the mobile app. There is no user-facing app yet: this release
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
 release automation.
 
+### 📺 Live TV behaves like the television's, everywhere the app talks about playback
+
+Live channels moved onto the second player engine shortly before this release. The rest of the app
+did not move with them: about twenty-five places still asked the *first* engine what was happening,
+and that engine is stopped while a live channel plays, so every one of them was told "nothing is
+playing". Each of the following is that same mistake wearing a different coat.
+
+- **The screen no longer goes to sleep during Live TV.** The app keeps the display awake while there
+  is a picture — it simply never believed there was one on a live channel, so the phone dimmed and
+  locked mid-programme exactly as it would while reading a page. Films and downloads were always
+  right, because those genuinely play on the first engine.
+- **The notification, the lock screen, the small player and the floating window drive a live
+  channel.** Play and pause did nothing at all on one, the notification showed the play symbol over
+  a moving picture, and it carried no channel name.
+- **Picture-in-Picture opens for a live channel.** Pressing Home while watching one did nothing.
+- **Sound only works on a live channel**, and so does dropping the picture when the screen goes off,
+  and "Sound only on mobile data", and a channel's own remembered sound-only choice. All four were
+  silently skipped, which is the single largest battery and data saving the app has.
+- **Rewinding a live channel no longer starts a second stream.** Dragging the rewind bar back — or
+  picking a programme from Catch-up while a channel was playing — opened the archive on one engine
+  without stopping the other. Two sounds at once, and two of the playlist's connections spent on one
+  thing being watched. Casting a live channel had the same fault: the phone went on playing the
+  channel beside the television.
+- **Re-opening the channel you are already watching no longer restarts it**, and a channel's
+  remembered zoom and volume are now filed under one name rather than one per engine.
+- **Multiview stops when you leave the app.** Four tiles are four decoders and four of the playlist's
+  connections; pressing Home left all of them running for a window nobody could see.
+
+### 🪜 A live channel that will not play now walks the television's full fallback ladder
+
+The phone had half of one: the second engine was watched and its failures went to the first, and the
+first was a terminus. So a channel that engine could not open simply sat there, and neither engine
+ever retried a channel on its other stream format.
+
+- **Four rungs, each tried at most once** — this engine's other format, then the other engine, then
+  *its* other format. That finiteness is the safety property: without it, a handover in each
+  direction would bounce a channel between engines for ever. The ordering is core's own
+  `LiveLadder`, which the television has used for months and which is unit-tested there.
+- **Settings → Video player → Live TV player finally does something**, globally and per playlist.
+  "mpv first" now really starts there *and* falls back; "ExoPlayer only" stops after that engine's
+  two formats instead of paying for a handover the user has said will not help.
+- **Settings → "Give up after" does something.** The phone drew the slider and read it nowhere else.
+  It is now a budget for the whole tune, with an alarm that fires *during* an attempt — so thirty
+  seconds means thirty seconds to the person watching, rather than thirty seconds before anyone next
+  asks the time. When it runs out the app says so instead of showing a spinner for ever.
+- **"Prefer HLS", per playlist, does something.** It is what makes an HLS rung differ from a TS one.
+- **A panel already caught refusing its own segment URLs is routed straight past the engine it
+  refuses**, rather than paying two dead requests and the wait on every further channel. The lesson
+  was already being learned by the engine; nothing on the phone had ever read it.
+- **Every ladder decision is written to the playback error log**, which you can read, as well as to
+  `adb logcat -s LiveEngine`, which you cannot.
+
+### ⚙️ Three settings that were displayed but never reached the player
+
+Each was stored, shown, backed up and synced to the television, and had no effect here: **Live TV
+player per playlist**, **Live latency per playlist** and **Pre-buffer per playlist**. All three now
+reach both engines, and Multiview's tiles too — a tile is one of that playlist's streams like any
+other, which is what the television does.
+
+### 🔤 A subtitle font, and other small repairs
+
+- **Settings → Subtitle appearance has a Subtitle font row.** All six font files were already in the
+  app; nothing had ever told the player to use them, so a font chosen on the television and synced
+  here was ignored. The row costs no translation — the label already existed in every language.
+- **A small thumb slide no longer closes the player.** Any downward drag past about three
+  millimetres counted as "shrink me"; a swipe now has to travel a seventh of the screen.
+- **The Guide's "On now" keeps meaning now.** Its progress bars were drawn once when the screen
+  opened and then stood still, as were the programme ticks on the player's live bar.
+- **The floating Picture-in-Picture window takes the picture's shape** instead of a fixed 16:9, and
+  grows out of the picture rather than cross-fading into the corner.
+- **Unmuting a live channel shows the volume you are actually hearing.**
+
 ### 🚀 The app opens faster from cold
 
 A baseline profile now ships inside the APK. It is a list of the classes and methods the app reaches

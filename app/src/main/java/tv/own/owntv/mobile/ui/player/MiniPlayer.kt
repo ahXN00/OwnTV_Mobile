@@ -37,6 +37,7 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobileNavShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
 import tv.own.owntv.player.OwnTVPlayer
+import tv.own.owntv.player.PlaybackEngine
 
 private val BAR_HEIGHT = 64.dp
 private const val DISMISS_DRAG_PX = 120f
@@ -53,7 +54,14 @@ private const val DISMISS_DRAG_PX = 120f
  */
 @Composable
 fun MiniPlayer(
+    /** Handed to [VideoStage], which resolves the live engine itself — see its own comment. */
     player: OwnTVPlayer,
+    /**
+     * The engine actually holding the stream. Everything this bar READS and DRIVES comes from here:
+     * live plays on ExoPlayer, where `player` is a stopped mpv, so the bar used to show the play
+     * glyph over a moving picture and its play/pause button did nothing at all.
+     */
+    engine: PlaybackEngine,
     title: String,
     onExpand: () -> Unit,
     onStop: () -> Unit,
@@ -63,14 +71,14 @@ fun MiniPlayer(
     /** The receiver, when the stream is on a television: the bar then reports and drives that one. */
     remote: CastPlaybackEngine? = null,
 ) {
-    val playing by (remote?.isPlaying ?: player.isPlaying).collectAsStateWithLifecycle()
-    val position by (remote?.position ?: player.position).collectAsStateWithLifecycle()
-    val duration by (remote?.duration ?: player.duration).collectAsStateWithLifecycle()
+    val playing by (remote?.isPlaying ?: engine.isPlaying).collectAsStateWithLifecycle()
+    val position by (remote?.position ?: engine.position).collectAsStateWithLifecycle()
+    val duration by (remote?.duration ?: engine.duration).collectAsStateWithLifecycle()
     // Two ways to have no picture — the user turned it off, or the stream never had one — and the bar
     // has the same black rectangle to fill either way. Casting is a third: the picture exists, it is
     // simply on the television, so this bar has nothing to draw either.
-    val noVideoTrack by player.audioOnlyMedia.collectAsStateWithLifecycle()
-    val chosenSoundOnly by player.audioOnly.collectAsStateWithLifecycle()
+    val noVideoTrack by engine.audioOnlyMedia.collectAsStateWithLifecycle()
+    val chosenSoundOnly by engine.audioOnly.collectAsStateWithLifecycle()
     val audioOnly = remote != null || noVideoTrack || chosenSoundOnly
 
     Column(
@@ -142,7 +150,7 @@ fun MiniPlayer(
                     )
                 }
             }
-            IconButton(onClick = { if (remote != null) remote.togglePlayPause() else player.togglePlayPause() }) {
+            IconButton(onClick = { if (remote != null) remote.togglePlayPause() else engine.togglePlayPause() }) {
                 Icon(
                     imageVector = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
                     contentDescription = stringResource(R.string.settings_remote_action_play_pause),

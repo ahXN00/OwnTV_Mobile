@@ -14,6 +14,15 @@ import kotlinx.coroutines.withTimeoutOrNull
 private enum class Mode { UNDECIDED, SCRUB, LEFT_COLUMN, RIGHT_COLUMN, MIDDLE_COLUMN, PINCH, HOLD }
 
 /**
+ * How far up or down the middle of the screen a finger has to travel before it counts as a swipe.
+ *
+ * A seventh of the screen — far enough that it cannot happen by accident, short enough to be one
+ * comfortable thumb movement. Brightness and volume are deliberately NOT held to this: they are
+ * continuous, they show what they are doing as they do it, and a small adjustment is the normal use.
+ */
+private const val SWIPE_FRACTION = 0.15f
+
+/**
  * Every touch gesture the player understands, in one pass over the pointer stream.
  *
  * One loop rather than a stack of `detectXGestures` modifiers, because those all consume the same
@@ -114,7 +123,14 @@ fun Modifier.playerGestures(
         when (mode) {
             Mode.HOLD -> onSpeedHold(false)
             Mode.SCRUB -> onScrubEnd()
-            Mode.MIDDLE_COLUMN -> if (travel.y > 0) onSwipeDown() else onSwipeUp()
+            // A swipe has to be a real one. What classified this gesture was the system's touch slop
+            // — about three millimetres — so *any* slip past it counted: reaching for the pause
+            // button with a thumb that slid on the way shrank the player into the mini window, or
+            // threw the channel list up over the picture. Both are whole-screen actions and neither
+            // is what that finger meant.
+            Mode.MIDDLE_COLUMN -> if (abs(travel.y) > size.height * SWIPE_FRACTION) {
+                if (travel.y > 0) onSwipeDown() else onSwipeUp()
+            }
             Mode.PINCH -> Unit
             Mode.LEFT_COLUMN, Mode.RIGHT_COLUMN -> Unit
             Mode.UNDECIDED -> {
