@@ -11,6 +11,23 @@ The first build of the mobile app. There is no user-facing app yet: this release
 pipeline that will ship one — the repository, the build, the signing key, the translations and the
 release automation.
 
+### 🚀 The app opens faster from cold
+
+A baseline profile now ships inside the APK. It is a list of the classes and methods the app reaches
+on the way to its first screen, recorded by touring a real, set-up app: Home and its scrolling rows,
+each destination on the bottom bar, and opening one item and coming back. Android reads that list at
+install time and compiles those paths ahead of time, so the Compose runtime, Room's query machinery
+and Koin's graph resolution no longer run interpreted while somebody waits at a blank screen.
+
+It costs nothing at runtime and changes no behaviour — the same code runs, prepared rather than
+worked out on the spot. **One recording serves both ABI builds**, because a profile names code, not
+machine instructions.
+
+**It is not known yet how much this helps here.** No release-build start-up measurement has been
+taken on a phone, so the profile ships on the general grounds that it cannot hurt, not on a measured
+figure. **Re-record it whenever the start-up path changes materially** — a stale profile quietly
+stops helping rather than failing a build.
+
 ### ⬆️ The app tells you when there is a new version
 
 This app is sideloaded, so until now nothing was ever going to tell anyone a new version existed —

@@ -17,6 +17,7 @@
 
 ### New features
 
+- **🚀 The app opens faster from cold**
 - **⬆️ The app tells you when there is a new version, and installs it**
 - **🔎 Set how big the interface and its text are during setup** (#179)
 - **🎨 A real colour picker for the accent, the selection highlight and subtitle text**
