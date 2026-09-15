@@ -198,7 +198,9 @@ and behave as they do on the television. Mobile-specific shapes:
   picker, with a PIN-gated profile checklist.
 - **Local sync** — the two devices pair over the LAN (QR code scanned with the camera, or picked from
   network discovery), preview exactly what a merge will change, and apply it deliberately. Hosting
-  runs only while the screen is open. Deletions propagate as deletions.
+  runs only while the screen is open. Deletions propagate as deletions. It is also offered on the
+  **first setup screen**, where a phone with nothing on it only receives and never hosts, so a new
+  device is furnished from the television without going near the menus.
 
 ---
 

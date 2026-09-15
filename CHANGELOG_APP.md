@@ -15,6 +15,10 @@
 
 ## v1.0.1 — unreleased
 
+### New features
+
+- **✨ Set a new phone up from the device you already have**
+
 ### Fixes
 
 - **⏪ Catch-up plays on Stalker portal playlists**

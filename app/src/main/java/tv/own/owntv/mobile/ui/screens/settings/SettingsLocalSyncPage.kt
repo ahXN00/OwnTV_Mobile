@@ -1,9 +1,11 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
 import android.text.format.DateUtils
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -18,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +43,7 @@ import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.components.sheetListHeight
+import tv.own.owntv.mobile.ui.setup.SetupPage
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
@@ -146,6 +150,109 @@ fun SettingsLocalSyncPage(
     }
 
     vm.error?.let { ErrorSheet(it, vm::dismissError) }
+}
+
+/**
+ * The same feature offered during first-run setup, as the third way of furnishing a new phone: copy
+ * the device you already have over the Wi-Fi, instead of typing a playlist in or finding a backup.
+ *
+ * It lives beside [SettingsLocalSyncPage] so it can reuse that page's sheets unchanged — they are the
+ * substance of it, and a second copy would be a second thing to keep right.
+ *
+ * Two things differ from the settings page, and only two:
+ *  - **it never hosts.** A phone still being set up has nothing worth serving, and announcing an
+ *    empty container on the network would only be something for the other device to find by mistake.
+ *  - **the direction is not a question.** A device at this point in its life can only receive, so
+ *    [LocalSyncViewModel.Step.ChooseDirection] is answered rather than shown. Which *sections* to
+ *    take is still asked: someone moving to a new phone may want the playlists without the old
+ *    device's settings.
+ *
+ * The television's counterpart is `SetupLocalSyncScreen`, and the sequence is deliberately identical.
+ */
+@Composable
+fun SetupLocalSyncStep(
+    onRestored: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    vm: LocalSyncViewModel = koinViewModel(),
+) {
+    // Straight into discovery: arriving here IS the decision to look for the other device, so asking
+    // the user to press "Find a device" as well would be asking twice.
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        vm.beginPairing()
+        started = true
+    }
+
+    val step = vm.step
+    LaunchedEffect(step, started) {
+        when {
+            !started -> Unit
+            // Dismissing any sheet clears the step, and here that means leaving — there is no device
+            // list underneath to fall back to.
+            step == null -> onBack()
+            step is LocalSyncViewModel.Step.ChooseDirection -> vm.chooseDirection(SyncDirection.RECEIVE)
+            else -> Unit
+        }
+    }
+
+    // Once the data has landed there is nothing left to cancel, so Back means the same as Done.
+    BackHandler { if (step is LocalSyncViewModel.Step.Result) onRestored() else vm.cancel() }
+
+    Box(modifier) {
+        // Title only. Every sheet below already says what to do, and the find sheet in particular
+        // carries this step's instruction verbatim — printing it here too showed it twice at once.
+        SetupPage {
+            Text(
+                text = stringResource(R.string.setup_sync_device),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
+
+        when (step) {
+            null -> Unit
+            is LocalSyncViewModel.Step.FindDevice -> FindDeviceSheet(vm)
+            is LocalSyncViewModel.Step.EnterPin -> PinSheet(onSubmit = vm::submitPin, onDismiss = vm::cancel)
+            // Answered above; a sheet for it would flash a choice the user never made.
+            is LocalSyncViewModel.Step.ChooseDirection -> Unit
+            is LocalSyncViewModel.Step.ChooseSections -> SectionsSheet(
+                direction = step.direction,
+                onStart = vm::start,
+                onDismiss = vm::cancel,
+            )
+            is LocalSyncViewModel.Step.Confirm -> ConfirmSheet(
+                preview = step.preview,
+                direction = step.direction,
+                onConfirm = vm::confirm,
+                onDismiss = vm::cancel,
+            )
+            // Not [ResultSheet]: its Close returns to the device list, and here the only thing left
+            // to do is finish onboarding.
+            is LocalSyncViewModel.Step.Result -> SetupResultSheet(step, onDone = onRestored)
+        }
+
+        vm.error?.let { ErrorSheet(it, vm::dismissError) }
+    }
+}
+
+/** [ResultSheet] with the one difference setup needs: the button leaves the wizard, not the sheet. */
+@Composable
+private fun SetupResultSheet(result: LocalSyncViewModel.Step.Result, onDone: () -> Unit) {
+    MobileBottomSheet(onDismissRequest = onDone, title = stringResource(R.string.local_sync_done)) {
+        Column(
+            modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
+            verticalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
+        ) {
+            result.received?.let { Note(stringResource(R.string.local_sync_received_items, it.items)) }
+        }
+        SheetButtons(
+            confirm = stringResource(R.string.common_done),
+            confirmEnabled = true,
+            onConfirm = onDone,
+            onDismiss = onDone,
+        )
+    }
 }
 
 /**

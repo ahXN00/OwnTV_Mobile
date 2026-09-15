@@ -23,13 +23,17 @@ Language  →  Text size  →  Disclaimer  →  Profile  →  Add a playlist
 1. **Language** — one of 26, or **System default**.
 2. **Text size** — interface zoom and font size, with a sample that resizes as you adjust.
 3. **Disclaimer** — OwnTV is a player; you bring the sources.
-4. **Profile** — create one, or restore a backup.
+4. **Profile** — create one, restore a backup, or copy everything **From another device**.
 5. **Add a playlist** — Xtream, M3U or Stalker. **Skip for now** is a valid answer.
 
 ### 📺 Coming from the television?
-**Where:** step 4 → **Restore a backup**, or later ⋯ More → **Local sync**
-A backup made on the TV restores here, encrypted ones included. Or pair the two devices over your own
-Wi-Fi and copy your data across with no file at all — see [Local sync](#-local-sync-with-your-tv).
+**Where:** step 4 → **From another device**, or **Restore a backup**
+No file needed for the first one: on the television open **⋯ More → Local sync** and turn **Sync
+mode** on, then pick **From another device** here. The phone finds it on the network or scans its
+code, you type the 6-digit PIN once, tick what to bring across, and see exactly what will change
+before it changes. A phone being set up only ever *receives* — nothing on the television is altered.
+A backup made on the TV also restores here, encrypted ones included. Later on, the full two-way
+version lives at ⋯ More → [Local sync](#-local-sync-with-your-tv).
 
 ---
 
@@ -317,7 +321,8 @@ Both devices open Local sync  →  pair (scan the QR, or pick from the list)
 ```
 
 - **Both devices must have the screen open.** Hosting runs only while it is, which is what keeps it
-  cheap and deliberate.
+  cheap and deliberate. The exception is a phone still being set up: it offers this during setup and
+  only receives, so only the *other* device needs Sync mode on.
 - **Nothing is applied on arrival** — you see what will change first.
 - **A deletion stays deleted** on both devices, rather than being undone by the merge.
 

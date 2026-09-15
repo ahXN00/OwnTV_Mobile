@@ -7,6 +7,18 @@ the tag.
 
 ## v1.0.1 — unreleased
 
+### ✨ Set a new phone up from the device you already have
+
+- **"From another device" on the very first setup screen.** Setting up a new phone no longer means
+  finishing setup and then hunting through the menus for Local sync: the first screen now offers it
+  beside "New profile" and "Restore backup", and copies your profiles, playlists, favourites and
+  history straight over the Wi-Fi from the OwnTV device you already have. Turn Sync mode on over
+  there first (More → Local sync); the new phone finds it on the network, or you scan its code, then
+  choose what to bring across, see exactly what will change, and confirm.
+- **You still choose what comes over.** The direction is not a question — a phone being set up can
+  only receive — but the tick list is the same one Backup & Restore uses, so you can take the
+  playlists and leave the old device's settings behind.
+
 ### 🩹 Catch-up plays, and Settings search finds everything
 
 - **Stalker catch-up plays.** Picking a past programme on a portal playlist did nothing at all — no

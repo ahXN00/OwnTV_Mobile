@@ -49,8 +49,9 @@ This is an **open-source** project — the code is original (not derived from an
 
 > ### 📱 Already using OwnTV on your television?
 > **Local sync** carries your playlists, profiles, favourites and watch history across your own
-> Wi-Fi, with no account and no cloud — and a **backup** made on the television restores here,
-> encrypted ones included.
+> Wi-Fi, with no account and no cloud — offered on the very first setup screen, so a new phone is
+> furnished from the television without going near the menus. A **backup** made on the television
+> restores here too, encrypted ones included.
 
 ---
 

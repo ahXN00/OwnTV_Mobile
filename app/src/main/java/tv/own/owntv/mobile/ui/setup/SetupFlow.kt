@@ -52,6 +52,7 @@ import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
 import tv.own.owntv.mobile.ui.profiles.ProfileEditorSheet
+import tv.own.owntv.mobile.ui.screens.settings.SetupLocalSyncStep
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
@@ -59,7 +60,7 @@ import tv.own.owntv.mobile.ui.theme.MobileDimens
  * "chooser" steps have no counterpart here.
  */
 private enum class Step {
-    WELCOME, DISPLAY_SIZE, DISCLAIMER, CHOICE, CREATE_PROFILE, ADD_CONTENT, EXISTING, FORM, IMPORTING, RESTORE
+    WELCOME, DISPLAY_SIZE, DISCLAIMER, CHOICE, SYNC_DEVICE, CREATE_PROFILE, ADD_CONTENT, EXISTING, FORM, IMPORTING, RESTORE
 }
 
 /**
@@ -124,6 +125,9 @@ fun SetupFlow(
             Step.DISPLAY_SIZE -> step = Step.WELCOME
             Step.DISCLAIMER -> step = Step.DISPLAY_SIZE
             Step.CHOICE -> step = Step.DISCLAIMER
+            // The step owns its own Back: it has sheets to dismiss first, and once the data has
+            // landed there is nothing to go back to.
+            Step.SYNC_DEVICE -> Unit
             Step.CREATE_PROFILE -> step = Step.CHOICE
             // Not `onCancel?.invoke()`: `firstRun` IS `onCancel == null`, so this branch is only
             // reached when there is one, and the compiler knows it.
@@ -154,7 +158,14 @@ fun SetupFlow(
             Step.CHOICE -> SetupChoice(
                 onCreateProfile = { step = Step.CREATE_PROFILE },
                 onRestore = { backupOrigin = Step.CHOICE; step = Step.RESTORE; pickBackup() },
+                onSyncDevice = { step = Step.SYNC_DEVICE },
                 onCancel = onCancel,
+            )
+            // A sync brings whole profiles with it, exactly as a restored backup does, so it finishes
+            // the same way the RESTORE step does rather than inventing a second ending.
+            Step.SYNC_DEVICE -> SetupLocalSyncStep(
+                onRestored = { vm.finish(onDone) },
+                onBack = { step = Step.CHOICE },
             )
             Step.CREATE_PROFILE -> ProfileEditorSheet(
                 initial = null,
@@ -223,7 +234,12 @@ fun SetupFlow(
 }
 
 @Composable
-private fun SetupChoice(onCreateProfile: () -> Unit, onRestore: () -> Unit, onCancel: (() -> Unit)?) {
+private fun SetupChoice(
+    onCreateProfile: () -> Unit,
+    onRestore: () -> Unit,
+    onSyncDevice: () -> Unit,
+    onCancel: (() -> Unit)?,
+) {
     SetupPage {
         Text(
             text = stringResource(R.string.setup_set_up_owntv),
@@ -250,6 +266,12 @@ private fun SetupChoice(onCreateProfile: () -> Unit, onRestore: () -> Unit, onCa
             subtitle = stringResource(R.string.setup_import_profiles_playlists),
             leading = { Icon(MobileIcons.Restore, contentDescription = null) },
             onClick = onRestore,
+        )
+        MobileListRow(
+            title = stringResource(R.string.setup_sync_device),
+            subtitle = stringResource(R.string.setup_sync_device_description),
+            leading = { Icon(MobileIcons.Sync, contentDescription = null) },
+            onClick = onSyncDevice,
         )
         if (onCancel != null) {
             MobileButton(
