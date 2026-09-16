@@ -19,8 +19,15 @@ the tag.
   only receive — but the tick list is the same one Backup & Restore uses, so you can take the
   playlists and leave the old device's settings behind.
 
-### 🩹 Catch-up plays, and Settings search finds everything
+### 🩹 Empty categories fill, catch-up plays, and Settings search finds everything
 
+- **A category your provider lists no longer arrives empty.** A playlist could offer a category and
+  hand over none of its channels, leaving it on screen with nothing inside — an adult category most
+  often, because providers filter those out of the "give me everything" request while still listing
+  them. The app now notices a category the provider skipped and asks for it directly. On one portal
+  playlist that recovered 174 channels that had never been delivered. Fixed in core (`core-1.0.45`),
+  and it applies to live channels, movies and series on both portal and Xtream playlists. Kids
+  profiles hide those categories automatically, exactly as before.
 - **Stalker catch-up plays.** Picking a past programme on a portal playlist did nothing at all — no
   picture, no message. The archive request carried a reference the provider could not resolve, so it
   answered with an empty response and the app gave up in silence. Fixed in core (`core-1.0.43`) and
