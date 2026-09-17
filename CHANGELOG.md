@@ -85,6 +85,12 @@ the tag.
   found by name — Multiview, both player engine pickers, the seek and rewind steps, the volume and
   zoom defaults, the language preferences, the per-playlist overrides — and neither could custom DNS,
   the nav bar customization, Keep watching or the start-on-a-channel option.
+- **The user guide now describes first-run setup exactly as it happens**, including the "Set up
+  OwnTV" screen it used to fold into the profile step. It also says plainly that the phone never
+  offers the TV guide after an import — the television does, the phone does not, and a guide that
+  described them as identical left people waiting for a prompt that was never coming. Two additions:
+  how to use your phone to fill in a playlist on the television, and how to take channel logos from
+  an XMLTV feed when the playlist carries none.
 
 ## v1.0.0 — 2026-09-14
 

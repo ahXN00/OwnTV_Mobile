@@ -33,6 +33,7 @@
 - **⏪ Catch-up loads faster**
 - **💬 Catch-up says when a provider has no recording, instead of doing nothing**
 - **🔎 Settings search finds every setting, including Multiview and the player engines**
+- **📖 The user guide describes first-run setup and guide data accurately**
 
 ## v1.0.0 — 2026-09-14
 

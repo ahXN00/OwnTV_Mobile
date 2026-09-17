@@ -17,14 +17,23 @@ stop where something looks useful.
 A fresh install walks you through the same steps as the television:
 
 ```
-Language  →  Text size  →  Disclaimer  →  Profile  →  Add a playlist
+Welcome  →  Text size  →  Disclaimer  →  Set up OwnTV  →  Profile  →  Add a playlist  →  Import
 ```
 
-1. **Language** — one of 26, or **System default**.
+1. **Welcome** — the language picker is on this screen: one of 26, or **System default**. Tap
+   **Get started**.
 2. **Text size** — interface zoom and font size, with a sample that resizes as you adjust.
 3. **Disclaimer** — OwnTV is a player; you bring the sources.
-4. **Profile** — create one, restore a backup, or copy everything **From another device**.
-5. **Add a playlist** — Xtream, M3U or Stalker. **Skip for now** is a valid answer.
+4. **Set up OwnTV** — **New profile**, **Restore a backup**, or **From another device** (copy
+   everything off a television you already have — see below).
+5. **Profile** — name, avatar, and optionally a **Kids** profile or a PIN.
+6. **Add a playlist** — **New**, **Existing** (only when another profile already has one), or
+   **Import** a backup file. **Skip for now** is a valid answer.
+7. **New** opens the form straight away — Xtream, M3U or Stalker. A phone has a keyboard, so there is
+   no remote-entry step here; that exists on the television, and your phone is what fills it in
+   (see [Setting up the television too?](#-setting-up-the-television-too)).
+8. **Import** runs. Unlike the television, the phone does **not** offer the TV guide afterwards —
+   add it yourself at [Settings → Sources → EPG sources](#-add-guide-data).
 
 ### 📺 Coming from the television?
 **Where:** step 4 → **From another device**, or **Restore a backup**
@@ -76,6 +85,13 @@ moves per centimetre of finger, without changing how far you must travel to star
 **Where:** Settings → Sources → **Playlists** → Add, or the first-run wizard
 **Xtream** (server, user, password), **M3U** (a URL, or a file picked with your phone's file picker),
 or **Stalker/Ministra** (portal URL + MAC, with optional Serial Number, Device IDs and Signature).
+
+### 📱 Setting up the television too?
+**Where:** on the **TV** — Settings → Manage sources → Add source → **Remote**
+Typing an Xtream password with a TV remote is miserable, so the television can hand the job to this
+phone. It shows a QR code and a 6-digit PIN; scan it, fill the form in your browser, and press
+**Send to TV** — then press **Start Import** on the television. It is a web page served by the TV, so
+it works from any phone on the same Wi-Fi, this app installed or not.
 
 ### ℹ️ Info & Re-test
 **Where:** Settings → Sources → Playlists → tap a playlist → **Info**
@@ -151,8 +167,13 @@ there's a search box.
 
 ### ➕ Add guide data
 **Where:** Settings → Sources → **EPG sources**
-Add XMLTV feeds, fill one from the playlist, set a User-Agent, pick a refresh interval, and choose
-whether to use that feed's channel logos.
+**The guide is opt-in, and the phone never offers it by itself** — if you have no programme names,
+this is why. Add XMLTV feeds here, **Fill from playlist** to take the URL your playlist already
+carries, set a User-Agent, pick a refresh interval, and choose whether to use that feed's channel
+logos.
+
+> **Playlist has no channel logos?** Turn on **Use this guide's channel logos** on the feed. Logos
+> then come from the XMLTV guide instead; channels the feed has no logo for keep the playlist's one.
 
 ---
 
