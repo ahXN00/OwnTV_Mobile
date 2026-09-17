@@ -18,9 +18,16 @@
 ### New features
 
 - **✨ Set a new phone up from the device you already have**
+- **⏭️ Next and previous episode, from the player itself**
 
 ### Fixes
 
+- **🎚️ The player's audio and subtitle panels scroll in landscape**
+- **🔊 The sound button is always on the player bar**
+- **⏸️ No loading spinner over a paused picture**
+- **📱 The status bar stays out of full screen**
+- **⏩ The fast-forward badge always disappears**
+- **▶️ "Resume playback" is a setting again**
 - **🗂️ Categories your provider lists no longer arrive empty**
 - **⏪ Catch-up plays on Stalker portal playlists**
 - **⏪ Catch-up loads faster**

@@ -43,6 +43,7 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.playback.SleepTimer
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.SheetScroll
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobileSheetShape
 
@@ -176,34 +177,36 @@ fun SleepTimerSheet(
 ) {
     val remaining by sleepTimer.remainingMs.collectAsStateWithLifecycle()
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_sleep_timer)) {
-        if (remaining != null) {
-            MobileListRow(
-                title = stringResource(R.string.common_off),
-                onClick = {
-                    sleepTimer.cancel()
-                    onDismiss()
-                },
-            )
-        }
-        SLEEP_MINUTES.forEach { minutes ->
-            MobileListRow(
-                title = stringResource(R.string.player_duration_minutes, minutes),
-                onClick = {
-                    sleepTimer.start(minutes * 60_000L)
-                    onDismiss()
-                },
-            )
-        }
-        // Only with a guide behind it: "end of programme" with no programme is a button that stops
-        // the stream at once.
-        programmeEndMs?.let { endMs ->
-            MobileListRow(
-                title = stringResource(R.string.player_sleep_timer_end_of_programme),
-                onClick = {
-                    sleepTimer.start(endMs - System.currentTimeMillis())
-                    onDismiss()
-                },
-            )
+        SheetScroll {
+            if (remaining != null) {
+                MobileListRow(
+                    title = stringResource(R.string.common_off),
+                    onClick = {
+                        sleepTimer.cancel()
+                        onDismiss()
+                    },
+                )
+            }
+            SLEEP_MINUTES.forEach { minutes ->
+                MobileListRow(
+                    title = stringResource(R.string.player_duration_minutes, minutes),
+                    onClick = {
+                        sleepTimer.start(minutes * 60_000L)
+                        onDismiss()
+                    },
+                )
+            }
+            // Only with a guide behind it: "end of programme" with no programme is a button that
+            // stops the stream at once.
+            programmeEndMs?.let { endMs ->
+                MobileListRow(
+                    title = stringResource(R.string.player_sleep_timer_end_of_programme),
+                    onClick = {
+                        sleepTimer.start(endMs - System.currentTimeMillis())
+                        onDismiss()
+                    },
+                )
+            }
         }
     }
 }

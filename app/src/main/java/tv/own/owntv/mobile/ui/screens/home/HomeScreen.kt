@@ -73,6 +73,7 @@ import tv.own.owntv.mobile.ui.nav.posterKey
 import tv.own.owntv.mobile.ui.screens.ObeyScrollToTop
 import tv.own.owntv.mobile.ui.screens.library.LibraryTab
 import tv.own.owntv.mobile.ui.theme.MobileCardShape
+import tv.own.owntv.mobile.ui.player.rememberResumeGate
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobilePosterShape
 
@@ -105,6 +106,10 @@ fun HomeScreen(
     // Every rail on Home plays or opens on a tap, so the menu is what is left for everything else:
     // favourite it, download it, or take it off the screen.
     var menuFor by remember { mutableStateOf<ContentTarget?>(null) }
+
+    // Continue watching and the hero both start something part-watched, so both go through the
+    // Resume playback setting rather than silently jumping to where the user left off.
+    val resumeGate = rememberResumeGate()
 
     // Coming back from a film is exactly when "continue watching" is out of date.
     LaunchedEffect(Unit) { vm.refresh() }
@@ -174,8 +179,12 @@ fun HomeScreen(
                     HomeRow.HERO -> HeroRow(
                         items = state.heroItems,
                         onOpenChannel = onOpenChannel,
-                        onPlayMovie = { id, position -> vm.playMovie(id, position, onPlayerOpened) },
-                        onPlayEpisode = { id, position -> vm.playEpisode(id, position, onPlayerOpened) },
+                        onPlayMovie = { id, position ->
+                            resumeGate(position) { vm.playMovie(id, it, onPlayerOpened) }
+                        },
+                        onPlayEpisode = { id, position ->
+                            resumeGate(position) { vm.playEpisode(id, it, onPlayerOpened) }
+                        },
                         onMenu = { menuFor = it },
                     )
                     HomeRow.RECENT_CHANNELS -> LiveRow(
@@ -200,14 +209,18 @@ fun HomeScreen(
                         title = stringResource(R.string.home_row_continue_movies),
                         items = state.continueMovies,
                         type = MediaType.MOVIE,
-                        onPlay = { item -> vm.playMovie(item.sourceItemId, item.positionMs, onPlayerOpened) },
+                        onPlay = { item ->
+                            resumeGate(item.positionMs) { vm.playMovie(item.sourceItemId, it, onPlayerOpened) }
+                        },
                         onMenu = { menuFor = it },
                     )
                     HomeRow.CONTINUE_SERIES -> ContinueRow(
                         title = stringResource(R.string.home_row_continue_series),
                         items = state.continueSeries,
                         type = MediaType.SERIES,
-                        onPlay = { item -> vm.playEpisode(item.targetItemId, item.positionMs, onPlayerOpened) },
+                        onPlay = { item ->
+                            resumeGate(item.positionMs) { vm.playEpisode(item.targetItemId, it, onPlayerOpened) }
+                        },
                         onMenu = { menuFor = it },
                     )
                 }

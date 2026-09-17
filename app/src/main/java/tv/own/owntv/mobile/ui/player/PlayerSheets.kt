@@ -41,6 +41,8 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileSlider
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.SheetScroll
+import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.player.PlaybackEngine
 import tv.own.owntv.player.StreamInfoRow
@@ -155,32 +157,34 @@ private fun SubtitleSheet(
     val tracks = remember { player.textTracks() }
     val timing = remember { player.subtitleTimingAvailable() }
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_subtitles)) {
-        MobileListRow(
-            title = stringResource(R.string.common_off),
-            onClick = { player.disableSubtitles(); onDismiss() },
-        )
-        if (tracks.isEmpty()) {
-            EmptyNote(stringResource(R.string.player_no_tracks))
-        }
-        tracks.forEach { track ->
-            val label = track.displayLabel()
+        SheetScroll {
             MobileListRow(
-                title = if (track.image) stringResource(R.string.player_image_track, label) else label,
-                subtitle = if (track.selected) stringResource(R.string.common_on) else null,
-                onClick = { player.selectSubtitle(track.mpvId); onDismiss() },
+                title = stringResource(R.string.common_off),
+                onClick = { player.disableSubtitles(); onDismiss() },
             )
-        }
-        if (canAddSubtitles) {
-            SectionLabel(stringResource(R.string.player_add_subtitles))
-            MobileListRow(title = stringResource(R.string.player_search_subtitles), onClick = onSearch)
-            MobileListRow(
-                title = stringResource(R.string.player_select_local_subtitle),
-                onClick = { onPickLocalSubtitle(); onDismiss() },
-            )
-        }
-        if (timing) {
-            SectionLabel(stringResource(R.string.player_subtitle_timing))
-            SubtitleTimingRow(player)
+            if (tracks.isEmpty()) {
+                EmptyNote(stringResource(R.string.player_no_tracks))
+            }
+            tracks.forEach { track ->
+                val label = track.displayLabel()
+                MobileListRow(
+                    title = if (track.image) stringResource(R.string.player_image_track, label) else label,
+                    subtitle = if (track.selected) stringResource(R.string.common_on) else null,
+                    onClick = { player.selectSubtitle(track.mpvId); onDismiss() },
+                )
+            }
+            if (canAddSubtitles) {
+                SectionLabel(stringResource(R.string.player_add_subtitles))
+                MobileListRow(title = stringResource(R.string.player_search_subtitles), onClick = onSearch)
+                MobileListRow(
+                    title = stringResource(R.string.player_select_local_subtitle),
+                    onClick = { onPickLocalSubtitle(); onDismiss() },
+                )
+            }
+            if (timing) {
+                SectionLabel(stringResource(R.string.player_subtitle_timing))
+                SubtitleTimingRow(player)
+            }
         }
     }
 }
@@ -246,17 +250,17 @@ private fun AudioSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     val delay by player.audioDelayMs.collectAsStateWithLifecycle()
     val remembered by player.audioDelayRemembered.collectAsStateWithLifecycle()
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_audio_track)) {
-        if (tracks.isEmpty()) EmptyNote(stringResource(R.string.player_no_tracks))
-        tracks.forEach { track ->
-            MobileListRow(
-                title = track.displayLabel(),
-                subtitle = if (track.selected) stringResource(R.string.common_on) else null,
-                onClick = { player.selectAudio(track.mpvId); onDismiss() },
-            )
-        }
-        // Lip sync, for a badly muxed file where the voices arrive before or after the mouths. Offered
-        // on everything the full-screen player plays, exactly as the television offers it.
-        run {
+        SheetScroll {
+            if (tracks.isEmpty()) EmptyNote(stringResource(R.string.player_no_tracks))
+            tracks.forEach { track ->
+                MobileListRow(
+                    title = track.displayLabel(),
+                    subtitle = if (track.selected) stringResource(R.string.common_on) else null,
+                    onClick = { player.selectAudio(track.mpvId); onDismiss() },
+                )
+            }
+            // Lip sync, for a badly muxed file where the voices arrive before or after the mouths.
+            // Offered on everything the full-screen player plays, exactly as the television offers it.
             SectionLabel(stringResource(R.string.player_av_sync))
             Row(
                 Modifier
@@ -316,12 +320,15 @@ private fun SectionLabel(text: String) {
 private fun AspectSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     val current by player.zoomMode.collectAsStateWithLifecycle()
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_tool_aspect)) {
-        ZoomMode.entries.forEach { mode ->
-            MobileListRow(
-                title = stringResource(mode.labelRes),
-                subtitle = if (mode == current) stringResource(R.string.common_on) else null,
-                onClick = { player.setZoomModeByUser(mode); onDismiss() },
-            )
+        // Six modes: one row more than a landscape sheet fits, so "Force 4:3" was off the end of it.
+        SheetScroll {
+            ZoomMode.entries.forEach { mode ->
+                MobileListRow(
+                    title = stringResource(mode.labelRes),
+                    subtitle = if (mode == current) stringResource(R.string.common_on) else null,
+                    onClick = { player.setZoomModeByUser(mode); onDismiss() },
+                )
+            }
         }
     }
 }
@@ -333,22 +340,25 @@ private fun SpeedSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
     val current by player.speed.collectAsStateWithLifecycle()
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_tool_speed)) {
         val locale = LocalConfiguration.current.locales[0]
-        SPEEDS.forEach { speed ->
-            val number = remember(speed, locale) {
-                java.text.NumberFormat.getNumberInstance(locale).apply {
-                    minimumFractionDigits = 1
-                    maximumFractionDigits = 2
-                }.format(speed)
+        // Seven speeds, and 2.0x is the last of them — the one a landscape sheet dropped.
+        SheetScroll {
+            SPEEDS.forEach { speed ->
+                val number = remember(speed, locale) {
+                    java.text.NumberFormat.getNumberInstance(locale).apply {
+                        minimumFractionDigits = 1
+                        maximumFractionDigits = 2
+                    }.format(speed)
+                }
+                MobileListRow(
+                    title = if (speed == 1.0) {
+                        stringResource(R.string.player_speed_normal)
+                    } else {
+                        stringResource(R.string.player_speed, number)
+                    },
+                    subtitle = if (speed == current) stringResource(R.string.common_on) else null,
+                    onClick = { player.setSpeed(speed); onDismiss() },
+                )
             }
-            MobileListRow(
-                title = if (speed == 1.0) {
-                    stringResource(R.string.player_speed_normal)
-                } else {
-                    stringResource(R.string.player_speed, number)
-                },
-                subtitle = if (speed == current) stringResource(R.string.common_on) else null,
-                onClick = { player.setSpeed(speed); onDismiss() },
-            )
         }
     }
 }
@@ -364,7 +374,7 @@ private fun StreamInfoSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
         // them a whole stream URL that wraps to three lines — and half a screen never holds it.
         Column(
             Modifier
-                .heightIn(max = (LocalConfiguration.current.screenHeightDp / 2).dp)
+                .heightIn(max = sheetListHeight())
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = MobileDimens.ScreenPaddingH),
         ) {
@@ -407,7 +417,7 @@ private fun ChannelSheet(
         title = stringResource(R.string.content_channel_overlay_title),
     ) {
         if (onTuneToNumber != null) DirectTuneField(onTuneToNumber, onDismiss)
-        LazyColumn(Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp / 2).dp)) {
+        LazyColumn(Modifier.heightIn(max = sheetListHeight())) {
             items(channels, key = { it.id }) { channel ->
                 MobileListRow(
                     title = channel.name,

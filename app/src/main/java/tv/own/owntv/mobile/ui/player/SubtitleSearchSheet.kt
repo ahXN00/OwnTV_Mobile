@@ -23,7 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -33,6 +32,7 @@ import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
 /**
@@ -144,7 +144,7 @@ fun SubtitleSearchSheet(onDismiss: () -> Unit, vm: SubtitleSearchViewModel = koi
             }
 
             is SubtitleSearchViewModel.UiState.Results -> LazyColumn(
-                Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp / 2).dp),
+                Modifier.heightIn(max = sheetListHeight()),
             ) {
                 items(s.results, key = { it.fileId }) { result ->
                     val separator = stringResource(R.string.player_subtitles_tags_separator)

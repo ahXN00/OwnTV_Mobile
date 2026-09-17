@@ -119,7 +119,9 @@ fun SettingsVideoPlayerPage(
     val tuneTimeout = s.liveTuneTimeoutSecs.pref(0)
     val seekStep = s.seekStepSec.pref(SeekSteps.DEFAULT_SEEK_STEP_SEC)
     val rewindStep = s.liveRewindStepSec.pref(SeekSteps.DEFAULT_LIVE_REWIND_STEP_SEC)
-    val resume = s.resumeMode.pref(SettingsRepository.ResumeMode.AUTO)
+    // ASK, because that is what core stores when nothing has been chosen. Showing AUTO here named a
+    // setting the app was not actually using, in the one frame before the real value arrives.
+    val resume = s.resumeMode.pref(SettingsRepository.ResumeMode.ASK)
     val subStyleOn = s.subtitleStyleEnabled.pref(false)
     val externalLive = s.externalPlayerLive.pref(false)
     val externalMovies = s.externalPlayerMovies.pref(false)

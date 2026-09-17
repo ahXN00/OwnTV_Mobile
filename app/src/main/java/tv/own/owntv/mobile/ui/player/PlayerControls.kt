@@ -276,7 +276,18 @@ private fun TopRow(
 private fun TransportRow(player: PlaybackEngine, isLive: Boolean, modifier: Modifier = Modifier) {
     val playing by player.isPlaying.collectAsStateWithLifecycle()
     val step by player.seekStepMs.collectAsStateWithLifecycle()
+    // Whether there is an episode either side of this one. The engine answers "no" for a film and for
+    // live, so the two buttons appear only where they mean something.
+    val nav by player.nav.collectAsStateWithLifecycle()
     TransportCapsule(modifier) {
+        // The phone used to reach the next episode only through the card that appears in the last
+        // thirty seconds — so skipping the end credits meant leaving the player, finding the series
+        // and picking the episode. The television has had both of these beside play all along.
+        if (nav.hasPrev) {
+            RoundControl(MobileIcons.SkipPrevious, R.string.settings_remote_button_previous) {
+                player.previous()
+            }
+        }
         if (!isLive) {
             RoundControl(MobileIcons.FastRewind, R.string.player_skip_back) { player.seekBy(-step) }
         }
@@ -288,6 +299,9 @@ private fun TransportRow(player: PlaybackEngine, isLive: Boolean, modifier: Modi
         )
         if (!isLive) {
             RoundControl(MobileIcons.FastForward, R.string.player_skip_forward) { player.seekBy(step) }
+        }
+        if (nav.hasNext) {
+            RoundControl(MobileIcons.SkipNext, R.string.settings_remote_button_next) { player.next() }
         }
     }
 }
@@ -431,7 +445,6 @@ private fun ToolBar(
     liveOnExo: Boolean = false,
     onToggleLiveEngine: (() -> Unit)? = null,
 ) {
-    val audioCount by engine.audioCount.collectAsStateWithLifecycle()
     val speed by engine.speed.collectAsStateWithLifecycle()
     val engineName by engine.engineChip.collectAsStateWithLifecycle()
     // The engine chip in the title line is small and easy to miss, so the swap says which engine it
@@ -475,11 +488,16 @@ private fun ToolBar(
                 label = stringResource(R.string.player_tool_subtitles),
                 onClick = { onOpenSheet(PlayerSheet.SUBTITLES) },
             )
-            PlayerControl.AUDIO -> if (audioCount > 1) {
-                CtrlButton(MobileIcons.Audiotrack, stringResource(R.string.player_tool_audio), {
-                    onOpenSheet(PlayerSheet.AUDIO)
-                })
-            }
+            // Always, like the subtitles button beside it and like the television's — never gated on
+            // the track count. This sheet is also where A/V sync lives, and a single-soundtrack film
+            // is precisely the one whose voices need dragging back into line with the mouths; hidden
+            // on one track, the fix was unreachable exactly when it was wanted. An empty list says so
+            // itself, the way the subtitle sheet already does.
+            PlayerControl.AUDIO -> CtrlButton(
+                icon = MobileIcons.Audiotrack,
+                label = stringResource(R.string.player_tool_audio),
+                onClick = { onOpenSheet(PlayerSheet.AUDIO) },
+            )
             // Adding what is on to Favourites without leaving it. From here there is no list row
             // to hold down, so the player has to carry the toggle itself.
             PlayerControl.FAVOURITE -> CtrlButton(

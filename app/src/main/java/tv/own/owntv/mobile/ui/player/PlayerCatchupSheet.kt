@@ -30,6 +30,7 @@ import tv.own.owntv.core.live.CatchupJumps
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
+import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import java.text.SimpleDateFormat
 import java.util.TimeZone
@@ -76,7 +77,7 @@ fun CatchupSheet(options: CatchupOptions, onDismiss: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
         )
-        LazyColumn(Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp / 2).dp)) {
+        LazyColumn(Modifier.heightIn(max = sheetListHeight())) {
             items(options.offsetsSec, key = { it }) { offset ->
                 val at = CatchupJumps.instantFor(offset, nowMs)
                 val format = if (CatchupJumps.crossesDay(offset, nowMs, zone)) withDay else timeOnly

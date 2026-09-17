@@ -65,6 +65,7 @@ import tv.own.owntv.mobile.ui.components.SheetAction
 import tv.own.owntv.mobile.ui.components.TmdbDetailsSheet
 import tv.own.owntv.mobile.ui.components.episodeDetails
 import tv.own.owntv.mobile.ui.player.formatTimestamp
+import tv.own.owntv.mobile.ui.player.rememberResumeGate
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobilePosterShape
 import tv.own.owntv.mobile.ui.theme.glassSurface
@@ -120,6 +121,11 @@ fun DetailScreen(
     val shown = if (hideWatched) seasonEpisodes.filterNot { it.id in completedIds } else seasonEpisodes
     val nextUp = episodes.firstOrNull { it.id == nextUpId }
     val resumeMs = progress?.takeIf { it.durationMs > 1L }?.positionMs ?: 0L
+
+    // An episode is one tap with one meaning, so a part-watched one goes through the Resume playback
+    // setting. The two buttons above it do NOT: "Resume at 12:34" and "Play" are already the answer to
+    // the question, and asking it again after the user has pressed one of them is asking twice.
+    val resumeGate = rememberResumeGate()
 
     var menuFor by remember { mutableStateOf<EpisodeEntity?>(null) }
     var episodeOptions by remember { mutableStateOf(false) }
@@ -250,7 +256,9 @@ fun DetailScreen(
                         episode = episode,
                         positionMs = episodeProgress[episode.id]?.takeIf { it.durationMs > 1L }?.positionMs ?: 0L,
                         onPlay = {
-                            vm.playEpisode(episode.id, episodeProgress[episode.id]?.positionMs ?: 0L, onPlay)
+                            resumeGate(episodeProgress[episode.id]?.positionMs ?: 0L) {
+                                vm.playEpisode(episode.id, it, onPlay)
+                            }
                         },
                     )
                 }
@@ -293,7 +301,9 @@ fun DetailScreen(
                     durationMs = watched?.durationMs ?: 0L,
                     completed = episode.id in completedIds,
                     lastWatched = episode.id == lastWatchedId,
-                    onClick = { vm.playEpisode(episode.id, watched?.positionMs ?: 0L, onPlay) },
+                    onClick = {
+                        resumeGate(watched?.positionMs ?: 0L) { vm.playEpisode(episode.id, it, onPlay) }
+                    },
                     onLongClick = { menuFor = episode },
                 )
             }

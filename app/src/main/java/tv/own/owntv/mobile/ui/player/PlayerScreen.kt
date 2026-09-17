@@ -25,6 +25,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,8 +43,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
@@ -138,6 +141,10 @@ fun PlayerScreen(
     val error by activeEngine.error.collectAsStateWithLifecycle()
     val errorInfo by activeEngine.errorInfo.collectAsStateWithLifecycle()
     val isPlaying by activeEngine.isPlaying.collectAsStateWithLifecycle()
+    // Waiting for the stream is NOT the same as not playing: a user who pressed pause is also "not
+    // playing", and the spinner over a deliberately paused picture reads as a stall. The television
+    // has always drawn this from `buffering`; so does this now.
+    val buffering by activeEngine.buffering.collectAsStateWithLifecycle()
     // Only the stream that never had a picture — a radio channel — reaches this screen without one.
     // The user's own sound-only choice cannot, see below.
     val audioOnlyMedia by activeEngine.audioOnlyMedia.collectAsStateWithLifecycle()
@@ -278,6 +285,18 @@ fun PlayerScreen(
     val playerRecording by tuner.playerRecording.collectAsStateWithLifecycle()
     var brightness by remember { mutableFloatStateOf(0.5f) }
     var hud by remember { mutableStateOf<GestureFeedback?>(null) }
+    // Which *showing* this is, counted up on every one. Two forward double taps at the same seek step
+    // produce an equal `GestureFeedback.Skip`, and Compose compares state by value: the second tap was
+    // therefore not a change at all, so the hide timer below — keyed on the value — never restarted.
+    // Worse, when a tap landed in the same frame as the timer's own `null`, the composition only ever
+    // saw the value it started with, the key never moved, and the finished timer was never relaunched:
+    // the badge then sat on the picture until some *different* gesture replaced it. Counting makes
+    // every showing distinct, so every one of them arms its own timer.
+    var hudShowing by remember { mutableIntStateOf(0) }
+    fun showHud(feedback: GestureFeedback?) {
+        hud = feedback
+        hudShowing++
+    }
     val haptics = LocalHapticFeedback.current
     // How far the screen-wide scrub gesture has moved so far, as a fraction of the whole, or null
     // when no such gesture is in progress. The seek bar draws it; nothing has been seeked yet.
@@ -294,6 +313,11 @@ fun PlayerScreen(
     DisposableEffect(activity) {
         val window = activity?.window
         val insets = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
+        // Transient, not permanent. Left at the default, a swipe from the edge brought the clock and
+        // the navigation bar back over the picture and *left them there* for the rest of the film —
+        // the top bar in the middle of a scene. This way the swipe still shows them, and they leave
+        // again on their own.
+        insets?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         insets?.hide(WindowInsetsCompat.Type.systemBars())
         // Hiding the bars is not enough: the strip the camera sits in stays outside the window
         // unless the window is told to lay out into it, and the wallpaper shows through there.
@@ -315,10 +339,24 @@ fun PlayerScreen(
                 }
             }
         }
+        // Hiding once is not enough either: the keyboard in the channel-number field pulls the bars
+        // back up with it, and they do not always leave again when it goes. Anything that puts them
+        // back while the picture is on screen puts them away again. The insets are returned exactly
+        // as they arrived — this watches, it does not consume.
+        val decor = window?.decorView
+        if (decor != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(decor) { _, applied ->
+                if (applied.isVisible(WindowInsetsCompat.Type.systemBars())) {
+                    insets?.hide(WindowInsetsCompat.Type.systemBars())
+                }
+                applied
+            }
+        }
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         pip.playerOnScreen.value = true
         onDispose {
             pip.playerOnScreen.value = false
+            if (decor != null) ViewCompat.setOnApplyWindowInsetsListener(decor, null)
             insets?.show(WindowInsetsCompat.Type.systemBars())
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             if (window != null) {
@@ -349,10 +387,10 @@ fun PlayerScreen(
     }
 
     // Every readout is a burst except fast play, which lasts exactly as long as the finger is down.
-    LaunchedEffect(hud) {
+    LaunchedEffect(hudShowing) {
         if (hud != null && hud !is GestureFeedback.Speed) {
             delay(HUD_TIMEOUT_MS)
-            hud = null
+            showHud(null)
         }
     }
     // The controls go away on their own, but never while a picker is open over them and never in the
@@ -402,12 +440,12 @@ fun PlayerScreen(
                 onDoubleTapLeft = {
                     skip(tuner, isLive, forward = false)
                     tick()
-                    hud = GestureFeedback.Skip(forward = false, deltaMs = player.seekStepMs.value)
+                    showHud(GestureFeedback.Skip(forward = false, deltaMs = player.seekStepMs.value))
                 },
                 onDoubleTapRight = {
                     skip(tuner, isLive, forward = true)
                     tick()
-                    hud = GestureFeedback.Skip(forward = true, deltaMs = player.seekStepMs.value)
+                    showHud(GestureFeedback.Skip(forward = true, deltaMs = player.seekStepMs.value))
                 },
                 onScrub = {
                     carry.scrub += it
@@ -430,7 +468,7 @@ fun PlayerScreen(
                     val before = (brightness * NOTCHES).toInt()
                     setBrightness(brightness + delta)
                     if ((brightness * NOTCHES).toInt() != before) tick()
-                    hud = GestureFeedback.Level(volume = false, percent = (brightness * 100).toInt())
+                    showHud(GestureFeedback.Level(volume = false, percent = (brightness * 100).toInt()))
                 },
                 onVolume = { delta ->
                     carry.volume += delta * 150f
@@ -440,12 +478,12 @@ fun PlayerScreen(
                         activeEngine.adjustVolumeByUser(whole)
                         tick()
                     }
-                    hud = GestureFeedback.Level(volume = true, percent = activeEngine.volume.value)
+                    showHud(GestureFeedback.Level(volume = true, percent = activeEngine.volume.value))
                 },
                 onPinch = { zoomIn ->
                     val mode = if (zoomIn) ZoomMode.FILL else ZoomMode.FIT
                     activeEngine.setZoomModeByUser(mode)
-                    hud = GestureFeedback.Zoom(mode)
+                    showHud(GestureFeedback.Zoom(mode))
                 },
                 onSwipeDown = onExit,
                 onSwipeUp = { if (isLive) sheet = PlayerSheet.CHANNELS },
@@ -455,20 +493,22 @@ fun PlayerScreen(
                         carry.speedBefore = player.speed.value
                         player.setSpeed(SPEED_HOLD)
                         tick()
-                        hud = GestureFeedback.Speed(SPEED_HOLD)
+                        showHud(GestureFeedback.Speed(SPEED_HOLD))
                     } else {
                         player.setSpeed(carry.speedBefore)
-                        hud = null
+                        showHud(null)
                     }
                 },
                 onTwoFingerTap = {
                     activeEngine.toggleMute()
                     // Silence has no level to show; coming back out of it, the level is the answer.
-                    hud = if (activeEngine.volume.value == 0) {
-                        GestureFeedback.Muted
-                    } else {
-                        GestureFeedback.Level(volume = true, percent = activeEngine.volume.value)
-                    }
+                    showHud(
+                        if (activeEngine.volume.value == 0) {
+                            GestureFeedback.Muted
+                        } else {
+                            GestureFeedback.Level(volume = true, percent = activeEngine.volume.value)
+                        },
+                    )
                 },
                 sensitivity = gestureSensitivity / 100f,
             ),
@@ -510,7 +550,7 @@ fun PlayerScreen(
         val failure = error
         if (failure != null) {
             ErrorPanel(failure = failure, info = errorInfo, onRetry = activeEngine::retry)
-        } else if (!isPlaying && !noPicture) {
+        } else if (buffering && !noPicture) {
             // On the same material as every other message over the picture, rather than a bare ring.
             PlayerToast(Modifier.align(Alignment.Center)) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(32.dp))

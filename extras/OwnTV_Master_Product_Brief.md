@@ -98,6 +98,12 @@ Gestures are classified **once per gesture** in a single pointer loop, rather th
 that consume each other's events. **Gesture sensitivity** scales how far a value moves, not how far
 the finger must travel to be recognised, so a drag is still a drag at 50%.
 
+The transport row carries **Previous · Rewind · Play/Pause · Forward · Next**, with the two episode
+buttons present only when the engine reports an episode on that side — never on a film or a live
+channel. Every tool panel is a bottom sheet capped at the landscape-aware sheet height and scrolled
+inside it, because the player is always landscape and an uncapped sheet drops its last rows rather
+than growing.
+
 ### 2.3 The mobility layer — what only a phone has
 
 - **Picture-in-Picture** — leaving the app while the picture is full screen carries it into the
@@ -145,6 +151,8 @@ the current tab returns its list to the top. Predictive back is on.
 
 - **Home** — a snapping full-width hero rail, **Now Trending** as either the detailed hero or a plain
   poster row, continue-watching rows, and favourite/recent channel rails in **Cards** or **On now**.
+  Anything part-watched started from here obeys core's **Resume playback** mode — Always, Ask or
+  Never — through one shared gate, so the six routes into a saved position cannot disagree.
 - **Live TV** — category chips with a search sheet, channel rows with number, logo, now/next,
   progress, provider name and catch-up and favourite markers. A channel opens its own screen on a
   phone; on a tablet it plays in the pane beside the list.

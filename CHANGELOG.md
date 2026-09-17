@@ -19,6 +19,51 @@ the tag.
   only receive — but the tick list is the same one Backup & Restore uses, so you can take the
   playlists and leave the old device's settings behind.
 
+### ⏭️ Next and previous episode, from the player itself
+
+- **Two new buttons beside play.** Reaching the next episode used to mean waiting for the card that
+  appears in the last thirty seconds, or leaving the picture, finding the series and picking the
+  episode by hand — so skipping the end credits cost four taps and a trip out of full screen. The
+  player now carries **Previous** and **Next**, exactly where the television has always had them.
+  They appear only where they mean something: never on a film, never on a live channel, and no
+  "next" on the last episode of a series.
+
+### 🩹 The player's panels stopped hiding their own lower half
+
+- **Audio and subtitle panels scroll.** Held sideways — which is how the player is always held — a
+  panel taller than the screen did not scroll and did not grow. It simply stopped drawing, and
+  everything below the fold vanished without a trace: the **A/V sync** nudge at the foot of the
+  audio panel, and **subtitle timing**, **Search subtitles** and **Select local subtitle** at the
+  foot of the subtitle one. All of it had been built and none of it could be reached on a film with
+  more than a few tracks. The same fault was quietly clipping four other panels, so **Speed** lost
+  its 2.0×, **Aspect ratio** lost Force 4:3, and the sleep timer, catch-up and subtitle-search lists
+  were each given half a landscape screen to work with instead of the proper share.
+- **The sound button is always on the bar.** It used to hide itself whenever a film carried only one
+  soundtrack, which also hid the A/V sync control behind it — and a single-soundtrack film is
+  precisely the one whose voices need dragging back into line with the mouths. It now stays put like
+  the subtitles button beside it and like the television's, and the panel says for itself what is in
+  there.
+- **No spinner over a paused picture.** Pressing pause put the loading ring on screen and left it
+  turning, because "paused" and "still loading" were being treated as the same thing. The ring now
+  means what it says.
+- **The status bar stays out of full screen.** The clock, the battery and the navigation bar came
+  back over the picture at the first stray swipe near an edge and then stayed there for the rest of
+  the film. They are now transient, as they should be — a swipe still summons them, and they leave
+  again on their own. Anything that puts them back, the keyboard included, is answered the same way.
+- **The fast-forward badge always disappears.** Double-tapping forward several times in a row could
+  leave the "+0:30" marker stranded on the picture, still there while the film played normally, and
+  only a rewind or a pause would clear it.
+
+### ▶️ "Resume playback" is a setting again
+
+- **The phone asks whether to resume or start over.** Settings has offered **Resume playback** —
+  Always, Ask, Never — since the settings screens were built, and nothing in the app ever read it:
+  every route into a part-watched film or episode silently jumped to where you left off, so **Ask**
+  and **Never** did nothing at all. All three now work, from Home's Continue watching rows, from the
+  hero card and from an episode in a series, with the same wording and the same ten-second threshold
+  the television uses. The **Resume at 12:34** and **Play** buttons on a film's own page are
+  unchanged — they are already the answer to the question, so they do not ask it again.
+
 ### 🩹 Empty categories fill, catch-up plays, and Settings search finds everything
 
 - **A category your provider lists no longer arrives empty.** A playlist could offer a category and

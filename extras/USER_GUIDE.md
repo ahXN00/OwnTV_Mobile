@@ -205,6 +205,11 @@ Movies and Series as one screen with a segmented control (a tablet gets them as 
 Tap for its page: backdrop, cast, chips, **Resume** or **Play**, favourite, download, season chips
 and episode progress. A show **opens on the episode you last watched**.
 
+Starting something part-watched anywhere else — a **Continue watching** row, the hero card, an
+episode in a series — asks **Resume or start over?** Settings → Video player → **Resume playback**
+changes that to always resuming, or always starting from the beginning. A film you left in the first
+ten seconds never asks.
+
 ### 🔧 The long-press menu
 Favourite · Download · Hide · Rename · Move · Move to category · Mark watched/unwatched ·
 TMDB details · Trailer · Play in another app.
@@ -263,7 +268,8 @@ Every gesture above also has a button on the control bar:
 | **Go live** | Back to the live edge |
 | **Volume · Brightness** | Sliders, with a mute row |
 | **Speed** | 0.5× to 2× |
-| **Subtitles · Audio** | Tracks, plus subtitle search and A/V sync |
+| **Subtitles · Audio** | Tracks, plus subtitle search, subtitle timing and A/V sync. Both are always on the bar — a film with one soundtrack still has A/V sync. Scroll the panel to reach what is below the tracks |
+| **Previous · Next** | The episode either side of this one, beside play. Series only |
 | **Aspect** | Fit · Fill · Stretch · Original · Force 16:9 · Force 4:3 |
 | **Favourite** | Adds what is playing |
 | **Catch-up** | *Go back to…* on archive channels |

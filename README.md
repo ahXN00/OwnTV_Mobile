@@ -74,8 +74,8 @@ Scan to join from your phone:
 - **Two engines** — libmpv for films and series and the widest codec/HDR support, ExoPlayer for
   fast-starting Live TV, with an automatic handover between them and a **per-channel compatibility
   mode** when a stream only likes one of them.
-- **Full-screen player** with the complete control bar, and **touch gestures** for skip, scrub,
-  volume, brightness, zoom, speed and mute.
+- **Full-screen player** with the complete control bar — including **previous and next episode** —
+  and **touch gestures** for skip, scrub, volume, brightness, zoom, speed and mute.
 - **Picture-in-Picture**, a **draggable floating window**, and a **docked mini player** above the
   tabs — whichever you prefer, or none.
 - **Sound-only mode** with artwork, volume to 150 % and a sleep timer; it can switch itself on when
@@ -93,7 +93,8 @@ Scan to join from your phone:
 - **TV guide in three shapes** — On now, Grid and Timeline — with day chips, jump-to-now, search and
   a category filter.
 - **Film and show details** with the cast, the trailer, seasons, episode progress and Resume; a show
-  opens on the season you last watched.
+  opens on the season you last watched, and starting something part-watched asks whether to resume or
+  start over — or stops asking, if you prefer.
 - **Search** across channels, films and shows in one field, grouped by kind.
 - **Bottom bar on a phone, navigation rail on a tablet**, and two-pane layouts where there is room.
 

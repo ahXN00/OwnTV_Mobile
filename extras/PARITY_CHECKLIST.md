@@ -21,8 +21,8 @@ Two rows ended somewhere other than where the mockup put them. Both are explaine
 | Multiple playlists | ✅ | Playlists page; the provider name shows on rows, which matters more here than on a television |
 | Catch-up & live rewind | ✅ | The same `LiveLadder` as the television; a drag replaces the D-pad |
 | Series detail, seasons, episodes | ✅ | Opens on the last-watched episode |
-| Autoplay next episode / season | ✅ | Core logic, untouched |
-| Resume / watch history | ✅ | Core |
+| Autoplay next episode / season | ✅ | Core logic, untouched. **Previous / Next** buttons joined the transport row on 2026-09-17 — until then the next episode was reachable only from the card in the last thirty seconds |
+| Resume / watch history | ✅ | Core. The **Resume playback** setting (Always / Ask / Never) was displayed but never read until 2026-09-17, so the phone always resumed silently; all three modes now behave as the television's, including its ten-second threshold |
 | Favourites | ✅ | Core, plus a Favourites screen under More |
 | Home rows, order, hidden set | ✅ | All six `HomeRow` values |
 | Trending (TMDB) | ✅ | Core, with a detailed-card or posters-only choice |
@@ -47,7 +47,7 @@ Two rows ended somewhere other than where the mockup put them. Both are explaine
 | Movies / Series browse | ✅ | One Library tab with a segmented control |
 | Long-press menus | ✅ | Bottom sheets, with the same actions in the same saved order |
 | Settings — 10 groups | ✅ | A tile grid became a list with drill-down; the search box was kept |
-| Player: subtitles, zoom, speed, volume boost | ✅ | The same functions on a gesture *and* a button surface — no gesture-only function |
+| Player: subtitles, zoom, speed, volume boost | ✅ | The same functions on a gesture *and* a button surface — no gesture-only function. The panels are sheets rather than centred dialogs, and **they scroll**: until 2026-09-17 a sheet taller than a sideways phone silently dropped its last rows, which hid A/V sync, subtitle timing and subtitle search. The audio button is also always on the bar, as the television's is, so A/V sync is reachable on a single-soundtrack film |
 | Mini player / audio bar | ✅ | Three choices, not one: a floating window, a docked bar, or off |
 
 ## New — no television equivalent
