@@ -33,7 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import tv.own.owntv.core.database.entity.ChannelEntity
-import tv.own.owntv.core.database.entity.EpgChannelEntity
+import tv.own.owntv.core.epg.GuideCandidate
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.mobile.R
@@ -337,12 +337,12 @@ private fun RenameChannelDialog(
 internal fun EpgMatchSheet(
     channelName: String,
     currentMatch: String?,
-    search: suspend (String) -> List<EpgChannelEntity>,
+    search: suspend (String) -> List<GuideCandidate>,
     onPick: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    var results by remember { mutableStateOf<List<EpgChannelEntity>?>(null) }
+    var results by remember { mutableStateOf<List<GuideCandidate>?>(null) }
 
     LaunchedEffect(channelName) {
         snapshotFlow { query }
@@ -391,7 +391,7 @@ internal fun EpgMatchSheet(
                 modifier = Modifier.padding(MobileDimens.ScreenPaddingH),
             )
             else -> LazyColumn(Modifier.heightIn(max = sheetListHeight())) {
-                items(list, key = { it.id }) { epg ->
+                items(list, key = { it.epgChannelId }) { epg ->
                     MobileListRow(
                         title = epg.displayName ?: epg.epgChannelId,
                         subtitle = epg.epgChannelId,

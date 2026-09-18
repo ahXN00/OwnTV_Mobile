@@ -32,7 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.epg.EpgSource
+import tv.own.owntv.core.settings.GuideRetention
 import tv.own.owntv.core.settings.EpgAutoRefresh
+import tv.own.owntv.core.settings.EpgRefresh
+import tv.own.owntv.core.settings.PlaylistRefresh
 import tv.own.owntv.core.sync.work.EpgSyncState
 import tv.own.owntv.core.util.classifySyncFailure
 import tv.own.owntv.core.setup.displayText
@@ -67,6 +70,9 @@ fun SettingsEpgSourcesPage(
     var editSource by remember { mutableStateOf<EpgSource?>(null) }
     var addSource by remember { mutableStateOf(false) }
     var refreshFor by remember { mutableStateOf<EpgSource?>(null) }
+    var manualDaysFor by remember { mutableStateOf<EpgSource?>(null) }
+    var editingGuideDays by remember { mutableStateOf(false) }
+    val guideDays by vm.guideDaysToKeep.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf<EpgSource?>(null) }
 
     SettingsPage(modifier) {
@@ -78,7 +84,7 @@ fun SettingsEpgSourcesPage(
             sources.forEach { source ->
                 EpgRow(
                     source = source,
-                    autoRefresh = autoRefresh[source.id] ?: EpgAutoRefresh.OFF,
+                    autoRefresh = autoRefresh[source.id] ?: EpgRefresh.OFF,
                     counts = { vm.counts(source.id) },
                     syncState = vm.observeSync(source.id)
                         .collectAsStateWithLifecycle(EpgSyncState.Idle).value,
@@ -86,6 +92,11 @@ fun SettingsEpgSourcesPage(
                     onClick = { if (source.id !in deleting) menuSource = source },
                 )
             }
+            MobileListRow(
+                title = stringResource(R.string.settings_epg_guide_days),
+                subtitle = pluralStringResource(R.plurals.settings_epg_guide_days_value, guideDays, guideDays),
+                onClick = { editingGuideDays = true },
+            )
             MobileListRow(
                 title = stringResource(R.string.settings_epg_sources_add),
                 leading = { Icon(MobileIcons.Add, contentDescription = null) },
@@ -118,7 +129,7 @@ fun SettingsEpgSourcesPage(
             )
             MobileListRow(
                 title = stringResource(R.string.settings_epg_sources_auto_refresh_title),
-                subtitle = epgAutoRefreshLabel(autoRefresh[source.id] ?: EpgAutoRefresh.OFF),
+                subtitle = epgRefreshLabel(autoRefresh[source.id] ?: EpgRefresh.OFF),
                 onClick = { refreshFor = source; menuSource = null },
             )
             MobileListRow(
@@ -128,13 +139,42 @@ fun SettingsEpgSourcesPage(
         }
     }
 
+    if (editingGuideDays) {
+        // Preset days rather than a free number: a phone picks from a list far more comfortably than
+        // it steps a counter, and the presets cover the whole useful range.
+        SettingsChoiceSheet(
+            title = stringResource(R.string.settings_epg_guide_days),
+            choices = GuideRetention.PRESET_DAYS.map {
+                SettingsChoice(it, pluralStringResource(R.plurals.settings_epg_guide_days_value, it, it))
+            },
+            selected = guideDays,
+            onSelect = { vm.setGuideDaysToKeep(it) },
+            onDismiss = { editingGuideDays = false },
+        )
+    }
+
     refreshFor?.let { source ->
         SettingsChoiceSheet(
             title = stringResource(R.string.settings_epg_sources_auto_refresh_title),
             choices = EpgAutoRefresh.entries.map { SettingsChoice(it, epgAutoRefreshLabel(it)) },
-            selected = autoRefresh[source.id] ?: EpgAutoRefresh.OFF,
-            onSelect = { vm.setAutoRefresh(source, it) },
+            selected = (autoRefresh[source.id] ?: EpgRefresh.OFF).mode,
+            onSelect = { mode ->
+                // "Every N days" needs the N, so it opens a second sheet rather than guessing one.
+                if (mode == EpgAutoRefresh.MANUAL) manualDaysFor = source else vm.setAutoRefresh(source, EpgRefresh(mode))
+            },
             onDismiss = { refreshFor = null },
+        )
+    }
+
+    manualDaysFor?.let { source ->
+        SettingsChoiceSheet(
+            title = stringResource(R.string.settings_sources_refresh_days_title),
+            choices = PlaylistRefresh.PRESET_MANUAL_DAYS.map {
+                SettingsChoice(it, pluralStringResource(R.plurals.settings_sources_refresh_days, it, it))
+            },
+            selected = (autoRefresh[source.id] ?: EpgRefresh.OFF).manualDays,
+            onSelect = { vm.setAutoRefresh(source, EpgRefresh(EpgAutoRefresh.MANUAL, it)) },
+            onDismiss = { manualDaysFor = null },
         )
     }
 
@@ -160,7 +200,7 @@ fun SettingsEpgSourcesPage(
     if (addSource) {
         EpgSourceSheet(
             initial = null,
-            initialAutoRefresh = EpgAutoRefresh.OFF,
+            initialAutoRefresh = EpgRefresh.OFF,
             initialUseLogos = false,
             playlistOptions = { vm.playlistEpgOptions() },
             onDismiss = { addSource = false },
@@ -174,7 +214,7 @@ fun SettingsEpgSourcesPage(
     editSource?.let { source ->
         EpgSourceSheet(
             initial = source,
-            initialAutoRefresh = autoRefresh[source.id] ?: EpgAutoRefresh.OFF,
+            initialAutoRefresh = autoRefresh[source.id] ?: EpgRefresh.OFF,
             initialUseLogos = source.id in useLogos,
             playlistOptions = { vm.playlistEpgOptions() },
             onDismiss = { editSource = null },
@@ -195,7 +235,7 @@ fun SettingsEpgSourcesPage(
 @Composable
 private fun EpgRow(
     source: EpgSource,
-    autoRefresh: EpgAutoRefresh,
+    autoRefresh: EpgRefresh,
     counts: suspend () -> Triple<Int, Int, Int>,
     syncState: EpgSyncState,
     isDeleting: Boolean,
@@ -276,8 +316,8 @@ private fun EpgRow(
                 active != null -> percent
                     ?.let { stringResource(R.string.settings_epg_sources_syncing_percent, it) }
                     ?: stringResource(R.string.settings_epg_sources_syncing_label)
-                autoRefresh != EpgAutoRefresh.OFF -> stringResource(
-                    R.string.settings_sources_auto_refresh, epgAutoRefreshLabel(autoRefresh),
+                autoRefresh.mode != EpgAutoRefresh.OFF -> stringResource(
+                    R.string.settings_sources_auto_refresh, epgRefreshLabel(autoRefresh),
                 )
                 else -> null
             }
@@ -302,11 +342,11 @@ private fun EpgRow(
 @Composable
 private fun EpgSourceSheet(
     initial: EpgSource?,
-    initialAutoRefresh: EpgAutoRefresh,
+    initialAutoRefresh: EpgRefresh,
     initialUseLogos: Boolean,
     playlistOptions: suspend () -> List<EpgSourcesViewModel.PlaylistEpg>,
     onDismiss: () -> Unit,
-    onSave: (String, String, String?, EpgAutoRefresh, Boolean) -> Unit,
+    onSave: (String, String, String?, EpgRefresh, Boolean) -> Unit,
 ) {
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
     var url by remember { mutableStateOf(initial?.url.orEmpty()) }
@@ -314,6 +354,7 @@ private fun EpgSourceSheet(
     var refresh by remember { mutableStateOf(initialAutoRefresh) }
     var logos by remember { mutableStateOf(initialUseLogos) }
     var showRefresh by remember { mutableStateOf(false) }
+    var showManualDays by remember { mutableStateOf(false) }
     var showPlaylists by remember { mutableStateOf(false) }
 
     MobileBottomSheet(
@@ -358,7 +399,7 @@ private fun EpgSourceSheet(
             )
             MobileListRow(
                 title = stringResource(R.string.settings_epg_sources_auto_refresh_title),
-                subtitle = epgAutoRefreshLabel(refresh),
+                subtitle = epgRefreshLabel(refresh),
                 onClick = { showRefresh = true },
             )
             SettingRow(
@@ -383,9 +424,23 @@ private fun EpgSourceSheet(
         SettingsChoiceSheet(
             title = stringResource(R.string.settings_epg_sources_auto_refresh_title),
             choices = EpgAutoRefresh.entries.map { SettingsChoice(it, epgAutoRefreshLabel(it)) },
-            selected = refresh,
-            onSelect = { refresh = it },
+            selected = refresh.mode,
+            onSelect = { mode ->
+                if (mode == EpgAutoRefresh.MANUAL) showManualDays = true else refresh = EpgRefresh(mode)
+            },
             onDismiss = { showRefresh = false },
+        )
+    }
+
+    if (showManualDays) {
+        SettingsChoiceSheet(
+            title = stringResource(R.string.settings_sources_refresh_days_title),
+            choices = PlaylistRefresh.PRESET_MANUAL_DAYS.map {
+                SettingsChoice(it, pluralStringResource(R.plurals.settings_sources_refresh_days, it, it))
+            },
+            selected = refresh.manualDays,
+            onSelect = { refresh = EpgRefresh(EpgAutoRefresh.MANUAL, it) },
+            onDismiss = { showManualDays = false },
         )
     }
 
@@ -432,6 +487,14 @@ private fun EpgSourceSheet(
 }
 
 @Composable
+private fun epgRefreshLabel(refresh: EpgRefresh): String =
+    if (refresh.mode == EpgAutoRefresh.MANUAL) {
+        pluralStringResource(R.plurals.settings_sources_refresh_days, refresh.manualDays, refresh.manualDays)
+    } else {
+        epgAutoRefreshLabel(refresh.mode)
+    }
+
+@Composable
 private fun epgAutoRefreshLabel(mode: EpgAutoRefresh): String = stringResource(
     when (mode) {
         EpgAutoRefresh.OFF -> R.string.settings_sources_refresh_off
@@ -442,5 +505,6 @@ private fun epgAutoRefreshLabel(mode: EpgAutoRefresh): String = stringResource(
         EpgAutoRefresh.HOURS_12 -> R.string.settings_epg_refresh_12h
         EpgAutoRefresh.HOURS_24 -> R.string.settings_epg_refresh_24h
         EpgAutoRefresh.HOURS_48 -> R.string.settings_epg_refresh_48h
+        EpgAutoRefresh.MANUAL -> R.string.settings_sources_refresh_manual
     },
 )

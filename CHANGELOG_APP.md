@@ -19,6 +19,7 @@
 
 - **✨ Set a new phone up from the device you already have**
 - **⏭️ Next and previous episode, from the player itself**
+- **📅 A week of guide, and you choose how much**
 
 ### Fixes
 
@@ -34,6 +35,12 @@
 - **💬 Catch-up says when a provider has no recording, instead of doing nothing**
 - **🔎 Settings search finds every setting, including Multiview and the player engines**
 - **📖 The user guide describes first-run setup and guide data accurately**
+- **🔗 "Match EPG" lists guide channels again**
+- **🔎 The guide picker's search understands names and non-Latin scripts**
+- **🔗 Manual EPG matches survive deleting and re-adding a playlist**
+- **🤖 Auto-match no longer reports success it cannot deliver**
+- **🧹 Duplicate programmes are removed when the guide is downloaded**
+- **⚡ The guide keeps less in memory**
 
 ## v1.0.0 — 2026-09-14
 

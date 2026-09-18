@@ -39,7 +39,6 @@ import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.dao.SourceDao
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.ContentOrderEntity
-import tv.own.owntv.core.database.entity.EpgChannelEntity
 import tv.own.owntv.core.database.entity.FavoriteEntity
 import tv.own.owntv.core.epg.EpgShift
 import tv.own.owntv.core.epg.EpgSourceStore
@@ -99,6 +98,9 @@ class LiveViewModel(
 ) : ViewModel() {
 
     private val epgReader = LiveEpgReader(epgDao, epgSourceStore, sourceDao, xtreamClient, streamUrlResolver)
+
+    /** The same candidate set the Guide's picker uses — filtered by no source. */
+    private val guideCandidates = tv.own.owntv.core.epg.GuideCandidates(epgDao)
 
     private val ctx: StateFlow<ActiveProfileSources> = activeProfileSources(settings, sourceDao)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActiveProfileSources(-1L, emptyList()))
@@ -383,11 +385,11 @@ class LiveViewModel(
         }
     }
 
-    fun currentEpgMatch(channel: ChannelEntity): String? = custom.value.epgMatches[CustomizeKeys.channel(channel)]
+    fun currentEpgMatch(channel: ChannelEntity): String? = custom.value.epgMatchResolver.epgIdFor(channel)
 
-    suspend fun availableEpgChannels(channelName: String, query: String): List<EpgChannelEntity> =
+    suspend fun availableEpgChannels(channelName: String, query: String): List<tv.own.owntv.core.epg.GuideCandidate> =
         if (ctx.value.profileId < 0) emptyList()
-        else epgReader.availableEpgChannels(channelName, query, ctx.value.sourceIds)
+        else guideCandidates.forPicker(channelName, query)
 
     /** Map a channel to a guide channel by hand (null clears the override → back to auto-match). */
     fun setEpgMatch(channel: ChannelEntity, epgChannelId: String?) {

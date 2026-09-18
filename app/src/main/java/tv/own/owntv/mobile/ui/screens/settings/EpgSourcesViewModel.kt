@@ -19,6 +19,7 @@ import tv.own.owntv.core.epg.EpgSourceStore
 import tv.own.owntv.core.repository.EpgRepository
 import tv.own.owntv.core.repository.SourceRepository
 import tv.own.owntv.core.settings.EpgAutoRefresh
+import tv.own.owntv.core.settings.EpgRefresh
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.sync.work.EpgSyncScheduler
 import tv.own.owntv.core.sync.work.EpgSyncState
@@ -41,11 +42,19 @@ class EpgSourcesViewModel(
         store.sources.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Per-source EPG auto-refresh selection (Off / Startup / staleness threshold). */
-    val autoRefresh: StateFlow<Map<Long, EpgAutoRefresh>> = settings.epgAutoRefresh
+    /** How many days of upcoming guide to store — one value for every EPG source (guide plan R1). */
+    val guideDaysToKeep: StateFlow<Int> = settings.guideDaysToKeep
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), tv.own.owntv.core.settings.GuideRetention.DEFAULT_DAYS)
+
+    fun setGuideDaysToKeep(days: Int) {
+        viewModelScope.launch { settings.setGuideDaysToKeep(days) }
+    }
+
+    val autoRefresh: StateFlow<Map<Long, EpgRefresh>> = settings.epgAutoRefresh
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
-    fun setAutoRefresh(source: EpgSource, mode: EpgAutoRefresh) {
-        viewModelScope.launch { settings.setEpgAutoRefresh(source.id, mode) }
+    fun setAutoRefresh(source: EpgSource, refresh: EpgRefresh) {
+        viewModelScope.launch { settings.setEpgAutoRefresh(source.id, refresh) }
     }
 
     /** EPG sources whose own `<icon src>` logos replace the playlist's channel logos. */
@@ -60,7 +69,7 @@ class EpgSourcesViewModel(
         name: String,
         url: String,
         userAgent: String? = null,
-        autoRefresh: EpgAutoRefresh = EpgAutoRefresh.OFF,
+        autoRefresh: EpgRefresh = EpgRefresh.OFF,
         useLogos: Boolean = false,
     ) {
         viewModelScope.launch {

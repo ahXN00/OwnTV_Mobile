@@ -159,8 +159,8 @@ a **per playlist** override below it.
 | **Timeline** | One channel read top to bottom |
 
 The app remembers which you chose. Also in that sheet: **sort**, **Auto-match EPG** with a review
-list, and a **Size** slider for the grid's time scale. A seven-day strip sits above the guide, and
-there's a search box.
+list, and a **Size** slider for the grid's time scale. A day strip sits above the guide — as many days
+as **Guide days to keep** is set to — and there's a search box.
 
 **Tap a programme** for its synopsis, **Watch channel**, **Watch from start** (catch-up),
 **Record**, **Record every showing** and **Favourite**.
@@ -169,8 +169,13 @@ there's a search box.
 **Where:** Settings → Sources → **EPG sources**
 **The guide is opt-in, and the phone never offers it by itself** — if you have no programme names,
 this is why. Add XMLTV feeds here, **Fill from playlist** to take the URL your playlist already
-carries, set a User-Agent, pick a refresh interval, and choose whether to use that feed's channel
-logos.
+carries, set a User-Agent, pick a refresh interval — which can be **every N days** — and choose
+whether to use that feed's channel logos.
+
+**Guide days to keep** is on the same screen: how many days of upcoming guide to store, 1–14, seven
+by default. The same number decides how much is downloaded, how much is kept, and how many days the
+strip above the guide offers. Old programmes are kept only on channels with catch-up, since those are
+the only ones that can play them back.
 
 > **Playlist has no channel logos?** Turn on **Use this guide's channel logos** on the feed. Logos
 > then come from the XMLTV guide instead; channels the feed has no logo for keep the playlist's one.

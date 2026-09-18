@@ -87,6 +87,7 @@ fun GuideScreen(
     val favorites by vm.favoriteIds.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val day by vm.day.collectAsStateWithLifecycle()
+    val guideDays by vm.guideDays.collectAsStateWithLifecycle()
     val window by vm.window.collectAsStateWithLifecycle()
     val storedMode by vm.viewMode.collectAsStateWithLifecycle()
     val density by vm.densityPct.collectAsStateWithLifecycle()
@@ -137,7 +138,7 @@ fun GuideScreen(
             },
             onLongPressLabel = stringResource(R.string.settings_customize_categories),
         )
-        DayStrip(selected = day, onSelect = vm::selectDay)
+        DayStrip(selected = day, days = guideDays, onSelect = vm::selectDay)
 
         if (matching) {
             MatchingBanner()
@@ -241,13 +242,13 @@ fun GuideScreen(
 
 /** Today first, then the week the guide usually holds. A day with nothing in it shows as empty. */
 @Composable
-private fun DayStrip(selected: Int, onSelect: (Int) -> Unit) {
+private fun DayStrip(selected: Int, days: Int, onSelect: (Int) -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
-    val labels = remember(locale) {
+    val labels = remember(locale, days) {
         val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, "EEEdMMM")
         val format = SimpleDateFormat(pattern, locale)
         val cal = Calendar.getInstance()
-        List(GUIDE_DAYS) { offset ->
+        List(days) { offset ->
             val day = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, offset) }
             format.format(day.time)
         }
@@ -688,7 +689,6 @@ internal fun rememberGuideTimeFormat(): DateFormat {
 }
 
 /** Today plus the week most providers publish. */
-internal const val GUIDE_DAYS = 7
 
 internal const val MIN_DENSITY = 70
 internal const val MAX_DENSITY = 130

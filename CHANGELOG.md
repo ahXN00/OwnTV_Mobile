@@ -19,6 +19,19 @@ the tag.
   only receive — but the tick list is the same one Backup & Restore uses, so you can take the
   playlists and leave the old device's settings behind.
 
+### 📅 A week of guide, and you choose how much
+
+- **"Guide days to keep" in Settings → EPG Sources.** The app used to store two days of upcoming
+  guide and discard the rest, however much your provider sent — so the guide ran dry two days after a
+  refresh. It now keeps as many days as you ask for, seven by default, up to a fortnight. One number
+  decides how much is downloaded, how much is kept, and how many days the strip above the guide
+  offers.
+- **The day strip follows it.** It always showed exactly seven days, whatever the setting said.
+- **Old programmes are kept only where they can be replayed** — catch-up channels keep their full
+  archive, including ones you matched to a guide by hand; everything else keeps six hours.
+- **Guide refresh can be set to "every N days",** like a playlist's. Anything already chosen is
+  untouched.
+
 ### ⏭️ Next and previous episode, from the player itself
 
 - **Two new buttons beside play.** Reaching the next episode used to mean waiting for the card that
@@ -91,6 +104,23 @@ the tag.
   described them as identical left people waiting for a prompt that was never coming. Two additions:
   how to use your phone to fill in a playlist on the television, and how to take channel logos from
   an XMLTV feed when the playlist carries none.
+
+### 🗓️ Guide and EPG matching
+
+- **"Match EPG" lists guide channels again.** On a channel with no guide the picker could come up
+  empty while the guide itself drew programmes for that same channel: it was filtering by which
+  playlist delivered the guide, and nothing else was. It now offers every guide channel the app
+  holds, including feeds that list programmes without naming their channels.
+- **Searching the picker understands names.** Typing `bbc1` now finds "BBC One"; a lowercase Cyrillic
+  or Greek search now reaches an uppercase name, which it never could before.
+- **Your manual EPG matches survive deleting and re-adding a playlist.** Each match was remembered
+  against the playlist's internal id, so re-importing the same playlist quietly orphaned all of them.
+- **Auto-match no longer reports success it cannot deliver.** It skipped channels whose guide id
+  existed but held no programmes, and silently applied matches onto empty guide channels; those now
+  go to the review list.
+- **Duplicate programmes are removed when the guide is downloaded** rather than hidden on every read.
+- **The guide keeps less in memory.** It remembered every row it had ever drawn, so scrolling a large
+  guide grew without limit; it now keeps a few hundred and forgets the rest.
 
 ## v1.0.0 — 2026-09-14
 
