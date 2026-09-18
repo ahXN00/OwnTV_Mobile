@@ -26,7 +26,7 @@ Two rows ended somewhere other than where the mockup put them. Both are explaine
 | Favourites | ✅ | Core, plus a Favourites screen under More |
 | Home rows, order, hidden set | ✅ | All six `HomeRow` values |
 | Trending (TMDB) | ✅ | Core, with a detailed-card or posters-only choice |
-| Search | ✅ | Grouped results with a count per kind |
+| Search | ✅ | Grouped results with a count per kind. Scrolling to the end loads the next page — the television still stops at the first 40 of each kind |
 | Downloads | ✅ | With SAF for the folder, as the mockup required |
 | Customize categories & items | ✅ | Including bulk rename, spans and the PIN lock |
 | Profiles, PIN, restrictions | ✅ | Plus a profile picture from the phone's photos, which the television has no way to offer |

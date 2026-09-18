@@ -77,6 +77,16 @@ the tag.
   the television uses. The **Resume at 12:34** and **Play** buttons on a film's own page are
   unchanged — they are already the answer to the question, so they do not ask it again.
 
+### 🔎 Search keeps going past the first forty results
+
+- **Search no longer stops at 40 of each kind.** A search asked for the first forty channels, forty
+  films and forty shows and then stopped, with no sign that anything had been left out — so a
+  provider carrying two hundred CNN feeds looked like it carried forty, and reaching "US: CNN" meant
+  guessing at a longer query. Scrolling to the bottom of the results now loads the next forty of
+  whatever you are looking at, and keeps doing so until there is nothing left to find. The rows still
+  come from the same shared search as the television's, so hidden items stay hidden and renamed
+  channels keep their new names.
+
 ### 🩹 Empty categories fill, catch-up plays, and Settings search finds everything
 
 - **A category your provider lists no longer arrives empty.** A playlist could offer a category and

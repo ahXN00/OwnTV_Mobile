@@ -260,6 +260,8 @@ connection** so you can prove a key or a self-hosted server works.
 One field over channels, films and shows, grouped with a count for each. Recent searches are kept,
 and three chips offer **Continue watching**, **Unwatched favourites** and **Channels**.
 Long-press a result to favourite, download or hide it.
+Scroll to the bottom and more results load by themselves, so a word your provider carries hundreds
+of — "CNN", say — doesn't need a narrower search to reach the rest.
 
 ### ⭐ Favourites & 🕐 History
 **Where:** ⋯ More → Favourites / History

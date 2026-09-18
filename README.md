@@ -95,7 +95,8 @@ Scan to join from your phone:
 - **Film and show details** with the cast, the trailer, seasons, episode progress and Resume; a show
   opens on the season you last watched, and starting something part-watched asks whether to resume or
   start over — or stops asking, if you prefer.
-- **Search** across channels, films and shows in one field, grouped by kind.
+- **Search** across channels, films and shows in one field, grouped by kind, loading more as you
+  scroll.
 - **Bottom bar on a phone, navigation rail on a tablet**, and two-pane layouts where there is room.
 
 ### 📥 Sources & EPG

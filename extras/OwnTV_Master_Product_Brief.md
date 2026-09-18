@@ -164,7 +164,8 @@ the current tab returns its list to the top. Predictive back is on.
   at a time as the row appears; the television's whole-lineup window would be thousands of rows to
   draw twelve.
 - **Search** — one debounced field over channels, films and shows, grouped with counts, with recent
-  terms and three curated chips.
+  terms and three curated chips. Results page as the list is scrolled rather than stopping at the
+  shared reader's first forty of each kind.
 - **⋯ More** — Downloads, Recordings, Favourites, History, Backup, Local sync, Profiles, the error
   log, About and Settings.
 
