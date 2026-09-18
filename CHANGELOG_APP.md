@@ -23,6 +23,7 @@
 
 ### Fixes
 
+- **🎞️ A live channel's frame rate is no longer reported a notch too low**
 - **🔎 Search keeps loading results as you scroll, instead of stopping at 40**
 - **🎚️ The player's audio and subtitle panels scroll in landscape**
 - **🔊 The sound button is always on the player bar**

@@ -43,6 +43,11 @@ the tag.
 
 ### 🩹 The player's panels stopped hiding their own lower half
 
+- **The frame rate reported for a live channel is no longer a notch too low.** A channel sending 25
+  pictures a second could be reported as 24, because the reading was taken over a single second —
+  short enough that one frame of slack tipped the answer onto the wrong standard rate. It now
+  measures over a longer stretch and insists on the same answer twice before accepting it. Fixed in
+  core (`core-1.0.47`). Only the number was ever wrong; the picture was always correct.
 - **Audio and subtitle panels scroll.** Held sideways — which is how the player is always held — a
   panel taller than the screen did not scroll and did not grow. It simply stopped drawing, and
   everything below the fold vanished without a trace: the **A/V sync** nudge at the foot of the
