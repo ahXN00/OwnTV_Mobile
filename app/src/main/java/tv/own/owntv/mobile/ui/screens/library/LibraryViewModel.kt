@@ -97,6 +97,8 @@ data class VodItem(
 class LibraryViewModel(
     private val movieDao: MovieDao,
     private val seriesDao: SeriesDao,
+    /** Lets the browse screen tell core's catalogue drain which category to fill first. */
+    private val catalogPriority: tv.own.owntv.core.sync.CatalogPriority,
     private val categoryDao: CategoryDao,
     private val customCategoryDao: CustomCategoryDao,
     private val contentOrderDao: ContentOrderDao,
@@ -421,6 +423,14 @@ class LibraryViewModel(
         viewModelScope.launch {
             if (movies) settings.setLastMoviesCategory(key.serialize())
             else settings.setLastSeriesCategory(key.serialize())
+            // Core fills a lazily-added Stalker catalogue in the provider's own order; tell it the
+            // user is here so this category is served next (core's N1c). A no-op for a playlist that
+            // was not lazily added, and for a category that is already complete.
+            if (key is LiveKey.Folder) {
+                runCatching { catalogPriority.requestFirst(key.id) }
+            } else {
+                catalogPriority.clear()
+            }
         }
     }
 

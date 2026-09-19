@@ -126,6 +126,20 @@ fun PlayerScreen(
 
     val channel by tuner.channel.collectAsStateWithLifecycle()
     val film by vodTuner.playing.collectAsStateWithLifecycle()
+    // Tell core which playlist is on screen, so its background catalogue drain steps aside while the
+    // user is watching. Core cannot work this out alone: the playback engines are handed a URL and
+    // have no notion of a sourceId, and fullscreen playback never claims against OpenStreamRegistry —
+    // that register is the connection budget for Multiview and recordings. A downloaded file carries
+    // no sourceId and holds no session, which is right: it spends no provider connection.
+    val watchSession = koinInject<tv.own.owntv.core.live.WatchSession>()
+    val watchingSourceId = channel?.sourceId ?: film?.sourceId
+    // DisposableEffect, not LaunchedEffect: switching playlists has to close the old session before
+    // opening the new one, and leaving the player has to close the last one — a leaked session would
+    // hold the drain off for good.
+    DisposableEffect(watchingSourceId) {
+        watchingSourceId?.let { watchSession.open(it) }
+        onDispose { watchingSourceId?.let { watchSession.close(it) } }
+    }
     val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
     val siblings by tuner.siblings.collectAsStateWithLifecycle()
     val offsetSec by tuner.offsetSec.collectAsStateWithLifecycle()

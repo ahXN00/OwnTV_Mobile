@@ -8,6 +8,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 import tv.own.owntv.core.CoreBuildInfo
+import tv.own.owntv.core.util.Perf
 import tv.own.owntv.core.di.coreModule
 import tv.own.owntv.core.di.dataModule
 import tv.own.owntv.core.di.databaseModule
@@ -57,6 +58,13 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Zero-point for the OwnTVPerf startup timeline (adb logcat -s OwnTVPerf), matching the TV
+        // app. Without it every Perf.stamp in core is a silent no-op — which mattered more than a
+        // missing timeline: core's database-open stamp is the only thing that proves Room's onOpen
+        // callback actually ran under a SQLiteDriver. That callback fails *silently* when it does
+        // not (core's plan §5.3), taking the PRAGMAs and the schema self-heal with it, so the phone
+        // had no way to detect the one failure mode that ships green.
+        Perf.begin()
         // Core has its own BuildConfig and it carries none of this: a library gets no version at all,
         // and the edge key and the maintainer switch are the app's build inputs. Hand them over
         // before the first reader — CrashRecorder, two lines down.

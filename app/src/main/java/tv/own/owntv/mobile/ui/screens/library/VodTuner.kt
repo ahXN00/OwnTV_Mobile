@@ -64,6 +64,14 @@ data class VodPlayback(
     val posterUrl: String? = null,
     /** The show an episode belongs to. An episode is favourited by its series, never on its own. */
     val seriesId: Long? = null,
+    /**
+     * Which playlist this is streaming from, or null for a file already downloaded to the phone.
+     *
+     * Only used to tell core's `WatchSession` that the playlist is in use, so its background
+     * catalogue drain steps aside. A local file spends no provider connection, so it holds no
+     * session. Last in the list because every other caller passes these positionally.
+     */
+    val sourceId: Long? = null,
 )
 
 /**
@@ -201,7 +209,7 @@ class VodTuner(
                 reconnectProvider = reconnectFor(source, movie.streamUrl),
             )
         }
-        began(pid, VodPlayback(MediaType.MOVIE, movie.id, movie.name, posterUrl = movie.posterUrl), handedOver)
+        began(pid, VodPlayback(MediaType.MOVIE, movie.id, movie.name, posterUrl = movie.posterUrl, sourceId = movie.sourceId), handedOver)
         playingQueue = null
         // Turns on the player's "Add subtitles" search for this film. The TMDB id is a precision
         // boost when the metadata cache has one, never a requirement.
@@ -280,7 +288,7 @@ class VodTuner(
             startPositionMs = startPositionMs,
             userAgent = source?.userAgent,
         )
-        began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl, show.id), handedOver)
+        began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl, show.id, show.sourceId), handedOver)
         val parentTmdbId = runCatching { metadata.resolveSeries(show)?.tmdbId?.toLong() }.getOrNull()
         subtitleController.setEpisode(pid, show, episode, parentTmdbId)
         // Nothing follows a cast episode, so there is no queue to follow either — and a queue kept

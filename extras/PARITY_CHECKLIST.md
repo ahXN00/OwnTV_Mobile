@@ -114,3 +114,15 @@ and a setter), so an action tile would mean a second kind of quick toggle for a 
 **Check updates on startup** is a switch and could be made pinnable if anyone asks for it. Nobody
 has. The check itself is one tap away on the App page and is findable through the Settings search
 box, which is where the television's tile leads anyway.
+
+## Signals core 1.0.49 added, supplied here too
+
+Core gained two signals a host app raises from its own screens. Both are supplied.
+
+| Signal | Where | What it does |
+|---|---|---|
+| `WatchSession` | `PlayerScreen` | Opens while a channel, film or episode from a playlist is playing, so core's background Stalker catalogue drain steps aside. A downloaded file carries no `sourceId` and holds no session — it spends no provider connection |
+| `CatalogPriority` | `LibraryViewModel.select` | Names the category the user just opened, so the drain fills that one next instead of following the provider's order |
+
+Neither changes whether the catalogue ends up correct, only when. On a provider that allows one
+stream at a time, the first is what stops a background download competing with the picture.
