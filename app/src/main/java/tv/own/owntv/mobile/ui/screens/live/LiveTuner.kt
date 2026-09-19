@@ -102,9 +102,12 @@ class LiveTuner(
     /** Per-channel "compatibility mode" pins — the same store, and the same meaning, as the television's. */
     private val forceMpvStore: tv.own.owntv.core.player.ForceMpvStore,
     val player: OwnTVPlayer,
+    /** Lets core's background catalogue drain know a playlist is in use. */
+    private val watchSession: tv.own.owntv.core.live.WatchSession,
 ) : CastHandoff {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
 
     // --- "Record what I'm watching" (Plan D, D3 mode b) -----------------------------------------
 
@@ -281,6 +284,27 @@ class LiveTuner(
 
     /** The channel on screen, with the user's own name for it. */
     val channel: StateFlow<ChannelEntity?> = _channel
+
+    init {
+        // Tell core which playlist is on screen, so its background catalogue drain steps aside.
+        //
+        // Driven from the tuner, not from PlayerScreen: on a phone a channel starts playing from the
+        // Live list and the full player composable is not mounted yet, so a hook there never fired —
+        // measured on a single-connection portal, where the drain held the only stream and the
+        // picture never arrived. The tuner owns playback whichever screen is showing.
+        scope.launch {
+            var held: Long? = null
+            channel.collect { ch ->
+                val next = ch?.sourceId
+                if (next != held) {
+                    held?.let { watchSession.close(it) }
+                    next?.let { watchSession.open(it) }
+                    held = next
+                }
+            }
+        }
+    }
+
 
     /**
      * The recording running on the channel on screen, or null.

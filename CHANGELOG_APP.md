@@ -31,6 +31,7 @@
 - **📱 The status bar stays out of full screen**
 - **⏩ The fast-forward badge always disappears**
 - **▶️ "Resume playback" is a setting again**
+- **📶 A channel starts while a portal playlist is still filling itself in**
 - **🗂️ Categories your provider lists no longer arrive empty**
 - **⏪ Catch-up plays on Stalker portal playlists**
 - **⏪ Catch-up loads faster**

@@ -109,6 +109,16 @@ the tag.
 - **Catch-up says when it cannot play.** Where "Watch from start" or "Go back to…" cannot reach the
   archive — a provider with no recording behind the channel, most often — the app now says so instead
   of returning to the live picture without a word.
+- **A channel starts while a portal playlist is still filling itself in.** A portal playlist hands
+  its catalogue over in thousands of tiny pages, so the app keeps fetching them in the background
+  long after setup has finished. On a provider that allows only one connection at a time, that
+  background fetching was still running when you pressed a channel, and the channel lost the race —
+  a spinner, then nothing. The app now tells the engine which playlist is on screen the moment
+  playback begins, so the background fetching stands down until you stop watching and picks up
+  exactly where it left off. It had been telling it from the wrong place, which worked when a film
+  was opened from its own page and never fired at all for a channel started from the Live TV list —
+  the common case. Portal playlists only; Xtream and M3U playlists finish in one pass and have
+  nothing running in the background.
 - **Settings search finds every setting.** Twenty-two settings on the Video player page could not be
   found by name — Multiview, both player engine pickers, the seek and rewind steps, the volume and
   zoom defaults, the language preferences, the per-playlist overrides — and neither could custom DNS,

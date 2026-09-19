@@ -104,15 +104,35 @@ class VodTuner(
     private val dataSaver: DataSaverGate,
     private val cast: CastController,
     val player: OwnTVPlayer,
+    /** Lets core's background catalogue drain know a playlist is in use. */
+    private val watchSession: tv.own.owntv.core.live.WatchSession,
 ) : CastHandoff {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
     private val engine by lazy { MpvPlaybackEngine(player) }
 
     private val _playing = MutableStateFlow<VodPlayback?>(null)
 
     /** The film or episode on screen, or null when nothing of ours is playing. */
     val playing: StateFlow<VodPlayback?> = _playing
+
+    init {
+        // The VOD twin of LiveTuner's watch session — same reason, same shape. A downloaded file
+        // carries no sourceId and holds no session: it spends no provider connection.
+        scope.launch {
+            var held: Long? = null
+            playing.collect { item ->
+                val next = item?.sourceId
+                if (next != held) {
+                    held?.let { watchSession.close(it) }
+                    next?.let { watchSession.open(it) }
+                    held = next
+                }
+            }
+        }
+    }
+
 
     /** The profile the current stream was started for — a mid-film profile switch must not write its
      *  resume position into the new profile's list. */

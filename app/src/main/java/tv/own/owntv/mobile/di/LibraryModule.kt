@@ -34,6 +34,7 @@ val libraryModule = module {
             dataSaver = get(),
             cast = get(),
             player = get(),
+            watchSession = get(),
         )
     }
     viewModelOf(::LibraryViewModel)
