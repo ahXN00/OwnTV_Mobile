@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tv.own.owntv.core.backup.BackupManager
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.settings.PlaylistRefresh
 import tv.own.owntv.core.settings.SettingsRepository
@@ -85,15 +86,27 @@ class SetupViewModel(
         )
     }
 
-    /** Restore everything from a backup file; an encrypted one asks for its password first. */
-    fun importBackup(file: File) {
+    /**
+     * Restore [sections] from a backup file; an encrypted one asks for its password first.
+     *
+     * [sections] defaults to all of it, which is what this did unconditionally before the wizard
+     * gained a tick-list of its own.
+     */
+    fun importBackup(
+        file: File,
+        sections: Set<BackupManager.Section> = BackupManager.Section.entries.toSet(),
+    ) {
         importJob?.cancel()
-        importJob = appScope.launch { importer.importBackup(file) }
+        importJob = appScope.launch { importer.importBackup(file, sections) }
     }
 
-    fun restoreWithPassword(file: File, password: String?) {
+    fun restoreWithPassword(
+        file: File,
+        password: String?,
+        sections: Set<BackupManager.Section> = BackupManager.Section.entries.toSet(),
+    ) {
         importJob?.cancel()
-        importJob = appScope.launch { importer.restoreWithPassword(file, password) }
+        importJob = appScope.launch { importer.restoreWithPassword(file, password, sections) }
     }
 
     /**

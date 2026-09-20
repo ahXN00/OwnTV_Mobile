@@ -23,6 +23,9 @@
 
 ### Fixes
 
+- **🔗 Pairing with another device during setup no longer does nothing**
+- **🗂️ First-run "Restore backup" asks what to restore**
+- **📡 The guide keeps downloading when the screen goes off**
 - **🎞️ A live channel's frame rate is no longer reported a notch too low**
 - **🔎 Search keeps loading results as you scroll, instead of stopping at 40**
 - **🎚️ The player's audio and subtitle panels scroll in landscape**

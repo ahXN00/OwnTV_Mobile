@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import tv.own.owntv.core.backup.BackupManager
 import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.setup.SourceImporter
 import tv.own.owntv.core.setup.displayText
@@ -47,11 +49,18 @@ import tv.own.owntv.core.sync.remainderText
 import tv.own.owntv.core.sync.summaryText
 import tv.own.owntv.core.sync.warningText
 import tv.own.owntv.mobile.R
+import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.MobileTextField
+import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.profiles.ProfileEditorSheet
+import tv.own.owntv.mobile.ui.screens.settings.CheckRow
+import tv.own.owntv.mobile.ui.screens.settings.Label
+import tv.own.owntv.mobile.ui.screens.settings.SheetButtons
+import tv.own.owntv.mobile.ui.screens.settings.descriptionRes
+import tv.own.owntv.mobile.ui.screens.settings.labelRes
 import tv.own.owntv.mobile.ui.screens.settings.SetupLocalSyncStep
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 
@@ -99,6 +108,16 @@ fun SetupFlow(
     // Where Back from the backup picker returns to — the first-run choice, or Add content.
     var backupOrigin by rememberSaveable { mutableStateOf(Step.ADD_CONTENT) }
 
+    // The picked file, and what the user chose to take out of it. Both `null` until each is
+    // answered, which is what drives the sheet below: a file with no choice yet is the question.
+    //
+    // Setup used to restore everything, full stop — the tick-list existed in Settings → Backup &
+    // Restore and in the local-sync step, and only the one screen where a restore is most likely
+    // took the whole file without asking. "My playlists but not that device's settings" was not
+    // expressible here.
+    var restoreFile by remember { mutableStateOf<java.io.File?>(null) }
+    var restoreSections by remember { mutableStateOf<Set<BackupManager.Section>?>(null) }
+
     // The name field is optional, and the television has always filled a blank one in rather than
     // storing an empty string. Without this the playlist has no name anywhere it is shown — the top
     // bar's selector renders as a bare pill, and the playlist picker offers a row with no label.
@@ -109,9 +128,13 @@ fun SetupFlow(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Picking the file no longer starts the restore — it asks what to take out of it first.
     val pickBackup = rememberBackupFilePicker { uri ->
         scope.launch {
-            copyPickedFile(context, uri, context.cacheDir)?.let(vm::importBackup)
+            copyPickedFile(context, uri, context.cacheDir)?.let {
+                restoreSections = null
+                restoreFile = it
+            }
         }
     }
 
@@ -222,13 +245,34 @@ fun SetupFlow(
                 onRetry = { vm.reset(); step = importOrigin },
                 onCancel = { vm.cancelImport(); step = importOrigin },
             )
-            Step.RESTORE -> RestoreBackup(
-                state = state,
-                onPassword = vm::restoreWithPassword,
-                onContinue = { vm.finish(onDone) },
-                onPickAgain = { vm.reset(); pickBackup() },
-                onBack = { vm.reset(); step = backupOrigin },
-            )
+            Step.RESTORE -> {
+                RestoreBackup(
+                    state = state,
+                    // The same choice the sheet took, carried across the password question: a sealed
+                    // file is chosen from before it can be opened, so the answer has to outlive it.
+                    onPassword = { file, password ->
+                        vm.restoreWithPassword(file, password, restoreSections ?: allSections)
+                    },
+                    onContinue = { vm.finish(onDone) },
+                    onPickAgain = { vm.reset(); restoreFile = null; restoreSections = null; pickBackup() },
+                    onBack = { vm.reset(); restoreFile = null; restoreSections = null; step = backupOrigin },
+                )
+                // A file is picked and nothing has been asked of it yet — so ask, over the top.
+                val picked = restoreFile
+                if (picked != null && restoreSections == null) {
+                    RestoreSectionsSheet(
+                        onConfirm = { sections ->
+                            restoreSections = sections
+                            vm.importBackup(picked, sections)
+                        },
+                        onDismiss = {
+                            vm.reset()
+                            restoreFile = null
+                            step = backupOrigin
+                        },
+                    )
+                }
+            }
         }
     }
 }
@@ -360,6 +404,53 @@ private fun ImportProgress(
                 )
             }
         }
+    }
+}
+
+private val allSections: Set<BackupManager.Section> get() = BackupManager.Section.entries.toSet()
+
+/**
+ * What to take out of the backup file, before any of it is applied.
+ *
+ * Every section is offered rather than only the ones the file holds, which is what
+ * Settings → Backup & Restore can do: that screen has already opened the container, and this one
+ * has not — a sealed file says nothing about its contents until the password arrives, and asking
+ * for the password before the user has said what they want would be the wrong order. Ticking a
+ * section the file does not carry simply restores nothing for it.
+ */
+@Composable
+private fun RestoreSectionsSheet(
+    onConfirm: (Set<BackupManager.Section>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var sections by remember { mutableStateOf(allSections) }
+    MobileBottomSheet(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.settings_backup_restore_title),
+    ) {
+        Column(
+            modifier = Modifier
+                .heightIn(max = sheetListHeight())
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = MobileDimens.ScreenPaddingH),
+            verticalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
+        ) {
+            Label(stringResource(R.string.settings_backup_what_restore))
+            BackupManager.Section.entries.forEach { section ->
+                CheckRow(
+                    label = stringResource(section.labelRes()),
+                    description = stringResource(section.descriptionRes()),
+                    checked = section in sections,
+                    onToggle = { on -> sections = if (on) sections + section else sections - section },
+                )
+            }
+        }
+        SheetButtons(
+            confirm = stringResource(R.string.settings_backup_restore_action),
+            confirmEnabled = sections.isNotEmpty(),
+            onConfirm = { onConfirm(sections) },
+            onDismiss = onDismiss,
+        )
     }
 }
 

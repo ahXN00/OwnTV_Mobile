@@ -256,7 +256,7 @@
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/EpgSourcesViewModel.kt	add
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/EpgSourcesViewModel.kt	manual_resync
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/EpgSourcesViewModel.kt	update
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/LocalSyncViewModel.kt	Local sync failed
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/LocalSyncViewModel.kt	Local sync failed: $reason
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/LocalSyncViewModel.kt	LocalSyncViewModel
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/NetworkTest.kt	Network is unreachable
 2	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/NetworkTest.kt	Proxy-Authorization

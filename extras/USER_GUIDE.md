@@ -41,8 +41,10 @@ No file needed for the first one: on the television open **⋯ More → Local sy
 mode** on, then pick **From another device** here. The phone finds it on the network or scans its
 code, you type the 6-digit PIN once, tick what to bring across, and see exactly what will change
 before it changes. A phone being set up only ever *receives* — nothing on the television is altered.
-A backup made on the TV also restores here, encrypted ones included. Later on, the full two-way
-version lives at ⋯ More → [Local sync](#-local-sync-with-your-tv).
+A backup made on the TV also restores here, encrypted ones included — and **Restore a backup** asks
+what to bring back before it applies anything, so you can take the playlists and leave the old
+device's settings behind. Later on, the full two-way version lives at
+⋯ More → [Local sync](#-local-sync-with-your-tv).
 
 ---
 
@@ -176,6 +178,9 @@ whether to use that feed's channel logos.
 by default. The same number decides how much is downloaded, how much is kept, and how many days the
 strip above the guide offers. Old programmes are kept only on channels with catch-up, since those are
 the only ones that can play them back.
+
+A large guide takes a while, and it **keeps downloading when the screen goes off** — a notification
+shows while it does, so the phone lets it finish instead of stopping it and starting it over.
 
 > **Playlist has no channel logos?** Turn on **Use this guide's channel logos** on the feed. Logos
 > then come from the XMLTV guide instead; channels the feed has no logo for keep the playlist's one.

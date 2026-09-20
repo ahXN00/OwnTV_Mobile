@@ -198,6 +198,18 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
         )
     }
 
+    // Set the moment the opening is over, however it ended. The keyboard effect below waits for it:
+    // two `animateTo` calls on one [AnchoredDraggableState] are not two animations but one cancelling
+    // the other, and the loser's `runCatching` treats the cancellation as an arrival. The watcher
+    // below then armed while the sheet was still settled at HIDDEN and dismissed it on the spot.
+    //
+    // That is not theoretical. It is the local-sync pairing bug: with the keyboard up — which it
+    // always is, the PIN was just typed — the sections sheet replacing the PIN sheet was dismissed in
+    // the frame it appeared, `LocalSyncViewModel.cancel()` cleared the step, and the setup wizard
+    // read the cleared step as "go back". The pairing had already succeeded on the television; the
+    // phone threw the result away and returned to the first screen with nothing to show for it.
+    var opened by remember { mutableStateOf(false) }
+
     // The sheet's whole life, in one coroutine that is never restarted: wait to be measured, come up,
     // and from then on watch for the way down. Coming to rest on HIDDEN is the dismissal however it
     // got there — a fling, a drag, the scrim or the back gesture — so every route cleans up the same
@@ -217,6 +229,7 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
         runCatching {
             if (animations == AnimationLevel.OFF) state.snapTo(landing) else state.animateTo(landing)
         }
+        opened = true
         snapshotFlow { state.settledValue }
             .collect { if (it == SheetAnchor.HIDDEN) entry.onDismissRequest() }
     }
@@ -224,9 +237,13 @@ private fun BoxScope.SheetLayer(entry: SheetEntry) {
     // The keyboard takes the bottom half of the screen, which is exactly where a half-open sheet
     // rests: the field being typed into ends up behind the keys. Opening the keyboard therefore
     // opens the sheet all the way, and `imePadding` above keeps it clear of the keys.
+    //
+    // Keyed on [opened] as well, so a sheet born with the keyboard already up — one sheet replacing
+    // another mid-flow — lets the opening finish before expanding it, instead of racing it. See
+    // [opened] for what that race cost.
     val imeVisible = WindowInsets.isImeVisible
-    LaunchedEffect(imeVisible) {
-        if (!imeVisible) return@LaunchedEffect
+    LaunchedEffect(imeVisible, opened) {
+        if (!imeVisible || !opened) return@LaunchedEffect
         snapshotFlow { state.anchors.size }.first { it > 0 }
         runCatching {
             if (animations == AnimationLevel.OFF) {

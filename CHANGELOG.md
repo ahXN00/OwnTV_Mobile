@@ -41,6 +41,34 @@ the tag.
   They appear only where they mean something: never on a film, never on a live channel, and no
   "next" on the last episode of a series.
 
+### 🔗 Setting a phone up from another device, and choosing what a backup brings back
+
+- **Pairing with the television did nothing at all.** On the first setup screen, "From another
+  device" → pick the television → type its PIN → **Pair** dropped straight back to "Set up OwnTV"
+  as though nothing had happened. The pairing had in fact succeeded on the television; the phone
+  threw the result away. The cause was the keyboard, which is always open at that moment because the
+  PIN has just been typed into it: a sheet that opens while the keyboard is up is told to rise twice
+  at once, and the losing animation was mistaken for the sheet being closed by hand — so the panel
+  that should have asked "what to receive" was dismissed in the frame it appeared, and setup read
+  that as "go back". Hiding the keyboard first used to be the only way through. Every sheet in the
+  app was exposed to this; the wizard is where it cost the most.
+- **First-run "Restore backup" asks what to restore.** It used to take the whole file, always —
+  while Settings → Backup & Restore and the local-sync step have always offered the tick-list. Now
+  the same list appears before anything is applied, so a restore can bring the playlists and leave
+  the old device's settings behind. Fixed in core (`core-1.0.52`), so the television gained it too.
+- **A sync that fails on an unreadable file says so**, rather than "Something went wrong". A failure
+  also leaves something in the log now — it previously left nothing at all, which is why this took a
+  device to find.
+
+### 📡 The guide keeps downloading when the screen goes off
+
+- **A large guide can finish.** The phone froze OwnTV about thirty seconds after the display dimmed
+  and cut its network with it, so the download died part-way — and the next time the app was opened
+  it started again from the beginning, forever. On a big feed with a short screen timeout it could
+  never finish. The guide sync now runs as a proper foreground job with an ongoing notification,
+  which is what downloads and recordings have always done. Fixed in core (`core-1.0.52`). If
+  notifications are denied the sync still runs; only the notification is missing.
+
 ### 🩹 The player's panels stopped hiding their own lower half
 
 - **The frame rate reported for a live channel is no longer a notch too low.** A channel sending 25

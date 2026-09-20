@@ -254,9 +254,18 @@ class LocalSyncViewModel(
         super.onCleared()
     }
 
-    private fun failure(t: Throwable): SyncFailure =
-        (sync.progress.value as? tv.own.owntv.core.sync.local.SyncProgress.Failed)?.reason
-            ?: SyncFailure.Unknown.also { android.util.Log.w("LocalSyncViewModel", "Local sync failed", t) }
+    /**
+     * Always logs. The reason used to be logged only when the manager had *not* already classified
+     * the failure — but the manager classifies every one of them before returning, so the elvis was
+     * never reached and a failed sync left no trail at all. A user reporting "it just says something
+     * went wrong" could be answered with nothing.
+     */
+    private fun failure(t: Throwable): SyncFailure {
+        val reason = (sync.progress.value as? tv.own.owntv.core.sync.local.SyncProgress.Failed)?.reason
+            ?: SyncFailure.Unknown
+        android.util.Log.w("LocalSyncViewModel", "Local sync failed: $reason", t)
+        return reason
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
