@@ -74,7 +74,13 @@ The same two engines as the television, behind the same `PlaybackEngine` interfa
   `ExoPlayer+HLS → ExoPlayer+TS → mpv+HLS → mpv+TS` or the same led by mpv. Both engines are watched:
   `LiveExoWatchdog` for one, a 35-second open watcher for the other. **Give up after** bounds the
   whole tune, and a provider back-off does not count against it.
-- **Protected (DRM) channels** play on ExoPlayer, which outranks every other preference.
+- **Protected (DRM) channels** play on ExoPlayer, which outranks every other preference. They
+  **cannot be recorded** — the CDM decrypts only into a secure decoder for immediate display, so a
+  recording is refused before it starts rather than left as a file that will not play.
+- **Container is decided from evidence**, not from the file extension: the playlist's declared
+  `manifest_type`, then what the response actually turns out to be, then what the same provider has
+  already been caught serving. HLS, MPEG-DASH and raw MPEG-TS. The response sniff is the only route
+  available to Stalker portals and Xtream panels, whose stream addresses carry no declaration.
 
 ### 2.2 The player surface
 

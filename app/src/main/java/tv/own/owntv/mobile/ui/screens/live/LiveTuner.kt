@@ -764,6 +764,8 @@ class LiveTuner(
             liveBufferOverride = liveBufferFor(source),
             httpHeaders = channel.httpHeaders,
             drmConfig = channel.drmConfig,
+            manifestType = channel.manifestType,
+            directSource = channel.directSource,
         )
         publishToSystem()
         exoWatchJob = scope.launch {
@@ -1137,6 +1139,8 @@ class LiveTuner(
                 liveBufferOverride = liveBufferFor(source),
                 httpHeaders = channel.httpHeaders,
                 drmConfig = channel.drmConfig,
+                manifestType = channel.manifestType,
+                directSource = channel.directSource,
             )
         }
     }

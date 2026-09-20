@@ -20,9 +20,13 @@
 - **✨ Set a new phone up from the device you already have**
 - **⏭️ Next and previous episode, from the player itself**
 - **📅 A week of guide, and you choose how much**
+- **📺 Protected and MPEG-DASH channels play**
 
 ### Fixes
 
+- **📺 Stream info said MPEG-TS on a DASH channel**
+- **📺 A channel that will not open can now fall back to the provider's own address**
+- **⏺️ Recording a copy-protected channel is refused straight away, and says why**
 - **🔗 Pairing with another device during setup no longer does nothing**
 - **🗂️ First-run "Restore backup" asks what to restore**
 - **📡 The guide keeps downloading when the screen goes off**
