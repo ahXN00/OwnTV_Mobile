@@ -5,6 +5,22 @@ the core library — a version here lines up with neither. Release tags are plai
 release workflow reads this file to write the release notes, taking the section whose heading matches
 the tag.
 
+## v1.0.2 — 2026-09-21
+
+### 🩹 Fixes
+
+#### 💥 The app would not open after updating from v1.0.0
+
+Updating straight from `v1.0.0` to `v1.0.1` — including through the app's own update sheet — left
+the app unable to start: the splash screen appeared and the app closed again, every time, because
+the one-off upgrade of the stored guide data could not finish and was retried on every launch.
+Nothing was wrong with the data — the upgrade step asked SQLite to begin a save point that was
+already open, which the newer storage engine in `v1.0.1` refuses. The upgrade now runs as one piece
+and completes on the first launch, with your profiles, playlists, favourites and history untouched.
+
+A phone already running `v1.0.1` is affected only if it never managed to open it. One that opened
+`v1.0.1` once has already finished the upgrade and was never at risk.
+
 ## v1.0.1 — 2026-09-21
 
 ### ✨ Set a new phone up from the device you already have
