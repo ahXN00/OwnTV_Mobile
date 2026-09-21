@@ -5,7 +5,7 @@ the core library — a version here lines up with neither. Release tags are plai
 release workflow reads this file to write the release notes, taking the section whose heading matches
 the tag.
 
-## v1.0.1 — unreleased
+## v1.0.1 — 2026-09-21
 
 ### ✨ Set a new phone up from the device you already have
 
