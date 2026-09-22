@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -399,6 +399,8 @@ private fun RestoreBackup(
                     onValueChange = { password = it },
                     label = stringResource(R.string.setup_backup_password),
                     isPassword = true,
+                    imeAction = ImeAction.Done,
+                    onImeDone = { if (password.isNotBlank()) onPassword(state.file, password) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall)) {
@@ -492,10 +494,11 @@ fun SetupPage(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // safeDrawing already holds status + navigation room; imePadding holds the keyboard.
+            // Do not add navigationBarsPadding on top: it double-counts the gesture bar.
             .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
             .imePadding()
-            .navigationBarsPadding()
             .padding(horizontal = MobileDimens.ScreenPaddingH, vertical = MobileDimens.GapLarge),
         verticalArrangement = Arrangement.spacedBy(MobileDimens.GapMedium, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,6 +44,7 @@ import tv.own.owntv.core.util.classifySyncFailure
 import tv.own.owntv.core.setup.displayText
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
+import tv.own.owntv.mobile.ui.components.sheetListHeight
 import tv.own.owntv.mobile.ui.components.MobileButton
 import tv.own.owntv.mobile.ui.components.MobileButtonStyle
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -365,7 +369,9 @@ private fun EpgSourceSheet(
     ) {
         Column(
             modifier = Modifier
+                .heightIn(max = sheetListHeight())
                 .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(horizontal = MobileDimens.ScreenPaddingH),
             verticalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
         ) {
@@ -374,6 +380,7 @@ private fun EpgSourceSheet(
                 onValueChange = { name = it },
                 label = stringResource(R.string.settings_epg_sources_name),
                 placeholder = stringResource(R.string.settings_epg_sources_name_hint),
+                imeAction = ImeAction.Next,
                 modifier = Modifier.fillMaxWidth(),
             )
             MobileTextField(
@@ -382,6 +389,7 @@ private fun EpgSourceSheet(
                 label = stringResource(R.string.settings_epg_sources_url),
                 placeholder = stringResource(R.string.settings_epg_sources_url_hint),
                 keyboardType = KeyboardType.Uri,
+                imeAction = ImeAction.Next,
                 modifier = Modifier.fillMaxWidth(),
             )
             MobileButton(
@@ -395,6 +403,7 @@ private fun EpgSourceSheet(
                 onValueChange = { agent = it },
                 label = stringResource(R.string.settings_epg_sources_user_agent),
                 placeholder = stringResource(R.string.settings_epg_sources_user_agent_hint),
+                imeAction = ImeAction.Done,
                 modifier = Modifier.fillMaxWidth(),
             )
             MobileListRow(

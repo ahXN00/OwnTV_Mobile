@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -233,6 +235,7 @@ private fun ExportSheet(
                 onValueChange = { password = it },
                 label = stringResource(R.string.settings_backup_password),
                 isPassword = true,
+                imeAction = ImeAction.Done,
             )
         }
         SheetButtons(
@@ -278,7 +281,11 @@ private fun SealedPasswordSheet(
         title = stringResource(R.string.settings_backup_enter_password),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = MobileDimens.ScreenPaddingH),
+            modifier = Modifier
+                .heightIn(max = sheetListHeight())
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .padding(horizontal = MobileDimens.ScreenPaddingH),
             verticalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
         ) {
             Note(stringResource(R.string.settings_backup_encrypted_description))
@@ -287,6 +294,8 @@ private fun SealedPasswordSheet(
                 onValueChange = { password = it },
                 label = stringResource(R.string.settings_backup_password),
                 isPassword = true,
+                imeAction = ImeAction.Done,
+                onImeDone = { if (password.isNotBlank()) onSubmit(password) },
                 isError = wrong,
                 supportingText = if (wrong) {
                     stringResource(R.string.settings_backup_password_encrypted_mismatch)
