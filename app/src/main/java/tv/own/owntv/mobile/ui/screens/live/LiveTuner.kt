@@ -295,6 +295,26 @@ class LiveTuner(
     /** The channel on screen, with the user's own name for it. */
     val channel: StateFlow<ChannelEntity?> = _channel
 
+    /** N2 — the channel watched before the one on screen; null hides the player's "previous channel". */
+    val previousChannel: StateFlow<ChannelEntity?> = combine(live.previousChannel, ctx) { p, c ->
+        p?.takeIf { it.sourceId in c.sourceIds }
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    /**
+     * Go back to [previousChannel] — the player's button, and "previous" from a headset or the media
+     * notification. Only from a playlist this profile has active; [tune] re-reads it by id (a sync may
+     * have removed it) and [open] applies the adult filter. A deliberate pick, so it opens at once.
+     */
+    fun tunePrevious() {
+        val previous = live.previousChannel.value ?: return
+        if (previous.sourceId !in ctx.value.sourceIds) return
+        tune(previous.id)
+    }
+
+    init {
+        session.livePrevious = ::tunePrevious
+    }
+
     init {
         // Tell core which playlist is on screen, so its background catalogue drain steps aside.
         //
@@ -552,6 +572,8 @@ class LiveTuner(
             // The link minted above is reused for the first rung: minting ends the previous session.
             live.start(named, source, resolved = url)
             applyAudioOnlyDefault(channel)
+        } else {
+            live.noteWatched(named) // "previous channel" follows a cast zap too (N2)
         }
         recordHistory(pid, channel.id)
         _nowNext.value = epgReader.nowNext(channel, custom.value, settings.epgOffsetMinutes.first())

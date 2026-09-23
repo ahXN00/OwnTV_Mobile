@@ -74,6 +74,12 @@ fun VideoStage(
      * frame inside a 460px window, showing a quarter of the picture with no way to see it is cropped.
      */
     zoomOverride: ZoomMode? = null,
+    /**
+     * Settings → Auto frame rate, seamless switches only (M9, owner decision 7). Passed only by the full
+     * screen player, as the setting's description says: the smaller views keep the screen's own rate,
+     * and leaving full screen hands it back.
+     */
+    autoFrameRate: Boolean = false,
 ) {
     // L2 — which engine holds the picture. Resolved HERE rather than passed in, and that is the whole
     // point: this composable is used at four sizes (the channel screen's panel, full screen, the
@@ -117,6 +123,15 @@ fun VideoStage(
             // Live on ExoPlayer. Its own generation counter replaces mpv's reset token for the same
             // reason mpv has one: some hardware only ever accepts one 4K codec per Surface, so a
             // fresh decoder needs a genuinely fresh Surface, not a reused one.
+            // Media3 applies its own seamless-only hint once asked; switched off again on leaving. Only
+            // the full-screen stage touches it — a smaller one still composed underneath (the channel
+            // screen) must not switch it off in the middle of full screen.
+            if (autoFrameRate) {
+                androidx.compose.runtime.DisposableEffect(liveExo) {
+                    liveExo.setAutoFrameRateEnabled(true)
+                    onDispose { liveExo.setAutoFrameRateEnabled(false) }
+                }
+            }
             val exoGeneration by liveExo.surfaceGeneration.collectAsStateWithLifecycle()
             key(exoGeneration) {
                 AndroidView(modifier = viewModifier, factory = { ctx -> ExoSurfaceView(ctx, liveExo) })
@@ -131,8 +146,14 @@ fun VideoStage(
             return@BoxWithConstraints
         }
         val surfaceResetToken by player.surfaceResetToken.collectAsStateWithLifecycle()
+        // mpv's measured frame rate (it only measures while the setting is on).
+        val fps by player.videoFps.collectAsStateWithLifecycle()
         key(surfaceResetToken) {
-            AndroidView(modifier = viewModifier, factory = { ctx -> MpvSurfaceView(ctx, player) })
+            AndroidView(
+                modifier = viewModifier,
+                factory = { ctx -> MpvSurfaceView(ctx, player) },
+                update = { it.applyVideoFrameRate(if (autoFrameRate) fps ?: 0f else 0f) },
+            )
         }
         // Image subtitles (PGS/VOBSUB/DVB) come through ExoPlayer. Mounted ONLY while ExoPlayer owns
         // playback: putting any view over the SurfaceView knocks it off the hardware-overlay path,
@@ -178,11 +199,23 @@ private class ExoSurfaceView(context: Context, engine: LivePreviewEngine) :
 private class MpvSurfaceView(context: Context, private val player: OwnTVPlayer) :
     SurfaceView(context), SurfaceHolder.Callback {
 
+    private var pendingFps = 0f
+
     init {
         holder.addCallback(this)
     }
 
-    override fun surfaceCreated(holder: SurfaceHolder) = player.attachSurface(holder.surface)
+    /** Seamless-only frame-rate hint (M9); re-applied on each fps change and on a surface re-create. */
+    fun applyVideoFrameRate(fps: Float) {
+        pendingFps = fps
+        val surface = holder.surface ?: return
+        tv.own.owntv.player.SurfaceFrameRate.apply(surface, fps, seamlessOnly = true)
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        player.attachSurface(holder.surface)
+        if (pendingFps > 0f) applyVideoFrameRate(pendingFps)
+    }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) =
         player.setSurfaceSize(width, height)

@@ -17,6 +17,11 @@
 
 ### New features
 
+- **👄 A/V sync works on every player**
+- **⏮️ Previous channel**
+- **🎞️ Auto frame rate now works**
+- **🧹 Reset live player choices, forget learned stream fixes**
+- **🕒 Catch-up time zone in quarter hours**
 - **🎚️ Four more settings per playlist**
 - **🔗 Referer for a playlist that needs one**
 - **🗣️ The player remembers your audio and subtitle language**
@@ -24,6 +29,8 @@
 
 ### Fixes
 
+- **🎞️ Deinterlacing is automatic**
+- **🌈 HDR says it is mpv only**
 - **📱 Settings speak about your phone, not a television**
 - **🧭 Per-playlist pickers open their second step**
 - **📐 The add-playlist form clears the status bar**

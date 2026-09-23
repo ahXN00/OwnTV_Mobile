@@ -313,6 +313,7 @@ Every gesture above also has a button on the control bar:
 | **Aspect** | Fit · Fill · Stretch · Original · Force 16:9 · Force 4:3 |
 | **Favourite** | Adds what is playing |
 | **Catch-up** | *Go back to…* on archive channels |
+| **Previous channel** | Back to the channel you watched before; tap again to flip back. Headphone "previous" does the same on live |
 | **⇄** | Swap the player engine |
 | **Channels** | The channel list, categories first |
 | **Mini player** | Shrink and keep browsing |
@@ -424,12 +425,13 @@ Settings is a list of groups, each opening its own page. There's a **search box*
 | **Live TV player** (+ per playlist) | Playback → Video player | Which engine opens a channel |
 | **Give up after** (+ per playlist) | Playback → Video player | Bounds how long a dead channel can spin |
 | **Movies & Series player** (+ per playlist) | Playback → Video player | Which engine opens films and episodes |
-| **Catch-up time zone per playlist** | Sources & guide | One provider's archive on a different clock |
+| **Catch-up time zone per playlist** | Sources & guide | One provider's archive on a different clock (quarter-hour zones included) |
 | **Live latency** (+ per playlist) | Playback → Video player | Closer to live, or steadier |
 | **Pre-buffer** (+ per playlist) | Playback → Video player | Collect a few seconds first on a flaky provider |
 | **Multiview** | Playback → Video player | Off by default; also sets the tile ceiling |
 | **Record what I'm watching** | Playback → Recording | Adds the Record button to the player |
-| **Auto frame rate** | Playback → Video player | Off by default; warns where the display can't be asked |
+| **Auto frame rate** | Playback → Video player | Off by default; full screen, seamless switches only; warns where the display can't be asked |
+| **Reset saved live TV player choices** · **Forget learned stream fixes** | Playback → Video player | Undo per-channel player choices; forget what the player learned about a provider |
 | **Subtitle appearance** | Playback → Subtitle appearance | Size, **font**, colour, position, background |
 | **Gesture sensitivity** | Playback → Mobile | How far a value moves per centimetre of finger |
 | **Background playback** | Playback → Mobile | Keep the sound when the app leaves the screen |

@@ -119,6 +119,8 @@ fun PlayerControls(
     onToggleFavorite: () -> Unit,
     /** Opens "Go back to…", or null when this channel's provider keeps no archive. */
     onCatchup: (() -> Unit)?,
+    /** N2 — back to the channel watched before this one; null hides the button. */
+    onPreviousChannel: (() -> Unit)? = null,
     // Live only, and only once Multiview is switched on in Settings. Null hides the button.
     onMultiview: (() -> Unit)? = null,
     /** Files a diagnostic report about the stream on screen. */
@@ -206,6 +208,7 @@ fun PlayerControls(
                         favorite = favorite,
                         onToggleFavorite = onToggleFavorite,
                         onCatchup = onCatchup,
+                        onPreviousChannel = onPreviousChannel,
                         onMultiview = onMultiview,
                         onReport = onReport,
                         onToast = onToast,
@@ -429,6 +432,7 @@ private fun ToolBar(
     favorite: Boolean,
     onToggleFavorite: () -> Unit,
     onCatchup: (() -> Unit)?,
+    onPreviousChannel: (() -> Unit)? = null,
     // Live only, and only once Multiview is switched on in Settings. Null hides the button.
     onMultiview: (() -> Unit)? = null,
     onReport: () -> Unit,
@@ -511,6 +515,10 @@ private fun ToolBar(
             // H3 - the television's catch-up glyph, not History.
             PlayerControl.CATCH_UP -> if (onCatchup != null) {
                 CtrlButton(MobileIcons.Catchup, stringResource(R.string.content_catchup_jump), onCatchup)
+            }
+            // N2 — the television's glyph for it, History; present only once there is a channel to go back to.
+            PlayerControl.PREVIOUS_CHANNEL -> if (onPreviousChannel != null) {
+                CtrlButton(MobileIcons.History, stringResource(R.string.player_previous_channel), onPreviousChannel)
             }
             // L3 - live has two engines now, so the button is real there too. It is NOT the VOD
             // toggle: on live it is the television's "compatibility mode", pinned per channel, so a

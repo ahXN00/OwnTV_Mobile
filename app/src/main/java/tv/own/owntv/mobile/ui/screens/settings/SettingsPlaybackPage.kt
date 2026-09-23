@@ -60,6 +60,14 @@ private enum class ResetTarget(
         R.string.settings_reset_player_choices_confirm,
         R.string.settings_reset_player_choices_confirm_description,
     ),
+    LIVE_ENGINE_PINS(
+        R.string.settings_reset_live_player_choices_confirm,
+        R.string.settings_reset_live_player_choices_confirm_description,
+    ),
+    STREAM_FIXES(
+        R.string.settings_forget_stream_fixes_confirm,
+        R.string.settings_forget_stream_fixes_confirm_description,
+    ),
     ZOOM(
         R.string.settings_reset_saved_zoom_confirm,
         R.string.settings_reset_saved_zoom_confirm_description,
@@ -101,6 +109,7 @@ fun SettingsVideoPlayerPage(
 
     val sources by vm.sources.collectAsStateWithLifecycle()
     val enginePins by vm.vodEnginePinCount.collectAsStateWithLifecycle()
+    val livePins by vm.livePinCount.collectAsStateWithLifecycle()
     val savedZoom by vm.savedZoomCount.collectAsStateWithLifecycle()
     val savedVolume by vm.savedVolumeCount.collectAsStateWithLifecycle()
     val savedAudioDelay by vm.savedAudioDelayCount.collectAsStateWithLifecycle()
@@ -152,6 +161,15 @@ fun SettingsVideoPlayerPage(
                 )
             }
         }
+        settingsGroup(key = "live-engine-reset") {
+            SettingRow(
+                title = stringResource(R.string.settings_reset_live_player_choices),
+                subtitle = stringResource(R.string.settings_reset_live_player_choices_description),
+                value = rememberedCountLabel(livePins),
+                enabled = livePins > 0,
+                onClick = { resetting = ResetTarget.LIVE_ENGINE_PINS },
+            )
+        }
         settingsGroup(key = "vod-engine") {
             SettingRow(
                 title = stringResource(R.string.settings_movies_series_player),
@@ -178,17 +196,16 @@ fun SettingsVideoPlayerPage(
                 enabled = enginePins > 0,
                 onClick = { resetting = ResetTarget.ENGINE_PINS },
             )
+            SettingRow(
+                title = stringResource(R.string.settings_forget_stream_fixes),
+                subtitle = stringResource(R.string.settings_forget_stream_fixes_description),
+                onClick = { resetting = ResetTarget.STREAM_FIXES },
+            )
 
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_hw"),
                 subtitle = stringResource(R.string.settings_hardware_decoding_description_mobile),
-            )
-
-            QuickSwitchRow(
-                vm = vm,
-                toggle = quickToggle("vp_deinterlace"),
-                subtitle = stringResource(R.string.settings_deinterlace_description),
             )
 
             QuickSwitchRow(
@@ -820,6 +837,8 @@ fun SettingsVideoPlayerPage(
                     onClick = {
                         when (target) {
                             ResetTarget.ENGINE_PINS -> vm.clearVodEnginePins()
+                            ResetTarget.LIVE_ENGINE_PINS -> vm.clearLivePins()
+                            ResetTarget.STREAM_FIXES -> vm.forgetStreamFixes()
                             ResetTarget.ZOOM -> vm.clearSavedZoom()
                             ResetTarget.VOLUME -> vm.clearSavedVolume()
                             ResetTarget.AUDIO_DELAY -> vm.clearSavedAudioDelay()

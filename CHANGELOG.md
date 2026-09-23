@@ -9,6 +9,33 @@ the tag.
 
 ### ✨ New features
 
+#### 👄 A/V sync works on every player
+
+The **A/V sync** control in the Audio panel (and the Settings default) now also works on ExoPlayer —
+the player live channels usually open on — and on films that play with ExoPlayer. **Remember**
+keeps it for that channel or film.
+
+#### ⏮️ Previous channel
+
+Once you have watched two channels, the player bar has a **Previous channel** button that jumps back
+to the one before — tap again to flip back. "Previous" on headphones or the media notification does
+the same on a live channel (it did nothing there before).
+
+#### 🎞️ Auto frame rate now works
+
+Turned on, full-screen video asks the screen for a refresh rate that suits it — only where the switch
+is seamless, so a 90/120 Hz phone can drop to 50 or 60 Hz without flicker. It used to do nothing.
+
+#### 🧹 Reset live player choices, forget learned stream fixes
+
+Playback → Video player has **Reset saved live TV player choices** and **Forget learned stream
+fixes**. What the player learns about a provider's catch-up now expires by itself after 14 days.
+
+#### 🕒 Catch-up time zone in quarter hours
+
+The catch-up time zone moves in 15-minute steps, and the per-playlist list offers the real half- and
+quarter-hour zones (+05:30, +05:45, −03:30 …).
+
 #### 🎚️ Four more settings per playlist
 
 Each playlist can now keep its own **catch-up time zone** (Settings → Sources & guide, next to
@@ -33,6 +60,16 @@ With **Auto-play next** on, a catch-up programme that ends goes on to the next o
 back to the live channel once you have caught up with what is on now — exactly as on the TV.
 
 ### 🩹 Fixes
+
+#### 🎞️ Deinterlacing is automatic
+
+The Deinterlacing setting is gone: the player smooths interlaced video by itself wherever it draws
+the picture itself — the only place that setting could ever work.
+
+#### 🌈 HDR says it is mpv only
+
+The HDR row reads **HDR (mpv only)** and explains that ExoPlayer always passes a stream's HDR
+through. The A/V sync and Movies & Series player descriptions no longer say ExoPlayer can't sync.
 
 #### 📱 Settings speak about your phone, not a television
 
@@ -73,7 +110,7 @@ restore or sync takes effect instead of reading as the default.
 #### 🔐 Restoring or syncing from another device keeps this phone's playback setup
 
 Backups now record which device made them. A backup or sync from the television no longer copies
-its player engines, hardware decoding, frame-rate matching, HDR, surround, deinterlacing and
+its player engines, hardware decoding, frame-rate matching, HDR, surround and
 per-channel player choices onto the phone unless you tick "Hardware settings from the other device".
 
 #### 👥 A restore never hands one person's data to another profile
@@ -93,7 +130,7 @@ channel and Multiview tiles as well as films — instead of from none of them.
 
 #### 🔎 Settings search finds more settings
 
-Hardware decoding, Deinterlace, Channel numbers, Measured stream stats, Autoplay next, Detailed
+Hardware decoding, Channel numbers, Measured stream stats, Autoplay next, Detailed
 playback logging and every row of Recording and Subtitle appearance can now be found by name.
 Volume, audio sync and audio language are also found by words like "lip sync" or "loud".
 

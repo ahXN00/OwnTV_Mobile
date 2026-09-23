@@ -101,7 +101,8 @@ far more settled than it was. Only the mockup disagreed, and the mockup was righ
 The mockup dropped it on the grounds that phone panels do not switch refresh rate for content. Some
 now do. It exists as `autoFrameRate` on the Playback settings page, **off by default**, and it warns
 before turning on where the display cannot be asked — which is the honest shape for a setting whose
-hardware support cannot be detected reliably.
+hardware support cannot be detected reliably. Since P10 (2026-09-23) it acts: full screen only, seamless
+switches only (owner decision 7) — through the same core surface hint the television uses.
 
 ---
 

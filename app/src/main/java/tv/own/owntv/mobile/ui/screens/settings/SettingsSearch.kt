@@ -68,6 +68,8 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_vod_engine_per_playlist, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_engine_per_playlist, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_player_choices, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_live_player_choices, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_forget_stream_fixes, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_external_player, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_auto_frame_rate, R.string.settings_search_keywords_afr),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_default_zoom, R.string.settings_search_keywords_zoom),
@@ -88,7 +90,6 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         // Switches drawn from the Quick registry rather than with a title of their own, which is how
         // they slipped past the coverage test.
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_hardware_decoding, R.string.settings_search_keywords_video),
-        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_deinterlace, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_channel_numbers, R.string.settings_search_keywords_channel_numbers),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_measured_stats, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_autoplay_next, R.string.settings_search_keywords_autoplay),

@@ -101,7 +101,7 @@ fun SettingsSourcesPage(
                     SettingsRepository.CatchupTimezone.DEVICE.name to null,
                     stringResource(R.string.settings_catchup_timezone_device),
                 ),
-            ) + (vm.settings.catchupOffsetRangeMinutes step 60).map {
+            ) + vm.settings.catchupOffsetChoicesMinutes.map {
                 SettingsChoice<Pair<String?, Int?>>(manual to it, utcOffsetLabel(it))
             },
             selected = editing.catchupTimezone to editing.catchupOffsetMin.takeIf { editing.catchupTimezone == manual },
@@ -129,6 +129,7 @@ fun SettingsSourcesPage(
             OffsetStepper(
                 minutes = offset,
                 range = -12 * 60..14 * 60,
+                step = 60, // the guide shift keeps whole hours; only catch-up went to quarter hours (N20)
                 onChange = { vm.edit { setEpgOffsetMinutes(it) } },
             )
         }
@@ -158,6 +159,7 @@ fun SettingsSourcesPage(
                 OffsetStepper(
                     minutes = offset,
                     range = vm.settings.catchupOffsetRangeMinutes,
+                    step = vm.settings.catchupOffsetStepMinutes,
                     onChange = { vm.edit { setCatchupOffsetMinutes(it) } },
                 )
             }
@@ -186,7 +188,7 @@ private fun sourceCatchupLabel(source: SourceEntity): String = when (source.catc
 
 /** A whole hour at a time, the way the TV app's dialog steps it — providers publish hour offsets. */
 @Composable
-private fun OffsetStepper(minutes: Int, range: IntRange, onChange: (Int) -> Unit) {
+private fun OffsetStepper(minutes: Int, range: IntRange, step: Int, onChange: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -195,14 +197,14 @@ private fun OffsetStepper(minutes: Int, range: IntRange, onChange: (Int) -> Unit
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TextButton(
-            onClick = { onChange((minutes - 60).coerceIn(range)) },
+            onClick = { onChange((minutes - step).coerceIn(range)) },
             enabled = minutes > range.first,
         ) {
             Text(stringResource(R.string.settings_decrease))
         }
         Text(text = utcOffsetLabel(minutes), style = MaterialTheme.typography.titleMedium)
         TextButton(
-            onClick = { onChange((minutes + 60).coerceIn(range)) },
+            onClick = { onChange((minutes + step).coerceIn(range)) },
             enabled = minutes < range.last,
         ) {
             Text(stringResource(R.string.settings_increase))

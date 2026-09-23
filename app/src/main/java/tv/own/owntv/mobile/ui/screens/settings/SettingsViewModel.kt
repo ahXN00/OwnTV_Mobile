@@ -89,6 +89,8 @@ class SettingsViewModel(
     private val customize: CustomizationStore,
     private val okHttpClient: OkHttpClient,
     private val vodEngineStore: VodEngineStore,
+    private val forceMpvStore: tv.own.owntv.core.player.ForceMpvStore,
+    private val archiveDecodeStore: tv.own.owntv.core.player.ArchiveDecodeStore,
     private val playbackPrefs: PlaybackPrefsStore,
     private val metadataProvider: MetadataProvider,
     private val metadataBudget: MetadataBudget,
@@ -467,6 +469,17 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     fun clearVodEnginePins() { viewModelScope.launch { vodEngineStore.clearAll() } }
+
+    /** N15 — how many channels are pinned to one engine (either direction), for the live reset row. */
+    val livePinCount: StateFlow<Int> =
+        combine(forceMpvStore.urls, forceMpvStore.exoUrls) { mpv, exo -> mpv.size + exo.size }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** N15 — every channel follows the Live TV player setting again; films' pins are kept. */
+    fun clearLivePins() { viewModelScope.launch { forceMpvStore.clearAll() } }
+
+    /** N15 — forget the stream lessons of this session and the stored catch-up decode list. */
+    fun forgetStreamFixes() { viewModelScope.launch { tv.own.owntv.player.LiveStreamQuirks.forgetLearned(archiveDecodeStore) } }
 
     fun clearSavedZoom() { viewModelScope.launch { playbackPrefs.clearZoom() } }
 
