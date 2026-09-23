@@ -9,6 +9,28 @@ the tag.
 
 ### 🩹 Fixes
 
+#### 📺 Channels you set to ExoPlayer on the TV open on ExoPlayer here too
+
+The phone only ever read the "play on mpv" choices, so a channel switched to ExoPlayer on the
+television still opened on mpv on the phone. Both directions are honoured now.
+
+#### 🛠️ Diagnostics, catch-up and restored player settings now work on the phone
+
+Turning on Detailed diagnostics now actually records a log; catch-up programmes that need software
+decoding are remembered between runs; and a Live latency or frame-rate choice brought over by a
+restore or sync takes effect instead of reading as the default.
+
+#### 🔐 Restoring or syncing from another device keeps this phone's playback setup
+
+Backups now record which device made them. A backup or sync from the television no longer copies
+its player engines, hardware decoding, frame-rate matching, HDR, surround, deinterlacing and
+per-channel player choices onto the phone unless you tick "Hardware settings from the other device".
+
+#### 👥 A restore never hands one person's data to another profile
+
+Data belonging to a profile that is not on this phone is skipped instead of landing on whoever has
+the same profile number, and one bad value in a backup no longer stops the whole restore.
+
 #### 📱 Multiview no longer closes when the screen times out
 
 Multiview did not keep the screen on, so the phone's own timeout turned it off mid-match — and

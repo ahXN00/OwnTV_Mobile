@@ -95,18 +95,21 @@ class SetupViewModel(
     fun importBackup(
         file: File,
         sections: Set<BackupManager.Section> = BackupManager.Section.entries.toSet(),
+        /** Take another device's hardware settings too — see [BackupManager.import]. */
+        deviceSettings: Boolean = false,
     ) {
         importJob?.cancel()
-        importJob = appScope.launch { importer.importBackup(file, sections) }
+        importJob = appScope.launch { importer.importBackup(file, sections, deviceSettings) }
     }
 
     fun restoreWithPassword(
         file: File,
         password: String?,
         sections: Set<BackupManager.Section> = BackupManager.Section.entries.toSet(),
+        deviceSettings: Boolean = false,
     ) {
         importJob?.cancel()
-        importJob = appScope.launch { importer.restoreWithPassword(file, password, sections) }
+        importJob = appScope.launch { importer.restoreWithPassword(file, password, sections, deviceSettings) }
     }
 
     /**

@@ -17,6 +17,10 @@
 
 ### Fixes
 
+- **📺 Channels you set to ExoPlayer on the TV open on ExoPlayer here too**
+- **🛠️ Diagnostics, catch-up and restored player settings now work on the phone**
+- **🔐 Restoring or syncing from another device keeps this phone's playback setup**
+- **👥 A restore never hands one person's data to another profile**
 - **📱 Multiview no longer closes when the screen times out**
 - **🧠 Memory pressure reaches every player**
 

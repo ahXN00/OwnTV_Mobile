@@ -105,7 +105,18 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
                 downloadsModule, settingsModule,
             )
         }
+        // Diagnostics switch, the persisted archive-decode quirk and the one-shot settings migrations.
+        tv.own.owntv.player.PlaybackStartup.start(
+            scope = appScope,
+            settings = org.koin.core.context.GlobalContext.get().get(),
+            archiveStore = org.koin.core.context.GlobalContext.get().get(),
+        )
     }
+
+    /** Process-long scope for [tv.own.owntv.player.PlaybackStartup]; never cancelled. */
+    private val appScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+    )
 
     /** Memory pressure reaches every engine; which levels count is core's call (see PlaybackEngines). */
     override fun onTrimMemory(level: Int) {

@@ -316,10 +316,13 @@ private fun RestoreSheet(
     inspection: BackupManager.Inspection,
     wrongPassword: Boolean,
     askPassword: Boolean,
-    onRestore: (Set<BackupManager.Section>, String?) -> Unit,
+    onRestore: (Set<BackupManager.Section>, String?, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var sections by remember(inspection) { mutableStateOf(inspection.sections) }
+    // The other device's hardware settings (engine, decoder, frame rate, HDR, surround): offered only
+    // for a file written elsewhere, and unticked — a phone's values are rarely a television's.
+    var deviceSettings by remember(inspection) { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     MobileBottomSheet(
         onDismissRequest = onDismiss,
@@ -339,6 +342,14 @@ private fun RestoreSheet(
                     description = stringResource(section.descriptionRes()),
                     checked = section in sections,
                     onToggle = { on -> sections = if (on) sections + section else sections - section },
+                )
+            }
+            if (inspection.fromOtherDevice && BackupManager.Section.SETTINGS in sections) {
+                CheckRow(
+                    label = stringResource(R.string.settings_backup_device_settings),
+                    description = stringResource(R.string.settings_backup_device_settings_desc),
+                    checked = deviceSettings,
+                    onToggle = { deviceSettings = it },
                 )
             }
             if (askPassword) {
@@ -366,7 +377,7 @@ private fun RestoreSheet(
                 },
             ),
             confirmEnabled = sections.isNotEmpty(),
-            onConfirm = { onRestore(sections, password.takeIf { it.isNotBlank() }) },
+            onConfirm = { onRestore(sections, password.takeIf { it.isNotBlank() }, deviceSettings) },
             onDismiss = onDismiss,
         )
     }

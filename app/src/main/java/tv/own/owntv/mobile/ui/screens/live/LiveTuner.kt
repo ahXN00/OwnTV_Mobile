@@ -506,7 +506,12 @@ class LiveTuner(
             //     channel. It outranks the setting, which is the whole point of the button.
             //  3. **This playlist's own override**, then the global setting.
             val setting = enginePreferenceFor(source)
-            val pinnedToMpv = pinKeyFor(channel) in forceMpvStore.urls.first()
+            // Either direction, and the legacy stream-URL key — core's lookup, the television's too.
+            // Only the mpv list used to be read here, so an ExoPlayer pin made on the TV was ignored.
+            val pin = forceMpvStore.pinFor(
+                enginePinKey(channel.sourceId, MediaType.LIVE.name, channel.remoteId),
+                channel.streamUrl,
+            )
             val protected = channel.drmConfig != null
             // Learned, rather than pinned: a panel already caught handing out signed segment URLs it
             // then refuses can never be satisfied by ExoPlayer, so go straight to mpv instead of
@@ -514,8 +519,8 @@ class LiveTuner(
             // The lesson is taught by core's own ExoPlayer engine, so the phone was already learning
             // it and simply never read it. Consulted only while both engines are allowed and the
             // channel is unpinned: a lesson the app taught itself may not overturn the user's choice.
-            val refusing = !pinnedToMpv && setting.allowsHandover && panelRefusesSegments(channel, source)
-            val onMpv = !protected && (pinnedToMpv || refusing || setting.startsOnMpv)
+            val refusing = pin == null && setting.allowsHandover && panelRefusesSegments(channel, source)
+            val onMpv = !protected && (pin ?: (refusing || setting.startsOnMpv))
             // What the LADDER is armed with, which is not always the setting. A protected channel is
             // ExoPlayer-only whatever the setting says. A pin that contradicts an "only" setting
             // re-opens the handover for that one channel — otherwise the exception channel would be
@@ -529,7 +534,8 @@ class LiveTuner(
             }
             val why = when {
                 protected -> "exoplayer (drm)"
-                pinnedToMpv -> "mpv (pinned)"
+                pin == true -> "mpv (pinned)"
+                pin == false -> "exoplayer (pinned)"
                 refusing -> "mpv (panel refuses segments)"
                 else -> "${if (onMpv) "mpv" else "exoplayer"} (setting)"
             }

@@ -117,6 +117,8 @@ fun SetupFlow(
     // expressible here.
     var restoreFile by remember { mutableStateOf<java.io.File?>(null) }
     var restoreSections by remember { mutableStateOf<Set<BackupManager.Section>?>(null) }
+    // "Hardware settings from the other device" — answered with the sections, carried like them.
+    var restoreDeviceSettings by remember { mutableStateOf(false) }
 
     // The name field is optional, and the television has always filled a blank one in rather than
     // storing an empty string. Without this the playlist has no name anywhere it is shown — the top
@@ -251,7 +253,7 @@ fun SetupFlow(
                     // The same choice the sheet took, carried across the password question: a sealed
                     // file is chosen from before it can be opened, so the answer has to outlive it.
                     onPassword = { file, password ->
-                        vm.restoreWithPassword(file, password, restoreSections ?: allSections)
+                        vm.restoreWithPassword(file, password, restoreSections ?: allSections, restoreDeviceSettings)
                     },
                     onContinue = { vm.finish(onDone) },
                     onPickAgain = { vm.reset(); restoreFile = null; restoreSections = null; pickBackup() },
@@ -261,9 +263,10 @@ fun SetupFlow(
                 val picked = restoreFile
                 if (picked != null && restoreSections == null) {
                     RestoreSectionsSheet(
-                        onConfirm = { sections ->
+                        onConfirm = { sections, deviceSettings ->
                             restoreSections = sections
-                            vm.importBackup(picked, sections)
+                            restoreDeviceSettings = deviceSettings
+                            vm.importBackup(picked, sections, deviceSettings)
                         },
                         onDismiss = {
                             vm.reset()
@@ -420,10 +423,13 @@ private val allSections: Set<BackupManager.Section> get() = BackupManager.Sectio
  */
 @Composable
 private fun RestoreSectionsSheet(
-    onConfirm: (Set<BackupManager.Section>) -> Unit,
+    onConfirm: (Set<BackupManager.Section>, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var sections by remember { mutableStateOf(allSections) }
+    // Offered whatever the file is — it has not been opened yet — and unticked. A backup of this very
+    // phone gets its hardware settings back regardless; this is only about another device's.
+    var deviceSettings by remember { mutableStateOf(false) }
     MobileBottomSheet(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_backup_restore_title),
@@ -444,11 +450,19 @@ private fun RestoreSectionsSheet(
                     onToggle = { on -> sections = if (on) sections + section else sections - section },
                 )
             }
+            if (BackupManager.Section.SETTINGS in sections) {
+                CheckRow(
+                    label = stringResource(R.string.settings_backup_device_settings),
+                    description = stringResource(R.string.settings_backup_device_settings_desc),
+                    checked = deviceSettings,
+                    onToggle = { deviceSettings = it },
+                )
+            }
         }
         SheetButtons(
             confirm = stringResource(R.string.settings_backup_restore_action),
             confirmEnabled = sections.isNotEmpty(),
-            onConfirm = { onConfirm(sections) },
+            onConfirm = { onConfirm(sections, deviceSettings) },
             onDismiss = onDismiss,
         )
     }

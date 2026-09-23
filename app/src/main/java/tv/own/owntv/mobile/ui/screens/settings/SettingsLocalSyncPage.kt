@@ -507,9 +507,11 @@ private fun SectionsSheet(
 private fun ConfirmSheet(
     preview: BackupManager.Preview,
     direction: SyncDirection,
-    onConfirm: () -> Unit,
+    onConfirm: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    // The other device's hardware settings and engine pins: offered only when it sent some, unticked.
+    var deviceSettings by remember(preview) { mutableStateOf(false) }
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.local_sync_confirm_title)) {
         Column(
             modifier = Modifier
@@ -532,12 +534,20 @@ private fun ConfirmSheet(
                 PreviewLine(R.string.local_sync_change_deletions, preview.deletions)
                 if (preview.hasCustomizations) Note(stringResource(R.string.local_sync_change_customize))
             }
+            if (preview.hasDeviceSettings) {
+                CheckRow(
+                    label = stringResource(R.string.settings_backup_device_settings),
+                    description = stringResource(R.string.settings_backup_device_settings_desc),
+                    checked = deviceSettings,
+                    onToggle = { deviceSettings = it },
+                )
+            }
             if (direction == SyncDirection.MERGE) Note(stringResource(R.string.local_sync_merge_note))
         }
         SheetButtons(
             confirm = stringResource(R.string.local_sync_apply),
             confirmEnabled = !preview.isEmpty,
-            onConfirm = onConfirm,
+            onConfirm = { onConfirm(deviceSettings) },
             onDismiss = onDismiss,
         )
     }

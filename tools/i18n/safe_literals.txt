@@ -227,6 +227,7 @@
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	engine: $message
 2	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer (drm)
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer (pinned)
 3	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv (panel refuses segments)
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv (pinned)
