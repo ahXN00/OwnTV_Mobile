@@ -235,9 +235,10 @@ private fun minutesLabel(remainingMs: Long): String {
  */
 @Composable
 fun Waveform(active: Boolean, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "waveform")
+    // Paused draws flat bars, so no transition exists then: nothing ticks frames behind a still stub.
+    val transition = if (active) rememberInfiniteTransition(label = "waveform") else null
     // Each bar swings on its own clock, or the row would pump as one block.
-    val heights = WAVE_PEAKS.mapIndexed { index, peak ->
+    val heights = transition?.let { WAVE_PEAKS.mapIndexed { index, peak ->
         transition.animateFloat(
             initialValue = 0.25f,
             targetValue = peak,
@@ -247,16 +248,16 @@ fun Waveform(active: Boolean, modifier: Modifier = Modifier) {
             ),
             label = "bar$index",
         )
-    }
+    } }
     // Over the picture — or, here, over where the picture would be. The scheme's primary is a dark
     // accent on a dark scene in the light theme.
     val color = LocalAccentOnVideo.current
     Canvas(modifier.size(width = WAVE_WIDTH, height = WAVE_HEIGHT)) {
         val gap = size.width * 0.12f
         val barWidth = (size.width - gap * (WAVE_PEAKS.size - 1)) / WAVE_PEAKS.size
-        heights.forEachIndexed { index, height ->
+        WAVE_PEAKS.indices.forEach { index ->
             // Flat only when the stream really is paused, which is the one thing it should say.
-            val fraction = if (active) height.value else WAVE_RESTING
+            val fraction = heights?.get(index)?.value ?: WAVE_RESTING
             val barHeight = size.height * fraction
             drawRoundRect(
                 color = color,

@@ -41,14 +41,12 @@ import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.ContentOrderEntity
 import tv.own.owntv.core.database.entity.FavoriteEntity
 import tv.own.owntv.core.epg.EpgShift
-import tv.own.owntv.core.epg.EpgSourceStore
 import tv.own.owntv.core.live.LiveEpgReader
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.live.livePagingSource
 import tv.own.owntv.core.live.parseLiveKey
 import tv.own.owntv.core.live.serialize
 import tv.own.owntv.core.model.MediaType
-import tv.own.owntv.core.parser.XtreamClient
 import tv.own.owntv.core.player.ExternalPlayerLauncher
 import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.EpgRepository
@@ -94,11 +92,10 @@ class LiveViewModel(
     private val syncScheduler: CatalogSyncScheduler,
     startupSelection: StartupLiveSelection,
     epgDao: EpgDao,
-    epgSourceStore: EpgSourceStore,
-    xtreamClient: XtreamClient,
+    /** The app-wide reader the Guide uses too (T18) — one now/next cache, not two. */
+    private val epgReader: LiveEpgReader,
 ) : ViewModel() {
 
-    private val epgReader = LiveEpgReader(epgDao, epgSourceStore, sourceDao, xtreamClient, streamUrlResolver)
 
     /** The same candidate set the Guide's picker uses — filtered by no source. */
     private val guideCandidates = tv.own.owntv.core.epg.GuideCandidates(epgDao)

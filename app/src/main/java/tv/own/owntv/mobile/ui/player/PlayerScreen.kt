@@ -23,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -148,7 +149,9 @@ fun PlayerScreen(
     // Only the stream that never had a picture — a radio channel — reaches this screen without one.
     // The user's own sound-only choice cannot, see below.
     val audioOnlyMedia by activeEngine.audioOnlyMedia.collectAsStateWithLifecycle()
-    val position by activeEngine.position.collectAsStateWithLifecycle()
+    // Held as the State, not its value: only the countdown below reads it, so the tick every second
+    // does not recompose the whole screen.
+    val positionState = activeEngine.position.collectAsStateWithLifecycle()
     val nav by player.nav.collectAsStateWithLifecycle()
     val nextUpTitle by player.nextUpTitle.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -273,9 +276,15 @@ fun PlayerScreen(
     // end, so the card counts down to that, not to the duration.
     var autoNextDismissed by remember { mutableStateOf(false) }
     LaunchedEffect(nextUpTitle, nav.hasNext) { autoNextDismissed = false }
-    val msToAdvance = if (!isLive && duration > 0L) (duration - 8_000L) - position else Long.MAX_VALUE
+    // Derived, so the screen recomposes only when the countdown's second changes, not on every tick.
+    val secondsToAdvance by remember(isLive, duration, positionState) {
+        derivedStateOf {
+            val msToAdvance = if (!isLive && duration > 0L) (duration - 8_000L) - positionState.value else Long.MAX_VALUE
+            if (msToAdvance in 0L..30_000L) ((msToAdvance + 999L) / 1000L).toInt().coerceIn(0, 30) else null
+        }
+    }
     val showNextCard = !isLive && error == null && nav.hasNext && nextUpTitle != null &&
-        msToAdvance in 0L..30_000L && !autoNextDismissed
+        secondsToAdvance != null && !autoNextDismissed
 
     var controlsVisible by remember { mutableStateOf(true) }
     var sheet by remember { mutableStateOf<PlayerSheet?>(null) }
@@ -673,7 +682,7 @@ fun PlayerScreen(
         // Independent of the controls, so it still appears after they have faded out on their own.
         if (showNextCard) {
             NextEpisodeCard(
-                seconds = ((msToAdvance + 999L) / 1000L).toInt().coerceIn(0, 30),
+                seconds = secondsToAdvance ?: 0,
                 title = nextUpTitle.orEmpty(),
                 onPlayNow = { autoNextDismissed = true; player.next() },
                 onCancel = { autoNextDismissed = true; player.cancelAutoNext() },

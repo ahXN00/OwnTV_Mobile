@@ -259,7 +259,7 @@ class PlaybackService : Service() {
             null
         } else {
             val result = runCatching {
-                SingletonImageLoader.get(this).execute(ImageRequest.Builder(this).data(url).build())
+                SingletonImageLoader.get(this).execute(ImageRequest.Builder(this).data(url).size(ART_SIZE_PX).build())
             }.getOrNull()
             (result as? SuccessResult)?.image?.toBitmap()
         }
@@ -281,6 +281,9 @@ class PlaybackService : Service() {
     companion object {
         private const val CHANNEL_ID = "owntv_playback"
         private const val NOTIFICATION_ID = 4301
+
+        /** The large icon is shown at most ~128 dp; decoding a poster at full size only costs memory. */
+        private const val ART_SIZE_PX = 256
         private const val ACTION_TOGGLE = "tv.own.owntv.mobile.TOGGLE"
         private const val ACTION_BACK = "tv.own.owntv.mobile.SKIP_BACK"
         private const val ACTION_FORWARD = "tv.own.owntv.mobile.SKIP_FORWARD"

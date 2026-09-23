@@ -34,6 +34,10 @@
 - **👥 A restore never hands one person's data to another profile**
 - **📱 Multiview no longer closes when the screen times out**
 - **🧠 Memory pressure reaches every player**
+- **🔎 Settings search finds more settings**
+- **💾 Backups keep Multiview and recording settings**
+- **🌐 Custom DNS actually works — and all three presets pass**
+- **🔋 The player does less work**
 
 ## v1.0.2 — 2026-09-21
 

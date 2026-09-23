@@ -86,6 +86,29 @@ turning the screen off closes the grid. The screen now stays on for as long as t
 When the phone runs short of memory the app now gives some back from every player — the live
 channel and Multiview tiles as well as films — instead of from none of them.
 
+#### 🔎 Settings search finds more settings
+
+Hardware decoding, Deinterlace, Channel numbers, Measured stream stats, Autoplay next, Detailed
+playback logging and every row of Recording and Subtitle appearance can now be found by name.
+Volume, audio sync and audio language are also found by words like "lip sync" or "loud".
+
+#### 💾 Backups keep Multiview and recording settings
+
+Multiview on/off, its tile count and your "I understand", and all the recording settings are now in
+a backup.
+
+#### 🌐 Custom DNS actually works — and all three presets pass
+
+Custom DNS answers were never read correctly, so the app quietly used the phone's normal DNS. That is
+fixed, and the Google, Cloudflare and Quad9 presets now all pass their Test. A proxy or custom DNS is
+in force from the very first stream after the app starts.
+
+#### 🔋 The player does less work
+
+The player screen and mini player no longer redraw everything every second, the LIVE dot and skip
+arrows animate without rebuilding the screen, the sound-only bars stop when paused, live subtitles
+are only set up when switched on, and the notification picture is loaded small.
+
 ## v1.0.2 — 2026-09-21
 
 ### 🩹 Fixes

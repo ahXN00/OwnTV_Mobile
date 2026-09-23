@@ -121,9 +121,13 @@ fun VideoStage(
             key(exoGeneration) {
                 AndroidView(modifier = viewModifier, factory = { ctx -> ExoSurfaceView(ctx, liveExo) })
             }
-            // Live subtitles come out of the same engine, and nothing of mpv's applies here.
-            val cues by liveExo.cues.collectAsStateWithLifecycle()
-            StyledSubtitleView(cues = cues, modifier = viewModifier)
+            // Live subtitles come out of the same engine, and nothing of mpv's applies here. Mounted
+            // only while a subtitle track is on: a view over the SurfaceView costs the overlay path.
+            val subtitleOn by liveExo.subtitleOn.collectAsStateWithLifecycle()
+            if (subtitleOn) {
+                val cues by liveExo.cues.collectAsStateWithLifecycle()
+                StyledSubtitleView(cues = cues, modifier = viewModifier)
+            }
             return@BoxWithConstraints
         }
         val surfaceResetToken by player.surfaceResetToken.collectAsStateWithLifecycle()

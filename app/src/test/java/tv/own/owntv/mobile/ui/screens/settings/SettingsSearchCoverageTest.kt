@@ -62,6 +62,36 @@ class SettingsSearchCoverageTest {
     }
 
     @Test
+    fun `every quick switch on the video player page can be found by search`() {
+        // These rows take their title from the Quick registry, not from a `title =` of their own, so
+        // the test above never saw them — Hardware decoding, Channel numbers and Measured stats were
+        // unfindable by name.
+        val quick = read("SettingsQuick.kt")
+        val titleOf = Regex("""QuickToggle\(\s*"([a-z_]+)",\s*R\.string\.([a-z_0-9]+)""")
+            .findAll(quick).associate { it.groupValues[1] to it.groupValues[2] }
+        val keys = Regex("""quickToggle\("([a-z_]+)"\)""")
+            .findAll(read("SettingsPlaybackPage.kt")).map { it.groupValues[1] }.toList()
+        assertTrue("no quick switches found on the Video player page", keys.size > 3)
+        assertEquals(
+            "Video player switches missing from the settings search index",
+            emptyList<String>(),
+            keys.map { titleOf.getValue(it) }.filterNot { it in indexed }.sorted(),
+        )
+    }
+
+    @Test
+    fun `every recording and subtitle appearance row can be found by search`() {
+        // Dialog titles and picker options on the subtitle page are parts of a row, not rows. The
+        // page's master switch is the page's own title, indexed with the leaf.
+        val notRows = setOf("settings_subtitle_color", "settings_subtitle_default", "settings_color_picker")
+        val titles = listOf("SettingsRecordingPage.kt", "SettingsSubtitleAppearancePage.kt").flatMap { page ->
+            Regex("""(?<![a-z])title = stringResource\(R\.string\.([a-z_0-9]+)""").findAll(read(page)).map { it.groupValues[1] }
+        }.filterNot { it in notRows }.toSortedSet()
+        assertTrue(titles.size >= 10)
+        assertEquals(emptyList<String>(), titles.filterNot { it in indexed })
+    }
+
+    @Test
     fun `every settings page is indexed automatically`() {
         // The leaves are mapped from the registry rather than listed again; if that ever becomes a
         // hand-written list, pages start going missing the way the rows did.
