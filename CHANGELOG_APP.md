@@ -13,6 +13,13 @@
 > its "What's new" — the same as the TV app's copy. It is kept separate from CHANGELOG.md because
 > neither a release page nor an update sheet full of paragraphs is readable.
 
+## Unreleased
+
+### Fixes
+
+- **📱 Multiview no longer closes when the screen times out**
+- **🧠 Memory pressure reaches every player**
+
 ## v1.0.2 — 2026-09-21
 
 ### Fixes

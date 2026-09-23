@@ -106,4 +106,12 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
             )
         }
     }
+
+    /** Memory pressure reaches every engine; which levels count is core's call (see PlaybackEngines). */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        runCatching {
+            org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<tv.own.owntv.player.PlaybackEngines>()?.onTrimMemory(level)
+        }
+    }
 }

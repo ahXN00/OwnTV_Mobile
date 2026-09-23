@@ -59,6 +59,16 @@ val playerModule = module {
             playbackPrefs = get(),
         )
     }
+    // Every engine, so memory pressure reaches the ExoPlayer ones and the Multiview tiles too. The
+    // phone uses only its onTrimMemory: its background policy (sound on with the screen off, PiP) is
+    // its own, and the television's stop-everything-on-Home is exactly what it must not do.
+    single {
+        tv.own.owntv.player.PlaybackEngines(
+            player = get(),
+            livePreview = get(),
+            pool = get(),
+        )
+    }
     // Shared between the activity (which enters PiP) and the player screen (which knows whether the
     // picture is on screen at all).
     single { PipController() }

@@ -5,6 +5,20 @@ the core library — a version here lines up with neither. Release tags are plai
 release workflow reads this file to write the release notes, taking the section whose heading matches
 the tag.
 
+## Unreleased
+
+### 🩹 Fixes
+
+#### 📱 Multiview no longer closes when the screen times out
+
+Multiview did not keep the screen on, so the phone's own timeout turned it off mid-match — and
+turning the screen off closes the grid. The screen now stays on for as long as the grid is showing.
+
+#### 🧠 Memory pressure reaches every player
+
+When the phone runs short of memory the app now gives some back from every player — the live
+channel and Multiview tiles as well as films — instead of from none of them.
+
 ## v1.0.2 — 2026-09-21
 
 ### 🩹 Fixes
