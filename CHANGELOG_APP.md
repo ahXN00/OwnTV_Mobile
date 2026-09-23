@@ -20,6 +20,7 @@
 - **🎚️ Four more settings per playlist**
 - **🔗 Referer for a playlist that needs one**
 - **🗣️ The player remembers your audio and subtitle language**
+- **▶️ Catch-up carries on to the next programme**
 
 ### Fixes
 
@@ -38,6 +39,14 @@
 - **💾 Backups keep Multiview and recording settings**
 - **🌐 Custom DNS actually works — and all three presets pass**
 - **🔋 The player does less work**
+- **🔁 Quick channel picks always end on the last one**
+- **⏪ Catch-up from the Guide is never overtaken by the live channel**
+- **🚫 A channel that cannot open leaves the screen as it was**
+- **⏩ Double tap on live uses your Live rewind step**
+- **🔗 Portal channels recover when their link expires**
+- **🧩 Multiview tiles follow "Prefer HLS"**
+- **⚙️ The first channel after starting the app uses your settings**
+- **🎬 Films with subtitles off keep the picture clean**
 
 ## v1.0.2 — 2026-09-21
 

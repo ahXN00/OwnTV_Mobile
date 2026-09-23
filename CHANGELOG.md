@@ -27,6 +27,11 @@ and the external player. A stream that names its own Referer keeps it.
 Pick an audio track or a subtitle in the player and that channel, film or whole series opens on the
 same language next time — subtitles off is remembered too. Each profile keeps its own choices.
 
+#### ▶️ Catch-up carries on to the next programme
+
+With **Auto-play next** on, a catch-up programme that ends goes on to the next one in the guide — or
+back to the live channel once you have caught up with what is on now — exactly as on the TV.
+
 ### 🩹 Fixes
 
 #### 📱 Settings speak about your phone, not a television
@@ -108,6 +113,45 @@ in force from the very first stream after the app starts.
 The player screen and mini player no longer redraw everything every second, the LIVE dot and skip
 arrows animate without rebuilding the screen, the sound-only bars stop when paused, live subtitles
 are only set up when switched on, and the notification picture is loaded small.
+
+#### 🔁 Quick channel picks always end on the last one
+
+Tapping one channel and then quickly another now always ends on the second. Channel + / − in the
+floating window waits until you stop pressing before it opens a stream, so a busy one-connection
+provider does not lock you out. Live TV's channel handling is now the same code the TV app runs.
+
+#### ⏪ Catch-up from the Guide is never overtaken by the live channel
+
+Picking a programme in the Guide could start the channel's live stream on top of the replay.
+
+#### 🚫 A channel that cannot open leaves the screen as it was
+
+When a channel was refused — data saver, a profile's adult filter, or a portal that did not answer —
+its name still replaced the one you were watching. Now nothing changes, and you can tap it again.
+
+#### ⏩ Double tap on live uses your Live rewind step
+
+The double tap on a live channel jumped by the films' seek step. It now uses **Settings → Live rewind
+step**, like the TV's buttons.
+
+#### 🔗 Portal channels recover when their link expires
+
+A Stalker (MAC portal) channel that dropped in the middle of playing kept retrying its old link. It now
+fetches a fresh one and carries on.
+
+#### 🧩 Multiview tiles follow "Prefer HLS"
+
+A Multiview tile now opens the same address full screen would, including a playlist's Prefer HLS choice.
+
+#### ⚙️ The first channel after starting the app uses your settings
+
+A channel opened straight after the app starts could open with default player settings because they
+had not been read yet. It now waits for yours.
+
+#### 🎬 Films with subtitles off keep the picture clean
+
+A film played on ExoPlayer with subtitles switched off kept an empty subtitle layer over the picture.
+It is only there now while subtitles are on.
 
 ## v1.0.2 — 2026-09-21
 

@@ -833,13 +833,12 @@ fun PlayerScreen(
     }
 }
 
-/** Whatever a double tap means here: the user's own skip step, or the same step of archive. */
+/** Whatever a double tap means here: the user's own skip step, or the live rewind step of archive. */
 private fun skip(tuner: LiveTuner, isLive: Boolean, forward: Boolean) {
-    val step = tuner.player.seekStepMs.value
     if (isLive) {
-        val seconds = (step / 1000).toInt().coerceAtLeast(1)
-        tuner.scrubLive(if (forward) -seconds else seconds)
+        tuner.skipLive(forward)
     } else {
+        val step = tuner.player.seekStepMs.value
         tuner.player.seekBy(if (forward) step else -step)
     }
 }

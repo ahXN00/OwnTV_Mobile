@@ -137,9 +137,14 @@ fun VideoStage(
         // Image subtitles (PGS/VOBSUB/DVB) come through ExoPlayer. Mounted ONLY while ExoPlayer owns
         // playback: putting any view over the SurfaceView knocks it off the hardware-overlay path,
         // which turns 4K into a slideshow. During plain mpv playback this is not composed at all.
+        // And only while a subtitle track is actually on, as the live branch above already does: a film
+        // on ExoPlayer with subtitles off would otherwise keep an empty view over the surface.
         val exoActive by player.exoActiveState.collectAsStateWithLifecycle()
-        val cues by player.exoCues.collectAsStateWithLifecycle()
-        if (exoActive) StyledSubtitleView(cues = cues, modifier = viewModifier)
+        val exoSubOn by player.exoSubtitleOn.collectAsStateWithLifecycle()
+        if (exoActive && exoSubOn) {
+            val cues by player.exoCues.collectAsStateWithLifecycle()
+            StyledSubtitleView(cues = cues, modifier = viewModifier)
+        }
         // The last mpv frame, held over the surface during the mpv→ExoPlayer swap so the decoder
         // change does not flash black. Cleared on ExoPlayer's first frame.
         val freeze by player.freezeFrame.collectAsStateWithLifecycle()

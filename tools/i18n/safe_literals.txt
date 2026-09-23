@@ -214,29 +214,6 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelActions.kt	−
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelDetailScreen.kt	jump-back
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveScreen.kt	live
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	$label — $reason
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	$reason — gave up after ${armedBudgetMs / 1000}s
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	${if (onMpv) "mpv" else "exoplayer"} (setting)
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' falling back to $label ($reason)
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' opened on mpv
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' — giving up: $detail
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' — no fallback left ($detail)
-2	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}': $detail
-1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	ExoPlayer
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	LiveEngine
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	engine toggle '${channel.name}' -> ${if (goToMpv) "mpv" else "exoplayer"}
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	engine: $message
-2	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer (drm)
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	exoplayer (pinned)
-3	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv (panel refuses segments)
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv (pinned)
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv couldn't play it: ${failure.second}
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv handoff for '${channel.name}' abandoned — the channel changed while ExoPlayer released
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv never opened it (${MPV_OPEN_TIMEOUT_MS / 1000}s, no picture and no error)
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	no picture within ${armedBudgetMs / 1000}s of tuning
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	tune '${channel.name}' -> $why [${preference.name}]
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveViewModel.kt	\0
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveViewModel.kt	manual
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/recordings/RecordingsScreen.kt	\0

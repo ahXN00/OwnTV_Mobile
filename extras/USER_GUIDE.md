@@ -66,7 +66,7 @@ Live TV, the Library and Settings open **two panes** side by side.
 | Gesture | Does |
 |---|---|
 | **Tap** | Show or hide the controls |
-| **Double-tap left / right** | Skip back / forward by your seek step |
+| **Double-tap left / right** | Skip back / forward by your seek step — on a live channel with catch-up, by your **Live rewind step** |
 | **Drag sideways** | Scrub. The bar shows where you will land before you let go |
 | **Drag up/down, left third** | Brightness |
 | **Drag up/down, right third** | Volume |
