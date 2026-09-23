@@ -519,7 +519,7 @@ class GuideViewModel(
                     channel = channel,
                     programme = programme,
                     source = source,
-                    timeZone = settings.resolveCatchupTimeZone(),
+                    timeZone = settings.resolveCatchupTimeZone(source),
                     xtream = xtream,
                 )
                 return@launch

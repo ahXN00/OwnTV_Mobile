@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -220,24 +221,27 @@ fun SetupFlow(
                 onBack = { step = Step.ADD_CONTENT },
             )
             Step.FORM -> AddSourceForm(
-                onStartXtream = { name, server, user, pass, ua, refresh, live, movies, series, hls ->
+                onStartXtream = { name, server, user, pass, ua, referer, refresh, live, movies, series, hls ->
                     vm.startXtream(
                         name.ifBlank { defaultIptvName },
-                        server, user, pass, ua, refresh, live, movies, series, hls,
+                        server, user, pass, ua, referer, refresh, live, movies, series, hls,
                     )
                     step = Step.IMPORTING
                 },
-                onStartM3u = { name, url, ua, refresh ->
-                    vm.startM3u(name.ifBlank { defaultPlaylistName }, url, ua, refresh)
+                onStartM3u = { name, url, ua, referer, refresh ->
+                    vm.startM3u(name.ifBlank { defaultPlaylistName }, url, ua, referer, refresh)
                     step = Step.IMPORTING
                 },
-                onStartStalker = { name, portal, mac, serial, dev1, dev2, sig, ua, refresh, live, movies, series ->
+                onStartStalker = { name, portal, mac, serial, dev1, dev2, sig, ua, referer, refresh, live, movies, series ->
                     vm.startStalker(
                         name.ifBlank { defaultPortalName },
-                        portal, mac, serial, dev1, dev2, sig, ua, refresh, live, movies, series,
+                        portal, mac, serial, dev1, dev2, sig, ua, referer, refresh, live, movies, series,
                     )
                     step = Step.IMPORTING
                 },
+                // Every other step gets its insets from [SetupPage]; the form has its own scrolling
+                // column, and without this its first line sat under the status bar's clock.
+                modifier = Modifier.statusBarsPadding(),
             )
             Step.IMPORTING -> ImportProgress(
                 state = state,

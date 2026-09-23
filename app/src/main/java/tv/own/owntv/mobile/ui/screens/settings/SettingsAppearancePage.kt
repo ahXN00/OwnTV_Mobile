@@ -137,7 +137,7 @@ fun SettingsAppearancePage(
 
             SettingRow(
                 title = stringResource(R.string.settings_animations),
-                subtitle = stringResource(R.string.settings_animations_description),
+                subtitle = stringResource(R.string.settings_animations_description_mobile),
                 checked = animations == AnimationLevel.FULL,
                 onCheckedChange = { on ->
                     vm.edit { setAnimationLevel(if (on) AnimationLevel.FULL else AnimationLevel.OFF) }
@@ -215,7 +215,7 @@ fun SettingsAppearancePage(
             text = {
                 Text(
                     stringResource(
-                        R.string.settings_low_zoom_warning,
+                        R.string.settings_low_zoom_warning_mobile,
                         UiZoom.LOW_RAM_WARN,
                         UiZoom.LOW_RAM_WARN,
                     ),

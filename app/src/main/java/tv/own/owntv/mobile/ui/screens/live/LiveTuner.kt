@@ -43,6 +43,7 @@ import tv.own.owntv.core.player.enginePinKey
 import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.settings.SourceOverrides
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.cast.CastHandoff
@@ -488,7 +489,7 @@ class LiveTuner(
                 title = named.name,
                 logoUrl = named.displayLogoUrl,
                 isLive = true,
-                httpHeaders = channel.httpHeaders,
+                httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
             ),
         )
         if (!handedOver) {
@@ -672,7 +673,7 @@ class LiveTuner(
             // channel by its stream URL instead, so a zoom or a volume set on one engine was
             // forgotten the moment the channel fell back to the other.
             contentKey = pinKeyFor(channel),
-            httpHeaders = channel.httpHeaders,
+            httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
             livePrerollSecsOverride = prerollFor(source),
             liveBufferOverride = liveBufferFor(source),
         )
@@ -768,7 +769,7 @@ class LiveTuner(
             userAgent = source?.userAgent,
             prerollSecsOverride = prerollFor(source),
             liveBufferOverride = liveBufferFor(source),
-            httpHeaders = channel.httpHeaders,
+            httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
             drmConfig = channel.drmConfig,
             manifestType = channel.manifestType,
             directSource = channel.directSource,
@@ -844,6 +845,10 @@ class LiveTuner(
         .map { secs -> if (secs <= 0) LiveLadder.NO_BUDGET else secs * 1000L }
         .stateIn(scope, SharingStarted.Eagerly, LiveLadder.NO_BUDGET)
 
+    /** The budget the tune on screen was armed with — the playlist's own "Give up after" when it has
+     *  one, else [ladderBudgetMs] — so the give-up message names the budget that actually applied. */
+    private var armedBudgetMs: Long = LiveLadder.NO_BUDGET
+
     /**
      * The channel whose ExoPlayer rung is the explicit `.ts` one.
      *
@@ -908,10 +913,13 @@ class LiveTuner(
         preference: tv.own.owntv.core.player.EnginePreference,
     ) {
         forceTsForExo = null
+        armedBudgetMs = SourceOverrides.liveTuneTimeoutSecsOf(source)
+            ?.let { secs -> if (secs <= 0) LiveLadder.NO_BUDGET else secs * 1000L }
+            ?: ladderBudgetMs.value
         ladder.arm(
             channel.streamUrl,
             preference,
-            budgetMs = ladderBudgetMs.value,
+            budgetMs = armedBudgetMs,
             nowMs = android.os.SystemClock.elapsedRealtime(),
         ) { hasHlsAlternative(channel, source) }
         startLadderDeadline(channel)
@@ -942,7 +950,7 @@ class LiveTuner(
             // then may be showing a film.
             if (!ladder.owns(channel.streamUrl)) return@launch
             if (!isStillExo(channel) && !isStillMpv(channel)) return@launch
-            val detail = "no picture within ${ladderBudgetMs.value / 1000}s of tuning"
+            val detail = "no picture within ${armedBudgetMs / 1000}s of tuning"
             engineLog("'${channel.name}' — giving up: $detail")
             recordLadderEvent(tv.own.owntv.player.PlayerFailureReason.LIVE_NO_FALLBACK, channel, detail)
             exoWatchJob?.cancel()
@@ -1009,7 +1017,7 @@ class LiveTuner(
         val nowMs = android.os.SystemClock.elapsedRealtime()
         val outOfTime = ladder.expired(nowMs)
         val next = ladder.advance(failureWasAboutFormat = !isRequestRefusal(reason), nowMs = nowMs) ?: run {
-            val detail = if (outOfTime) "$reason — gave up after ${ladderBudgetMs.value / 1000}s" else reason
+            val detail = if (outOfTime) "$reason — gave up after ${armedBudgetMs / 1000}s" else reason
             engineLog("'${channel.name}' — no fallback left ($detail)")
             recordLadderEvent(tv.own.owntv.player.PlayerFailureReason.LIVE_NO_FALLBACK, channel, detail)
             abandonTune(channel, detail)
@@ -1143,7 +1151,7 @@ class LiveTuner(
                 // pre-buffer and latency apply to it — which is what the television does too.
                 prerollSecsOverride = prerollFor(source),
                 liveBufferOverride = liveBufferFor(source),
-                httpHeaders = channel.httpHeaders,
+                httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
                 drmConfig = channel.drmConfig,
                 manifestType = channel.manifestType,
                 directSource = channel.directSource,
@@ -1299,7 +1307,7 @@ class LiveTuner(
                     subtitle = programme.title,
                     logoUrl = channel.displayLogoUrl,
                     isLive = false,
-                    httpHeaders = channel.httpHeaders,
+                    httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
                 ),
             )
             if (!handedOver) {
@@ -1314,7 +1322,7 @@ class LiveTuner(
                     isLive = false,
                     isArchive = true,
                     userAgent = source?.userAgent,
-                    httpHeaders = channel.httpHeaders,
+                    httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
                 )
                 publishToSystem()
             }
@@ -1424,10 +1432,10 @@ class LiveTuner(
      * False when no archive URL can be built, or the user reached live while it was being resolved.
      */
     private suspend fun loadArchiveStream(ch: ChannelEntity, startMs: Long, offsetSec: Int): Boolean {
-        val tz = withContext(Dispatchers.IO) { settings.resolveCatchupTimeZone() }
-        val (url, sourceUa) = withContext(Dispatchers.IO) {
+        val (url, source) = withContext(Dispatchers.IO) {
             val source = sourceDao.getById(ch.sourceId) ?: return@withContext null
-            archiveUrls.forTimeshift(ch, source, startMs, offsetSec, tz)?.let { it to source.userAgent }
+            val tz = settings.resolveCatchupTimeZone(source)
+            archiveUrls.forTimeshift(ch, source, startMs, offsetSec, tz)?.let { it to source }
         } ?: run {
             // The timeshift hands back to the live edge from here, which on its own is indistinguishable
             // from "Go back to…" doing nothing at all.
@@ -1444,8 +1452,8 @@ class LiveTuner(
             title = ch.name,
             logoUrl = ch.displayLogoUrl,
             isArchive = true,
-            userAgent = sourceUa,
-            httpHeaders = ch.httpHeaders,
+            userAgent = source.userAgent,
+            httpHeaders = SourceOverrides.headersWithReferer(ch.httpHeaders, source),
             rewindStartMs = startMs,
         )
         publishToSystem()

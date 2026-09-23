@@ -35,6 +35,7 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
     fun rows(): List<SettingsRowEntry> = listOf(
         SettingsRowEntry(SettingsGroup.SOURCES, null, R.string.content_epg_time_offset, R.string.settings_search_keywords_epg_offset),
         SettingsRowEntry(SettingsGroup.SOURCES, null, R.string.settings_catchup, R.string.settings_search_keywords_catchup),
+        SettingsRowEntry(SettingsGroup.SOURCES, null, R.string.settings_catchup_timezone_per_playlist, R.string.settings_search_keywords_catchup),
         SettingsRowEntry(SettingsGroup.SOURCES, null, R.string.settings_playlists, R.string.settings_search_keywords_playlists),
         SettingsRowEntry(SettingsGroup.SOURCES, null, R.string.settings_epg_sources, R.string.settings_search_keywords_epg),
         SettingsRowEntry(SettingsGroup.SOURCES, null, R.string.settings_epg_sources_use_logos, R.string.settings_search_keywords_logos),
@@ -64,6 +65,7 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_multiview_tiles_max, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_tv_player, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_movies_series_player, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_vod_engine_per_playlist, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_engine_per_playlist, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_player_choices, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_external_player, R.string.settings_search_keywords_video),
@@ -73,6 +75,7 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_seek_step, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_rewind_step, R.string.settings_search_keywords_video),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_tune_timeout, R.string.settings_search_keywords_latency),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_tune_timeout_per_playlist, R.string.settings_search_keywords_latency),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_latency_per_playlist, R.string.settings_search_keywords_latency),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_live_preroll_per_playlist, R.string.settings_search_keywords_live_preroll),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_default_volume, R.string.settings_search_keywords_sound),

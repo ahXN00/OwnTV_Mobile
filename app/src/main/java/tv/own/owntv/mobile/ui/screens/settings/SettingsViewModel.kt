@@ -238,6 +238,7 @@ class SettingsViewModel(
         user: String,
         pass: String,
         userAgent: String,
+        httpReferer: String,
         autoRefresh: PlaylistRefresh,
         mac: String = "",
         stalkerSerialNumber: String = "",
@@ -269,6 +270,7 @@ class SettingsViewModel(
                 stalkerDeviceId2 = stalkerDeviceId2.trim().takeIf { it.isNotBlank() },
                 stalkerSignature = stalkerSignature.trim().takeIf { it.isNotBlank() },
                 userAgent = userAgent.trim().takeIf { it.isNotBlank() },
+                httpReferer = httpReferer.trim().takeIf { it.isNotEmpty() },
                 syncLive = syncLive,
                 syncMovies = syncMovies,
                 syncSeries = syncSeries,
@@ -487,6 +489,21 @@ class SettingsViewModel(
     /** `-1` follows the global "Pre-buffer". */
     fun setSourcePreroll(sourceId: Long, secs: Int) {
         viewModelScope.launch { sourceDao.updateLivePreroll(sourceId, secs) }
+    }
+
+    /** `null` follows the global "Movies & Series player". */
+    fun setSourceVodEngine(sourceId: Long, preference: String?) {
+        viewModelScope.launch { sourceDao.updateVodEnginePreference(sourceId, preference) }
+    }
+
+    /** `null` follows the global "Give up after"; 0 is never. */
+    fun setSourceTuneTimeout(sourceId: Long, secs: Int?) {
+        viewModelScope.launch { sourceDao.updateLiveTuneTimeout(sourceId, secs) }
+    }
+
+    /** `null` mode follows the global catch-up time zone; [offsetMin] only matters for MANUAL. */
+    fun setSourceCatchupTimezone(sourceId: Long, mode: String?, offsetMin: Int?) {
+        viewModelScope.launch { sourceDao.updateCatchupTimezone(sourceId, mode, offsetMin) }
     }
 
     // --- Metadata: which tier is answering, what is left of the allowance, and a lookup to prove it ---

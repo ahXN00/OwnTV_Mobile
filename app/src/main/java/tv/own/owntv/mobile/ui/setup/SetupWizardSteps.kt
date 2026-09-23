@@ -180,7 +180,7 @@ fun DisplaySizeStep(onNext: () -> Unit, onBack: () -> Unit) {
             text = {
                 Text(
                     stringResource(
-                        R.string.settings_low_zoom_warning,
+                        R.string.settings_low_zoom_warning_mobile,
                         UiZoom.LOW_RAM_WARN,
                         UiZoom.LOW_RAM_WARN,
                     ),

@@ -51,7 +51,7 @@ class SettingsSearchCoverageTest {
         val page = read("SettingsPlaybackPage.kt")
         val titles = Regex("""title = stringResource\(R\.string\.([a-z_0-9]+)""")
             .findAll(page).map { it.groupValues[1] }
-            .filterNot { it.endsWith("_description") || it in notRows }
+            .filterNot { it.endsWith("_description") || it.endsWith("_description_mobile") || it in notRows }
             .toSortedSet()
         assertTrue("no rows found on the Video player page — has the file changed shape?", titles.size > 20)
         assertEquals(

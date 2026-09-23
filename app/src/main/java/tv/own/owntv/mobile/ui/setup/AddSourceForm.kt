@@ -60,6 +60,7 @@ data class SourceFormValues(
     val deviceId2: String = "",
     val signature: String = "",
     val userAgent: String = "",
+    val httpReferer: String = "",
     val autoRefresh: PlaylistRefresh = PlaylistRefresh(),
     val live: SyncScopeChoice = SyncScopeChoice.Now,
     val movies: SyncScopeChoice = SyncScopeChoice.Now,
@@ -83,13 +84,13 @@ data class SourceFormValues(
 fun AddSourceForm(
     onStartXtream: (
         name: String, server: String, username: String, password: String, userAgent: String,
-        autoRefresh: PlaylistRefresh, live: SyncScopeChoice, movies: SyncScopeChoice,
+        httpReferer: String, autoRefresh: PlaylistRefresh, live: SyncScopeChoice, movies: SyncScopeChoice,
         series: SyncScopeChoice, preferHls: Boolean,
     ) -> Unit,
-    onStartM3u: (name: String, url: String, userAgent: String, autoRefresh: PlaylistRefresh) -> Unit,
+    onStartM3u: (name: String, url: String, userAgent: String, httpReferer: String, autoRefresh: PlaylistRefresh) -> Unit,
     onStartStalker: (
         name: String, portalUrl: String, mac: String, serialNumber: String, deviceId: String,
-        deviceId2: String, signature: String, userAgent: String, autoRefresh: PlaylistRefresh,
+        deviceId2: String, signature: String, userAgent: String, httpReferer: String, autoRefresh: PlaylistRefresh,
         live: SyncScopeChoice, movies: SyncScopeChoice, series: SyncScopeChoice,
     ) -> Unit,
     modifier: Modifier = Modifier,
@@ -116,6 +117,7 @@ fun AddSourceForm(
     var deviceId2 by rememberSaveable { mutableStateOf(initial?.deviceId2.orEmpty()) }
     var signature by rememberSaveable { mutableStateOf(initial?.signature.orEmpty()) }
     var userAgent by rememberSaveable { mutableStateOf(initial?.userAgent.orEmpty()) }
+    var httpReferer by rememberSaveable { mutableStateOf(initial?.httpReferer.orEmpty()) }
     var preferHls by rememberSaveable { mutableStateOf(initial?.preferHls ?: false) }
     var refreshMode by rememberSaveable { mutableStateOf(initial?.autoRefresh?.mode ?: PlaylistAutoRefresh.OFF) }
     var manualDays by rememberSaveable {
@@ -167,6 +169,7 @@ fun AddSourceForm(
         deviceId2 = deviceId2,
         signature = signature,
         userAgent = userAgent,
+        httpReferer = httpReferer,
         autoRefresh = autoRefresh,
         live = syncLive,
         movies = syncMovies,
@@ -328,6 +331,13 @@ fun AddSourceForm(
             placeholder = stringResource(R.string.setup_user_agent_example),
             modifier = Modifier.fillMaxWidth(),
         )
+        MobileTextField(
+            value = httpReferer,
+            onValueChange = { httpReferer = it },
+            label = stringResource(R.string.setup_referer_optional),
+            placeholder = stringResource(R.string.setup_referer_example),
+            modifier = Modifier.fillMaxWidth(),
+        )
         MobileListRow(
             title = stringResource(R.string.setup_auto_refresh),
             subtitle = stringResource(refreshMode.labelRes()),
@@ -381,13 +391,13 @@ fun AddSourceForm(
                 onSave?.let { save -> save(values()); return@MobileButton }
                 when (kind) {
                     SourceKind.XTREAM -> onStartXtream(
-                        name, server, username, password, userAgent, autoRefresh,
+                        name, server, username, password, userAgent, httpReferer, autoRefresh,
                         syncLive, syncMovies, syncSeries, preferHls,
                     )
-                    SourceKind.M3U -> onStartM3u(name, m3uUrl, userAgent, autoRefresh)
+                    SourceKind.M3U -> onStartM3u(name, m3uUrl, userAgent, httpReferer, autoRefresh)
                     SourceKind.STALKER -> onStartStalker(
                         name, portalUrl, mac, serialNumber, deviceId, deviceId2, signature,
-                        userAgent, autoRefresh, syncLive, syncMovies, syncSeries,
+                        userAgent, httpReferer, autoRefresh, syncLive, syncMovies, syncSeries,
                     )
                 }
             },

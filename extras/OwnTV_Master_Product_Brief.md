@@ -68,6 +68,9 @@ The same two engines as the television, behind the same `PlaybackEngine` interfa
 
 - **Engine preference per section**, globally and **per playlist** — either engine first with the
   automatic handover, or one engine only with it switched off.
+- **Track memory** — the audio and subtitle language picked in the player is remembered per
+  channel, film and series (per profile).
+- **Per-playlist provider quirks** — catch-up time zone, "give up after" time and an HTTP Referer.
 - **Per-channel compatibility mode** — the **⇄** button pins a channel to mpv and remembers it,
   using the same store the television uses, so a pin syncs between the two devices.
 - **The fallback ladder** — core's `LiveLadder`: up to four rungs, each tried once,

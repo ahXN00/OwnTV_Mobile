@@ -195,6 +195,7 @@
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/library/VodActions.kt	tmdb_details
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/library/VodTuner.kt	EPISODE
 1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/screens/library/VodTuner.kt	MOVIE
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/library/VodTuner.kt	SERIES
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelActions.kt	\0
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelActions.kt	+
 2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelActions.kt	30
@@ -214,7 +215,7 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/ChannelDetailScreen.kt	jump-back
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveScreen.kt	live
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	$label — $reason
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	$reason — gave up after ${ladderBudgetMs.value / 1000}s
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	$reason — gave up after ${armedBudgetMs / 1000}s
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	${if (onMpv) "mpv" else "exoplayer"} (setting)
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' falling back to $label ($reason)
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	'${channel.name}' opened on mpv
@@ -234,7 +235,7 @@
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv couldn't play it: ${failure.second}
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv handoff for '${channel.name}' abandoned — the channel changed while ExoPlayer released
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	mpv never opened it (${MPV_OPEN_TIMEOUT_MS / 1000}s, no picture and no error)
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	no picture within ${ladderBudgetMs.value / 1000}s of tuning
+1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	no picture within ${armedBudgetMs / 1000}s of tuning
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveTuner.kt	tune '${channel.name}' -> $why [${preference.name}]
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveViewModel.kt	\0
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/live/LiveViewModel.kt	manual
@@ -478,8 +479,12 @@
 2	locale	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	spa
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	sub-style
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	tune-timeout
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	tune-timeout-more
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	tune-timeout-sources
 2	locale	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	tur
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	vod-engine
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	vod-engine-more
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	vod-engine-sources
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	volume
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	vp_autoplay
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlaybackPage.kt	vp_channel_numbers
@@ -563,7 +568,7 @@
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/customize/CustomizeSpanUi.kt	\0
 1	json	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/customize/CustomizeSupport.kt	new
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/customize/CustomizeViewModel.kt	\0
-14	empty	app/src/main/java/tv/own/owntv/mobile/ui/setup/AddSourceForm.kt	\0
+15	empty	app/src/main/java/tv/own/owntv/mobile/ui/setup/AddSourceForm.kt	\0
 1	file-path	app/src/main/java/tv/own/owntv/mobile/ui/setup/AddSourceForm.kt	playlists
 1	mime	app/src/main/java/tv/own/owntv/mobile/ui/setup/SetupFiles.kt	*/*
 1	file-path	app/src/main/java/tv/own/owntv/mobile/ui/setup/SetupFiles.kt	picked

@@ -15,8 +15,19 @@
 
 ## Unreleased
 
+### New features
+
+- **🎚️ Four more settings per playlist**
+- **🔗 Referer for a playlist that needs one**
+- **🗣️ The player remembers your audio and subtitle language**
+
 ### Fixes
 
+- **📱 Settings speak about your phone, not a television**
+- **🧭 Per-playlist pickers open their second step**
+- **📐 The add-playlist form clears the status bar**
+- **🧰 Player memory moved into the app's database**
+- **🌐 Older language codes match**
 - **📺 Channels you set to ExoPlayer on the TV open on ExoPlayer here too**
 - **🛠️ Diagnostics, catch-up and restored player settings now work on the phone**
 - **🔐 Restoring or syncing from another device keeps this phone's playback setup**

@@ -87,6 +87,8 @@ moves per centimetre of finger, without changing how far you must travel to star
 **Where:** Settings → Sources → **Playlists** → Add, or the first-run wizard
 **Xtream** (server, user, password), **M3U** (a URL, or a file picked with your phone's file picker),
 or **Stalker/Ministra** (portal URL + MAC, with optional Serial Number, Device IDs and Signature).
+Under **User-Agent** there is an optional **Referer** — leave it empty unless your provider asks
+for one; it is then sent with every stream of that playlist.
 
 ### 📱 Setting up the television too?
 **Where:** on the **TV** — Settings → Manage sources → Add source → **Remote**
@@ -146,7 +148,8 @@ a **per playlist** override below it.
 
 > **A channel that won't play is worked through every combination** — each engine on each stream
 > format, up to four, each tried once. Then it stops and tells you.
-> **Give up after** (Settings → Playback → Video player) bounds how long that may take.
+> **Give up after** (Settings → Playback → Video player) bounds how long that may take, and
+> **Give up after, per playlist** gives one provider its own time.
 
 ---
 
@@ -305,7 +308,7 @@ Every gesture above also has a button on the control bar:
 | **Go live** | Back to the live edge |
 | **Volume · Brightness** | Sliders, with a mute row |
 | **Speed** | 0.5× to 2× |
-| **Subtitles · Audio** | Tracks, plus subtitle search, subtitle timing and A/V sync. Both are always on the bar — a film with one soundtrack still has A/V sync. Scroll the panel to reach what is below the tracks |
+| **Subtitles · Audio** | Tracks (the language you pick is remembered per channel, film or series), plus subtitle search, subtitle timing and A/V sync. Both are always on the bar — a film with one soundtrack still has A/V sync. Scroll the panel to reach what is below the tracks |
 | **Previous · Next** | The episode either side of this one, beside play. Series only |
 | **Aspect** | Fit · Fill · Stretch · Original · Force 16:9 · Force 4:3 |
 | **Favourite** | Adds what is playing |
@@ -419,7 +422,9 @@ Settings is a list of groups, each opening its own page. There's a **search box*
 | Setting | Where | Why |
 |---|---|---|
 | **Live TV player** (+ per playlist) | Playback → Video player | Which engine opens a channel |
-| **Give up after** | Playback → Video player | Bounds how long a dead channel can spin |
+| **Give up after** (+ per playlist) | Playback → Video player | Bounds how long a dead channel can spin |
+| **Movies & Series player** (+ per playlist) | Playback → Video player | Which engine opens films and episodes |
+| **Catch-up time zone per playlist** | Sources & guide | One provider's archive on a different clock |
 | **Live latency** (+ per playlist) | Playback → Video player | Closer to live, or steadier |
 | **Pre-buffer** (+ per playlist) | Playback → Video player | Collect a few seconds first on a flaky provider |
 | **Multiview** | Playback → Video player | Off by default; also sets the tile ceiling |

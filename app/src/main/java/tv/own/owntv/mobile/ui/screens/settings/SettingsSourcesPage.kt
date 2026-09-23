@@ -15,7 +15,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
@@ -37,6 +39,10 @@ fun SettingsSourcesPage(
 ) {
     var epgOffsetSheet by remember { mutableStateOf(false) }
     var catchupSheet by remember { mutableStateOf(false) }
+    // The per-playlist catch-up zone: the playlist list, then the zone of the one picked.
+    var catchupSourcesSheet by remember { mutableStateOf(false) }
+    var catchupSource by remember { mutableStateOf<SourceEntity?>(null) }
+    val sources by vm.sources.collectAsStateWithLifecycle()
 
     SettingsPage(modifier) {
         settingsLeafRows(SettingsGroup.SOURCES, onOpenLeaf)
@@ -60,7 +66,54 @@ fun SettingsSourcesPage(
                 },
                 onClick = { catchupSheet = true },
             )
+            if (sources.isNotEmpty()) {
+                SettingRow(
+                    title = stringResource(R.string.settings_catchup_timezone_per_playlist),
+                    subtitle = stringResource(R.string.settings_catchup_timezone_per_playlist_description),
+                    value = overrideCountLabel(sources.count { it.catchupTimezone != null }),
+                    onClick = { catchupSourcesSheet = true },
+                )
+            }
         }
+    }
+
+    // Re-read from the live list so the second level shows the value just saved.
+    val editing = sources.firstOrNull { it.id == catchupSource?.id }
+    if (catchupSourcesSheet && editing == null) {
+        SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            choices = sources.map { src ->
+                SettingsChoice<SourceEntity?>(value = src, label = src.name, description = sourceCatchupLabel(src))
+            },
+            selected = null,
+            onSelect = { src -> catchupSource = src },
+            // The sheet calls this after every pick too, so it only closes when no playlist was picked.
+            onDismiss = { if (catchupSource == null) catchupSourcesSheet = false },
+        )
+    }
+    if (catchupSourcesSheet && editing != null) {
+        val manual = SettingsRepository.CatchupTimezone.MANUAL.name
+        SettingsChoiceSheet(
+            title = editing.name,
+            choices = listOf(
+                SettingsChoice<Pair<String?, Int?>>(null to null, stringResource(R.string.settings_live_preroll_follow)),
+                SettingsChoice<Pair<String?, Int?>>(
+                    SettingsRepository.CatchupTimezone.DEVICE.name to null,
+                    stringResource(R.string.settings_catchup_timezone_device),
+                ),
+            ) + (vm.settings.catchupOffsetRangeMinutes step 60).map {
+                SettingsChoice<Pair<String?, Int?>>(manual to it, utcOffsetLabel(it))
+            },
+            selected = editing.catchupTimezone to editing.catchupOffsetMin.takeIf { editing.catchupTimezone == manual },
+            // A pick closes the whole picker; Back (no pick) returns to the playlist list. Returning to
+            // the list after a pick left that sheet frozen on the phone — stale value, Back ignored.
+            onSelect = { (mode, offset) ->
+                vm.setSourceCatchupTimezone(editing.id, mode, offset)
+                catchupSourcesSheet = false
+            },
+            // Back goes back one level, to the playlist list, like the other per-playlist pickers.
+            onDismiss = { catchupSource = null },
+        )
     }
 
     if (epgOffsetSheet) {
@@ -121,6 +174,14 @@ fun SettingsSourcesPage(
             }
         }
     }
+}
+
+/** A playlist's own catch-up zone: Follow, Device, or its UTC offset. */
+@Composable
+private fun sourceCatchupLabel(source: SourceEntity): String = when (source.catchupTimezone) {
+    null -> stringResource(R.string.settings_live_preroll_follow)
+    SettingsRepository.CatchupTimezone.MANUAL.name -> utcOffsetLabel(source.catchupOffsetMin ?: 0)
+    else -> stringResource(R.string.settings_catchup_timezone_device)
 }
 
 /** A whole hour at a time, the way the TV app's dialog steps it — providers publish hour offsets. */

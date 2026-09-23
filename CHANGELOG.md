@@ -7,7 +7,52 @@ the tag.
 
 ## Unreleased
 
+### ✨ New features
+
+#### 🎚️ Four more settings per playlist
+
+Each playlist can now keep its own **catch-up time zone** (Settings → Sources & guide, next to
+Catch-up), its own **Movies & Series player** and its own **Give up after** time (Settings →
+Playback → Video player, under the global rows). A playlist left on "Follow setting" behaves exactly
+as before.
+
+#### 🔗 Referer for a playlist that needs one
+
+The Add / Edit playlist form — the first-run wizard included — has an optional **Referer** box under
+User-Agent. Whatever you enter is sent with that playlist's channels, films, episodes, catch-up, cast
+and the external player. A stream that names its own Referer keeps it.
+
+#### 🗣️ The player remembers your audio and subtitle language
+
+Pick an audio track or a subtitle in the player and that channel, film or whole series opens on the
+same language next time — subtitles off is remembered too. Each profile keeps its own choices.
+
 ### 🩹 Fixes
+
+#### 📱 Settings speak about your phone, not a television
+
+Auto frame rate and its warning, HDR, hardware decoding, both player descriptions, surround sound,
+channel numbers, measured stats, animations, the zoom warning and Multiview's "can't decode another
+channel" now say device or screen instead of TV, in every language.
+
+#### 🧭 Per-playlist pickers open their second step
+
+Live TV player, Live latency and Pre-buffer per playlist closed the moment a playlist was chosen, so
+nothing could be set; Custom latency now opens its seconds slider too.
+
+#### 📐 The add-playlist form clears the status bar
+
+Its first line sat under the clock.
+
+#### 🧰 Player memory moved into the app's database
+
+Channel and film player choices, sound-only marks and audio delays now live in the database, move
+over by themselves on the first start, travel in backups, and are deleted with their playlist.
+
+#### 🌐 Older language codes match
+
+A track tagged "ger" or "fre" now counts as German or French, both for your preferred language and
+for the remembered one.
 
 #### 📺 Channels you set to ExoPlayer on the TV open on ExoPlayer here too
 

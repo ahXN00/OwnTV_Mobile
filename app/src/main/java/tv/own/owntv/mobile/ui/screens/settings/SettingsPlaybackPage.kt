@@ -47,7 +47,8 @@ private enum class PlaybackSheet {
      * normal case and a full trip from the row for each one is not.
      */
     ENGINE_SOURCES, ENGINE_SOURCE, LATENCY_SOURCES, LATENCY_SOURCE, LATENCY_SOURCE_CUSTOM,
-    PREROLL_SOURCES, PREROLL_SOURCE,
+    PREROLL_SOURCES, PREROLL_SOURCE, VOD_ENGINE_SOURCES, VOD_ENGINE_SOURCE,
+    TUNE_TIMEOUT_SOURCES, TUNE_TIMEOUT_SOURCE,
 }
 
 /** Which set of remembered per-item choices a confirmation is about to forget. */
@@ -136,7 +137,7 @@ fun SettingsVideoPlayerPage(
         settingsGroup(key = "live-engine") {
             SettingRow(
                 title = stringResource(R.string.settings_live_tv_player),
-                subtitle = stringResource(R.string.settings_live_player_description),
+                subtitle = stringResource(R.string.settings_live_player_description_mobile),
                 value = engineLabel(liveEngine),
                 onClick = { sheet = PlaybackSheet.LIVE_ENGINE },
             )
@@ -154,11 +155,22 @@ fun SettingsVideoPlayerPage(
         settingsGroup(key = "vod-engine") {
             SettingRow(
                 title = stringResource(R.string.settings_movies_series_player),
-                subtitle = stringResource(R.string.settings_movies_player_description),
+                subtitle = stringResource(R.string.settings_movies_player_description_mobile),
                 value = engineLabel(vodEngine),
                 onClick = { sheet = PlaybackSheet.VOD_ENGINE },
             )
-
+        }
+        if (sources.isNotEmpty()) {
+            settingsGroup(key = "vod-engine-sources") {
+                SettingRow(
+                    title = stringResource(R.string.settings_vod_engine_per_playlist),
+                    subtitle = stringResource(R.string.settings_vod_engine_per_playlist_description),
+                    value = overrideCountLabel(sources.count { it.vodEnginePreference != null }),
+                    onClick = { sheet = PlaybackSheet.VOD_ENGINE_SOURCES },
+                )
+            }
+        }
+        settingsGroup(key = "vod-engine-more") {
             SettingRow(
                 title = stringResource(R.string.settings_reset_player_choices),
                 subtitle = stringResource(R.string.settings_reset_player_choices_description),
@@ -170,7 +182,7 @@ fun SettingsVideoPlayerPage(
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_hw"),
-                subtitle = stringResource(R.string.settings_hardware_decoding_description),
+                subtitle = stringResource(R.string.settings_hardware_decoding_description_mobile),
             )
 
             QuickSwitchRow(
@@ -182,12 +194,12 @@ fun SettingsVideoPlayerPage(
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_hdr"),
-                subtitle = stringResource(R.string.settings_hdr_description),
+                subtitle = stringResource(R.string.settings_hdr_description_mobile),
             )
 
             SettingRow(
                 title = stringResource(R.string.settings_auto_frame_rate),
-                subtitle = stringResource(R.string.settings_auto_frame_rate_description),
+                subtitle = stringResource(R.string.settings_auto_frame_rate_description_mobile),
                 checked = autoFrameRate,
                 // Below Android 12 there is no way to ask the display which refresh rates it can
                 // reach without blanking it, so turning this ON asks first. Turning it off is
@@ -331,11 +343,23 @@ fun SettingsVideoPlayerPage(
                 valueLabel = stringResource(R.string.settings_live_buffer_seconds, tuneTimeout),
                 onValueChange = { secs -> vm.edit { setLiveTuneTimeoutSecs(secs) } },
             )
+        }
+        if (sources.isNotEmpty()) {
+            settingsGroup(key = "tune-timeout-sources") {
+                SettingRow(
+                    title = stringResource(R.string.settings_live_tune_timeout_per_playlist),
+                    subtitle = stringResource(R.string.settings_live_tune_timeout_per_playlist_description),
+                    value = overrideCountLabel(sources.count { it.liveTuneTimeoutSecs != null }),
+                    onClick = { sheet = PlaybackSheet.TUNE_TIMEOUT_SOURCES },
+                )
+            }
+        }
+        settingsGroup(key = "tune-timeout-more") {
 
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_channel_numbers"),
-                subtitle = stringResource(R.string.settings_channel_numbers_description),
+                subtitle = stringResource(R.string.settings_channel_numbers_description_mobile),
             )
         }
 
@@ -360,7 +384,7 @@ fun SettingsVideoPlayerPage(
 
             SettingRow(
                 title = stringResource(R.string.settings_surround_sound),
-                subtitle = stringResource(R.string.settings_surround_description),
+                subtitle = stringResource(R.string.settings_surround_description_mobile),
                 value = stringResource(surround.labelRes()),
                 onClick = { sheet = PlaybackSheet.SURROUND },
             )
@@ -433,7 +457,7 @@ fun SettingsVideoPlayerPage(
             QuickSwitchRow(
                 vm = vm,
                 toggle = quickToggle("vp_measured_stats"),
-                subtitle = stringResource(R.string.settings_measured_stats_description),
+                subtitle = stringResource(R.string.settings_measured_stats_description_mobile),
             )
 
             QuickSwitchRow(
@@ -559,7 +583,8 @@ fun SettingsVideoPlayerPage(
             },
             selected = editing,
             onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.ENGINE_SOURCE },
-            onDismiss = { overrideSource = null; sheet = null },
+            // The sheet calls this after every pick too, so it only closes when no playlist was picked.
+            onDismiss = { if (sheet == PlaybackSheet.ENGINE_SOURCES) { overrideSource = null; sheet = null } },
         )
         PlaybackSheet.ENGINE_SOURCE -> SettingsChoiceSheet(
             title = editing?.name ?: stringResource(R.string.settings_live_tv_player),
@@ -567,10 +592,67 @@ fun SettingsVideoPlayerPage(
                 SettingsChoice<String?>(null, stringResource(R.string.settings_live_preroll_follow)),
             ) + EnginePreference.entries.map { SettingsChoice<String?>(it.name, engineLabel(it)) },
             selected = editing?.liveEnginePreference,
-            onSelect = { name -> editing?.let { vm.setSourceLiveEngine(it.id, name) } },
+            // A pick closes the whole picker; Back (no pick) returns to the playlist list.
+            onSelect = { name -> editing?.let { vm.setSourceLiveEngine(it.id, name) }; overrideSource = null },
             // Back goes back one level, to the playlist list, because setting a second playlist is
             // the normal next move — not a fresh trip from the row two steps above.
-            onDismiss = { sheet = PlaybackSheet.ENGINE_SOURCES },
+            onDismiss = { sheet = if (overrideSource == null) null else PlaybackSheet.ENGINE_SOURCES },
+        )
+
+        // --- Per-playlist Movies & Series engine: pick the playlist, then its value ---
+        PlaybackSheet.VOD_ENGINE_SOURCES -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            choices = sources.map { src ->
+                SettingsChoice<SourceEntity?>(
+                    value = src,
+                    label = src.name,
+                    description = src.vodEnginePreference
+                        ?.let { name -> EnginePreference.entries.firstOrNull { it.name == name } }
+                        ?.let { engineLabel(it) }
+                        ?: stringResource(R.string.settings_live_preroll_follow),
+                )
+            },
+            selected = editing,
+            onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.VOD_ENGINE_SOURCE },
+            // The sheet calls this after every pick too, so it only closes when no playlist was picked.
+            onDismiss = { if (sheet == PlaybackSheet.VOD_ENGINE_SOURCES) { overrideSource = null; sheet = null } },
+        )
+        PlaybackSheet.VOD_ENGINE_SOURCE -> SettingsChoiceSheet(
+            title = editing?.name ?: stringResource(R.string.settings_movies_series_player),
+            choices = listOf(
+                SettingsChoice<String?>(null, stringResource(R.string.settings_live_preroll_follow)),
+            ) + EnginePreference.entries.map { SettingsChoice<String?>(it.name, engineLabel(it)) },
+            selected = editing?.vodEnginePreference,
+            // A pick closes the whole picker; Back (no pick) returns to the playlist list. Returning to
+            // the list after a pick left that sheet frozen on the phone — stale value, Back ignored.
+            onSelect = { name -> editing?.let { vm.setSourceVodEngine(it.id, name) }; overrideSource = null },
+            onDismiss = { sheet = if (overrideSource == null) null else PlaybackSheet.VOD_ENGINE_SOURCES },
+        )
+
+        // --- Per-playlist "Give up after": pick the playlist, then its value ---
+        PlaybackSheet.TUNE_TIMEOUT_SOURCES -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_live_preroll_playlist_picker),
+            choices = sources.map { src ->
+                SettingsChoice<SourceEntity?>(
+                    value = src,
+                    label = src.name,
+                    description = tuneTimeoutLabel(src.liveTuneTimeoutSecs),
+                )
+            },
+            selected = editing,
+            onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.TUNE_TIMEOUT_SOURCE },
+            // The sheet calls this after every pick too, so it only closes when no playlist was picked.
+            onDismiss = { if (sheet == PlaybackSheet.TUNE_TIMEOUT_SOURCES) { overrideSource = null; sheet = null } },
+        )
+        PlaybackSheet.TUNE_TIMEOUT_SOURCE -> SettingsChoiceSheet(
+            title = editing?.name ?: stringResource(R.string.settings_live_tune_timeout),
+            choices = (listOf<Int?>(null) + TUNE_TIMEOUT_CHOICES)
+                .map { SettingsChoice(it, tuneTimeoutLabel(it)) },
+            selected = editing?.liveTuneTimeoutSecs,
+            // A pick closes the whole picker; Back (no pick) returns to the playlist list. Returning to
+            // the list after a pick left that sheet frozen on the phone — stale value, Back ignored.
+            onSelect = { secs -> editing?.let { vm.setSourceTuneTimeout(it.id, secs) }; overrideSource = null },
+            onDismiss = { sheet = if (overrideSource == null) null else PlaybackSheet.TUNE_TIMEOUT_SOURCES },
         )
 
         // --- Per-playlist Live latency; Custom opens a third level for the seconds ---
@@ -585,7 +667,8 @@ fun SettingsVideoPlayerPage(
             },
             selected = editing,
             onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.LATENCY_SOURCE },
-            onDismiss = { overrideSource = null; sheet = null },
+            // The sheet calls this after every pick too, so it only closes when no playlist was picked.
+            onDismiss = { if (sheet == PlaybackSheet.LATENCY_SOURCES) { overrideSource = null; sheet = null } },
         )
         PlaybackSheet.LATENCY_SOURCE -> SettingsChoiceSheet(
             title = editing?.name ?: stringResource(R.string.settings_live_latency),
@@ -599,17 +682,26 @@ fun SettingsVideoPlayerPage(
                 val src = editing ?: return@SettingsChoiceSheet
                 val secs = sourceCustomSecs(src)
                 when (LiveLatency.fromName(name ?: "")) {
-                    LiveLatency.LOW -> lowWarning = Pair(
-                        { vm.setSourceLiveLatency(src.id, name, secs) },
-                        {},
-                    )
+                    LiveLatency.LOW -> {
+                        lowWarning = Pair({ vm.setSourceLiveLatency(src.id, name, secs) }, {})
+                        overrideSource = null
+                    }
                     // The seconds are chosen next, and Custom is committed with them — switching on
                     // open would leave a playlist on Custom with a value nobody picked.
                     LiveLatency.CUSTOM -> sheet = PlaybackSheet.LATENCY_SOURCE_CUSTOM
-                    else -> vm.setSourceLiveLatency(src.id, name, FOLLOW_GLOBAL_LATENCY_SECS)
+                    else -> {
+                        vm.setSourceLiveLatency(src.id, name, FOLLOW_GLOBAL_LATENCY_SECS)
+                        overrideSource = null
+                    }
                 }
             },
-            onDismiss = { sheet = PlaybackSheet.LATENCY_SOURCES },
+            // Runs after every pick as well: a pick closes the picker, Custom has already moved on to
+            // its seconds sheet (and must stay there), and Back with no pick returns to the list.
+            onDismiss = {
+                if (sheet == PlaybackSheet.LATENCY_SOURCE) {
+                    sheet = if (overrideSource == null) null else PlaybackSheet.LATENCY_SOURCES
+                }
+            },
         )
         PlaybackSheet.LATENCY_SOURCE_CUSTOM -> MobileBottomSheet(
             onDismissRequest = { sheet = PlaybackSheet.LATENCY_SOURCES },
@@ -652,7 +744,8 @@ fun SettingsVideoPlayerPage(
             },
             selected = editing,
             onSelect = { src -> overrideSource = src; sheet = PlaybackSheet.PREROLL_SOURCE },
-            onDismiss = { overrideSource = null; sheet = null },
+            // The sheet calls this after every pick too, so it only closes when no playlist was picked.
+            onDismiss = { if (sheet == PlaybackSheet.PREROLL_SOURCES) { overrideSource = null; sheet = null } },
         )
         PlaybackSheet.PREROLL_SOURCE -> SettingsChoiceSheet(
             title = editing?.name ?: stringResource(R.string.settings_live_preroll),
@@ -672,8 +765,9 @@ fun SettingsVideoPlayerPage(
                 )
             },
             selected = editing?.livePrerollSecs ?: FOLLOW_GLOBAL_PREROLL,
-            onSelect = { secs -> editing?.let { vm.setSourcePreroll(it.id, secs) } },
-            onDismiss = { sheet = PlaybackSheet.PREROLL_SOURCES },
+            // A pick closes the whole picker; Back (no pick) returns to the playlist list.
+            onSelect = { secs -> editing?.let { vm.setSourcePreroll(it.id, secs) }; overrideSource = null },
+            onDismiss = { sheet = if (overrideSource == null) null else PlaybackSheet.PREROLL_SOURCES },
         )
         // One sheet for all three sections: handing a stream to another app is a decision about
         // which kinds of content, not about a single value, so it is one panel rather than a picker.
@@ -765,11 +859,11 @@ fun SettingsVideoPlayerPage(
         AlertDialog(
             modifier = Modifier.glassDialogWindow(),
             onDismissRequest = { afrWarning = false },
-            title = { Text(stringResource(R.string.settings_auto_frame_rate_warning_title)) },
+            title = { Text(stringResource(R.string.settings_auto_frame_rate_warning_title_mobile)) },
             text = {
                 Text(
                     stringResource(
-                        R.string.settings_auto_frame_rate_warning_description,
+                        R.string.settings_auto_frame_rate_warning_description_mobile,
                         android.os.Build.VERSION.RELEASE,
                     ),
                 )
@@ -797,10 +891,21 @@ private val afrSafe = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSI
 
 /** "3 playlists" for the per-playlist override rows, or Off when every playlist follows the global. */
 @Composable
-private fun overrideCountLabel(count: Int): String = if (count == 0) {
+internal fun overrideCountLabel(count: Int): String = if (count == 0) {
     stringResource(R.string.common_off)
 } else {
     pluralStringResource(R.plurals.settings_live_preroll_overrides, count, count)
+}
+
+/** The per-playlist "Give up after" values: the global slider's 0..60 range, in 5-second steps. */
+private val TUNE_TIMEOUT_CHOICES: List<Int?> = (0..60 step 5).toList()
+
+/** A per-playlist "Give up after": null follows the global, 0 is never, else seconds. */
+@Composable
+private fun tuneTimeoutLabel(secs: Int?): String = when (secs) {
+    null -> stringResource(R.string.settings_live_preroll_follow)
+    0 -> stringResource(R.string.common_never)
+    else -> stringResource(R.string.settings_live_buffer_seconds, secs)
 }
 
 /** "12 items" for the reset rows, or the "nothing to forget" label when the count is zero. */
@@ -876,8 +981,8 @@ private fun SurroundMode.labelRes() = when (this) {
 }
 
 private fun SurroundMode.descriptionRes() = when (this) {
-    SurroundMode.AUTO -> R.string.settings_surround_auto_description
-    SurroundMode.STEREO -> R.string.settings_surround_stereo_description
+    SurroundMode.AUTO -> R.string.settings_surround_auto_description_mobile
+    SurroundMode.STEREO -> R.string.settings_surround_stereo_description_mobile
     SurroundMode.SURROUND -> R.string.settings_surround_forced_description
 }
 

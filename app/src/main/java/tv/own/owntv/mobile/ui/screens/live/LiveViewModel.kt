@@ -54,6 +54,7 @@ import tv.own.owntv.core.repository.ActiveProfileSources
 import tv.own.owntv.core.repository.EpgRepository
 import tv.own.owntv.core.repository.activeProfileSources
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.settings.SourceOverrides
 import tv.own.owntv.core.stalker.StreamUrlResolver
 import tv.own.owntv.core.sync.work.CatalogSyncScheduler
 import tv.own.owntv.mobile.ui.components.ReorderItem
@@ -435,7 +436,7 @@ class LiveViewModel(
                 url = url,
                 title = channel.name,
                 userAgent = source?.userAgent,
-                httpHeaders = channel.httpHeaders,
+                httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
             )
         }
     }

@@ -241,7 +241,7 @@ private fun Tile(
             }
             // The phone, not the provider: it had already allowed this stream.
             tile.deviceLimit -> Text(
-                text = stringResource(R.string.multiview_decoder_exhausted),
+                text = stringResource(R.string.multiview_decoder_exhausted_mobile),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -363,7 +363,7 @@ private fun androidx.compose.foundation.layout.BoxScope.TileCaption(name: String
  */
 @Composable
 private fun tileFailureText(failure: PlaybackFailure?): String = when {
-    failure == PlaybackFailure.DecoderExhausted -> stringResource(R.string.multiview_decoder_exhausted)
+    failure == PlaybackFailure.DecoderExhausted -> stringResource(R.string.multiview_decoder_exhausted_mobile)
     failure != null -> {
         LocalConfiguration.current // so a language change recomposes this, as stringResource would
         val resources = LocalContext.current.resources
