@@ -13,6 +13,7 @@ import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
 import tv.own.owntv.player.PlayerDiagnostics
+import tv.own.owntv.player.ScreenOff
 import tv.own.owntv.player.SleepTimer
 
 /**
@@ -110,8 +111,9 @@ val playerModule = module {
     // The sleep timer stops whichever tuner is playing. Both are resolved when it fires rather than
     // when it is built, so a timer nobody set never creates them. It ends itself once the session
     // detaches (nothing playing), so a stop by hand no longer leaves it counting.
+    single { ScreenOff(androidContext()) }
     single {
-        SleepTimer(active = get<PlaybackSession>().active).apply {
+        SleepTimer(active = get<PlaybackSession>().active, screenOff = get(), itemEnd = get<OwnTVPlayer>()).apply {
             stopPlayback = {
                 if (get<LiveTuner>().channel.value != null) get<LiveTuner>().stop() else get<VodTuner>().stop()
             }

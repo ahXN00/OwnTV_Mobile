@@ -156,6 +156,8 @@ fun PlayerScreen(
     val positionState = activeEngine.position.collectAsStateWithLifecycle()
     val nav by player.nav.collectAsStateWithLifecycle()
     val nextUpTitle by player.nextUpTitle.collectAsStateWithLifecycle()
+    // The sleep timer's "End of episode" stops there, so there is no next to count down to.
+    val stopsAtItemEnd by player.stopsAtItemEnd.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -285,7 +287,7 @@ fun PlayerScreen(
             if (msToAdvance in 0L..30_000L) ((msToAdvance + 999L) / 1000L).toInt().coerceIn(0, 30) else null
         }
     }
-    val showNextCard = !isLive && error == null && nav.hasNext && nextUpTitle != null &&
+    val showNextCard = !isLive && error == null && nav.hasNext && nextUpTitle != null && !stopsAtItemEnd &&
         secondsToAdvance != null && !autoNextDismissed
 
     var controlsVisible by remember { mutableStateOf(true) }

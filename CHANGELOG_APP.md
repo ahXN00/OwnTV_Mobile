@@ -17,7 +17,7 @@
 
 ### New features
 
-- **😴 Sleep timer in the full-screen player**
+- **😴 Sleep timer in the full-screen player, and it can switch the screen off**
 - **📶 Film buffer, network timeout and reconnect attempts**
 - **👄 A/V sync works on every player**
 - **⏮️ Previous channel**

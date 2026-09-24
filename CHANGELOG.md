@@ -9,13 +9,21 @@ the tag.
 
 ### ✨ New features
 
-#### 😴 Sleep timer in the full-screen player
+#### 😴 Sleep timer in the full-screen player, and it can switch the screen off
 
 The full-screen controls now have the **Sleep timer** (moon icon), as the sound-only screen and the
 floating window already did; it turns green while a timer runs. The timer now follows the real clock
 — it no longer runs late when the phone is busy or asleep — and stopping playback yourself cancels
 it instead of leaving it to stop the next thing you play. "End of programme" is only offered while
 that programme is still on.
+
+- **End of movie / End of episode**: stop when the film or episode playing now ends. It follows the
+  film itself, so pausing or seeking moves it too. The next episode does not start, and its countdown
+  card is not shown.
+- **Also turn off the screen** (a switch in the same sheet) locks the phone when the timer ends, like
+  the power button. The first time, Android asks you to allow OwnTV to lock the screen; that is all
+  it is used for. Switching it off gives the permission back. While it is allowed, Android asks you to
+  switch it off before OwnTV can be uninstalled.
 
 #### 📶 Film buffer, network timeout and reconnect attempts
 

@@ -2,6 +2,9 @@ package tv.own.owntv.mobile.ui.player
 
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
 import tv.own.owntv.mobile.ui.components.MobileIcons
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,6 +36,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.R
+import tv.own.owntv.player.ScreenOff
 import tv.own.owntv.player.SleepTimer
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
@@ -173,6 +179,8 @@ fun SleepTimerSheet(
     sleepTimer: SleepTimer = koinInject(),
 ) {
     val remaining by sleepTimer.remainingMs.collectAsStateWithLifecycle()
+    // Only while a movie or episode plays; live and catch-up have "End of programme" instead.
+    val endKind = remember { sleepTimer.itemEndKind() }
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_sleep_timer)) {
         SheetScroll {
             if (remaining != null) {
@@ -204,8 +212,44 @@ fun SleepTimerSheet(
                     },
                 )
             }
+            endKind?.let { kind ->
+                MobileListRow(
+                    title = stringResource(if (kind == SleepTimer.EndKind.EPISODE) R.string.player_sleep_timer_end_of_episode else R.string.player_sleep_timer_end_of_movie),
+                    onClick = {
+                        sleepTimer.startUntilItemEnd()
+                        onDismiss()
+                    },
+                )
+            }
+            ScreenOffRow()
         }
     }
+}
+
+/**
+ * "Also turn off the screen": on is the system grant itself ([ScreenOff]), re-read after the system
+ * screen answers rather than stored. Turning it off gives the grant back.
+ */
+@Composable
+private fun ScreenOffRow(screenOff: ScreenOff = koinInject()) {
+    val context = LocalContext.current
+    var allowed by remember { mutableStateOf(screenOff.isAllowed()) }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { allowed = screenOff.isAllowed() }
+    val toggle: () -> Unit = {
+        if (allowed) {
+            screenOff.revoke()
+            allowed = false
+        } else {
+            runCatching { ask.launch(screenOff.requestIntent()) }.onFailure {
+                Toast.makeText(context, R.string.player_sleep_timer_screen_off_unavailable, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    MobileListRow(
+        title = stringResource(R.string.player_sleep_timer_screen_off),
+        trailing = { Switch(checked = allowed, onCheckedChange = { toggle() }) },
+        onClick = toggle,
+    )
 }
 
 /** The countdown reads in whole minutes, rounded up — see [SleepTimer.minutesLeft]. */

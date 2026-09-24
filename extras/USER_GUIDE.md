@@ -319,7 +319,7 @@ Every gesture above also has a button on the control bar:
 | **Mini player** | Shrink and keep browsing |
 | **Sound only** | Drop the picture, keep the sound |
 | **Record · Multiview** | Once enabled in Settings |
-| 🌙 **Sleep timer** | 15–90 min, or end of programme on a live channel; green while running. Stopping playback yourself cancels it |
+| 🌙 **Sleep timer** | 15–90 min, end of programme on a live channel, or end of movie / episode (the next episode then does not start); green while running. Stopping playback yourself cancels it. **Also turn off the screen** locks the phone when it ends — Android asks for permission once |
 | **Info** | The technical readout — and **Report** appears while it is open |
 
 **Back stops the stream.** The mini-player button and the swipe down are what keep it playing.
