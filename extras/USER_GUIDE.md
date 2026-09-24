@@ -319,6 +319,7 @@ Every gesture above also has a button on the control bar:
 | **Mini player** | Shrink and keep browsing |
 | **Sound only** | Drop the picture, keep the sound |
 | **Record · Multiview** | Once enabled in Settings |
+| 🌙 **Sleep timer** | 15–90 min, or end of programme on a live channel; green while running. Stopping playback yourself cancels it |
 | **Info** | The technical readout — and **Report** appears while it is open |
 
 **Back stops the stream.** The mini-player button and the swipe down are what keep it playing.
@@ -340,7 +341,7 @@ window, over other apps, with skip and play/pause buttons. Turn it off in
 **Where:** the headphones button in the player, or the floating window's menu
 Keeps the sound, drops the picture — the phone's biggest battery and data saving. It can switch
 itself on **when the screen goes off** or **on mobile data**, and it remembers your choice per
-channel. A **sleep timer** lives in the same menu.
+channel. A **sleep timer** lives in the same menu — and on the full-screen player bar.
 
 ---
 
@@ -431,6 +432,7 @@ Settings is a list of groups, each opening its own page. There's a **search box*
 | **Multiview** | Playback → Video player | Off by default; also sets the tile ceiling |
 | **Record what I'm watching** | Playback → Recording | Adds the Record button to the player |
 | **Auto frame rate** | Playback → Video player | Off by default; full screen, seamless switches only; warns where the display can't be asked |
+| **Film buffer** · **Network timeout** · **Reconnect attempts** | Playback → Video player | Films, episodes and catch-up on a bad line. Auto / 1 = as before |
 | **Reset saved live TV player choices** · **Forget learned stream fixes** | Playback → Video player | Undo per-channel player choices; forget what the player learned about a provider |
 | **Subtitle appearance** | Playback → Subtitle appearance | Size, **font**, colour, position, background |
 | **Gesture sensitivity** | Playback → Mobile | How far a value moves per centimetre of finger |

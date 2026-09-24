@@ -75,6 +75,8 @@ fun PlayerSheetHost(
     /** "Go back to…" — the offsets on offer, and what to do with the chosen one. */
     catchup: CatchupOptions?,
     onDismiss: () -> Unit,
+    /** When the programme on air ends, for the sleep timer's "End of programme"; null offers no such row. */
+    programmeEndMs: Long? = null,
 ) {
     when (sheet) {
         PlayerSheet.VOLUME -> VolumeSheet(player, onDismiss)
@@ -93,6 +95,7 @@ fun PlayerSheetHost(
         PlayerSheet.INFO -> StreamInfoSheet(player, onDismiss)
         PlayerSheet.CHANNELS -> ChannelSheet(channels, onTuneToNumber, onPickChannel, onDismiss)
         PlayerSheet.CATCHUP -> catchup?.let { CatchupSheet(it, onDismiss) } ?: onDismiss()
+        PlayerSheet.SLEEP_TIMER -> SleepTimerSheet(programmeEndMs = programmeEndMs, onDismiss = onDismiss)
     }
 }
 

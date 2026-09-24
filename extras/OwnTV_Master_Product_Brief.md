@@ -314,7 +314,7 @@ app/src/main/java/tv/own/owntv/mobile/
 ├── ui/player/       the full-screen player, gestures, sheets, mini players
 ├── ui/components/   the shared surface language — buttons, rows, sheets, glass, icons
 ├── ui/shell/        the bar/rail shell, the top bar, the sync pill
-├── playback/        the foreground service, PiP, the data-saver gate, the sleep timer
+├── playback/        the foreground service, PiP, the data-saver gate (the sleep timer is core's)
 ├── cast/            the Google Cast sender
 └── di/              Koin modules
 tools/i18n/          the locale catalogue and the consumer-side string checks

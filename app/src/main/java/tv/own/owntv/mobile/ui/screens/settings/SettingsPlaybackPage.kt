@@ -40,6 +40,7 @@ import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 private enum class PlaybackSheet {
     LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
     RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER, MULTIVIEW_TILES,
+    VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS,
 
     /**
      * The per-playlist overrides, two levels each: pick the playlist, then pick its value. The second
@@ -128,6 +129,9 @@ fun SettingsVideoPlayerPage(
     val preroll = s.livePrerollSecs.pref(0)
     val tuneTimeout = s.liveTuneTimeoutSecs.pref(0)
     val seekStep = s.seekStepSec.pref(SeekSteps.DEFAULT_SEEK_STEP_SEC)
+    val vodBufferSecs = s.vodBufferSecs.pref(0)
+    val vodTimeoutSecs = s.vodNetworkTimeoutSecs.pref(0)
+    val vodReconnects = s.vodReconnects.pref(1)
     val rewindStep = s.liveRewindStepSec.pref(SeekSteps.DEFAULT_LIVE_REWIND_STEP_SEC)
     // ASK, because that is what core stores when nothing has been chosen. Showing AUTO here named a
     // setting the app was not actually using, in the one frame before the real value arrives.
@@ -280,6 +284,28 @@ fun SettingsVideoPlayerPage(
                 subtitle = stringResource(R.string.settings_live_rewind_step_description),
                 value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
                 onClick = { sheet = PlaybackSheet.REWIND_STEP },
+            )
+
+            // N18 — films, episodes and catch-up only; live keeps its own latency and give-up settings.
+            SettingRow(
+                title = stringResource(R.string.settings_vod_buffer),
+                subtitle = stringResource(R.string.settings_vod_buffer_description),
+                value = autoOrSeconds(vodBufferSecs),
+                onClick = { sheet = PlaybackSheet.VOD_BUFFER },
+            )
+
+            SettingRow(
+                title = stringResource(R.string.settings_vod_network_timeout),
+                subtitle = stringResource(R.string.settings_vod_network_timeout_description),
+                value = autoOrSeconds(vodTimeoutSecs),
+                onClick = { sheet = PlaybackSheet.VOD_TIMEOUT },
+            )
+
+            SettingRow(
+                title = stringResource(R.string.settings_vod_reconnects),
+                subtitle = stringResource(R.string.settings_vod_reconnects_description),
+                value = stringResource(R.string.settings_vod_reconnects_value, vodReconnects),
+                onClick = { sheet = PlaybackSheet.VOD_RECONNECTS },
             )
         }
 
@@ -583,6 +609,27 @@ fun SettingsVideoPlayerPage(
             },
             selected = rewindStep,
             onSelect = { secs -> vm.edit { setLiveRewindStepSec(secs) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.VOD_BUFFER -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_vod_buffer),
+            choices = s.vodBufferChoicesSecs.map { SettingsChoice(it, autoOrSeconds(it)) },
+            selected = vodBufferSecs,
+            onSelect = { secs -> vm.edit { setVodBufferSecs(secs) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.VOD_TIMEOUT -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_vod_network_timeout),
+            choices = s.vodNetworkTimeoutChoicesSecs.map { SettingsChoice(it, autoOrSeconds(it)) },
+            selected = vodTimeoutSecs,
+            onSelect = { secs -> vm.edit { setVodNetworkTimeoutSecs(secs) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.VOD_RECONNECTS -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_vod_reconnects),
+            choices = s.vodReconnectChoices.map { SettingsChoice(it, stringResource(R.string.settings_vod_reconnects_value, it)) },
+            selected = vodReconnects,
+            onSelect = { count -> vm.edit { setVodReconnects(count) } },
             onDismiss = dismiss,
         )
         // --- Per-playlist Live TV engine: pick the playlist, then its value ---
@@ -1017,3 +1064,8 @@ private fun LiveLatency.labelRes() = when (this) {
     LiveLatency.STABLE -> R.string.settings_live_latency_stable
     LiveLatency.CUSTOM -> R.string.settings_live_latency_custom
 }
+
+/** "Auto" for 0, else seconds ("60s") — the film buffer and network timeout choices (N18). */
+@Composable
+private fun autoOrSeconds(secs: Int): String =
+    if (secs <= 0) stringResource(R.string.settings_vod_network_auto) else stringResource(R.string.settings_live_buffer_seconds, secs)

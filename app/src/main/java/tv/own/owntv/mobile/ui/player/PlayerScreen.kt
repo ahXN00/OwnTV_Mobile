@@ -831,6 +831,7 @@ fun PlayerScreen(
             // the numbers at all.
             onTuneToNumber = if (showChannelNumbers) tuner::tuneByNumber else null,
             catchup = catchup,
+            programmeEndMs = if (channel != null) nowNext?.now?.stopMs else null,
             // Back out of a channel list returns to the categories, not out of the player's sheets.
             onDismiss = { if (open == PlayerSheet.CHANNELS) playerCategory = null else sheet = null },
         )

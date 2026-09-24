@@ -40,15 +40,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.R
-import tv.own.owntv.mobile.playback.SleepTimer
+import tv.own.owntv.player.SleepTimer
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.SheetScroll
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.mobile.ui.theme.MobileSheetShape
-
-/** What the sleep timer offers, in minutes. Round numbers, because nobody falls asleep to 37. */
-private val SLEEP_MINUTES = intArrayOf(15, 30, 45, 60, 90)
 
 /** The artwork tile, big enough to read a channel logo on and small enough for landscape. */
 private val ARTWORK_SIZE = 132.dp
@@ -187,7 +184,7 @@ fun SleepTimerSheet(
                     },
                 )
             }
-            SLEEP_MINUTES.forEach { minutes ->
+            SleepTimer.CHOICES_MINUTES.forEach { minutes ->
                 MobileListRow(
                     title = stringResource(R.string.player_duration_minutes, minutes),
                     onClick = {
@@ -196,9 +193,9 @@ fun SleepTimerSheet(
                     },
                 )
             }
-            // Only with a guide behind it: "end of programme" with no programme is a button that
-            // stops the stream at once.
-            programmeEndMs?.let { endMs ->
+            // Only with a guide behind it, and only while that programme is still on: "end of
+            // programme" with no programme, or one already over, is a button that stops the stream at once.
+            programmeEndMs?.takeIf { it > System.currentTimeMillis() }?.let { endMs ->
                 MobileListRow(
                     title = stringResource(R.string.player_sleep_timer_end_of_programme),
                     onClick = {
@@ -211,12 +208,10 @@ fun SleepTimerSheet(
     }
 }
 
-/** The countdown reads in whole minutes, rounded up: "Stops in 1 min" until it really is over. */
+/** The countdown reads in whole minutes, rounded up — see [SleepTimer.minutesLeft]. */
 @Composable
-private fun minutesLabel(remainingMs: Long): String {
-    val minutes = ((remainingMs + 59_999L) / 60_000L).toInt()
-    return stringResource(R.string.player_duration_minutes, minutes)
-}
+private fun minutesLabel(remainingMs: Long): String =
+    stringResource(R.string.player_duration_minutes, SleepTimer.minutesLeft(remainingMs))
 
 /**
  * Something moving, so a screen with no picture still looks like it is playing.

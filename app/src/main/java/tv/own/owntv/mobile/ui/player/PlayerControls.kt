@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,11 +53,13 @@ import tv.own.owntv.mobile.ui.theme.SquircleShape
 import tv.own.owntv.player.LiveProgramme
 import tv.own.owntv.player.PlaybackEngine
 import tv.own.owntv.player.OwnTVPlayer
+import tv.own.owntv.player.SleepTimer
+import org.koin.compose.koinInject
 import java.text.NumberFormat
 
 /** The pickers the tool bar opens. Each one is a sheet; each one also has a gesture. */
 enum class PlayerSheet {
-    VOLUME, BRIGHTNESS, SUBTITLES, SUBTITLE_SEARCH, AUDIO, ASPECT, SPEED, INFO, CHANNELS, CATCHUP,
+    VOLUME, BRIGHTNESS, SUBTITLES, SUBTITLE_SEARCH, AUDIO, ASPECT, SPEED, INFO, CHANNELS, CATCHUP, SLEEP_TIMER,
 }
 
 /**
@@ -448,8 +451,12 @@ private fun ToolBar(
     recordingThis: Boolean = false,
     liveOnExo: Boolean = false,
     onToggleLiveEngine: (() -> Unit)? = null,
+    sleepTimer: SleepTimer = koinInject(),
 ) {
     val speed by engine.speed.collectAsStateWithLifecycle()
+    // Only whether one runs: the countdown ticks every second, and the bar must not redraw with it.
+    val sleepLeft = sleepTimer.remainingMs.collectAsStateWithLifecycle()
+    val sleepRunning by remember { derivedStateOf { sleepLeft.value != null } }
     val engineName by engine.engineChip.collectAsStateWithLifecycle()
     // The engine chip in the title line is small and easy to miss, so the swap says which engine it
     // landed on — otherwise the only feedback for the button is a picture that blinks.
@@ -597,6 +604,14 @@ private fun ToolBar(
                     active = recordingThis,
                 )
             }
+            // N17 / M14 — the full-screen way to the sleep timer; the sound-only screen and the
+            // floating window already had one. Coloured while a countdown is running.
+            PlayerControl.SLEEP_TIMER -> CtrlButton(
+                icon = MobileIcons.Bedtime,
+                label = stringResource(R.string.player_sleep_timer),
+                onClick = { onOpenSheet(PlayerSheet.SLEEP_TIMER) },
+                active = sleepRunning,
+            )
             PlayerControl.INFO -> CtrlButton(MobileIcons.Info, stringResource(R.string.player_tool_info), {
                 onOpenSheet(PlayerSheet.INFO)
             })

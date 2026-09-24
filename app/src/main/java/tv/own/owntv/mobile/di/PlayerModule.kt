@@ -7,13 +7,13 @@ import tv.own.owntv.core.subtitles.SubtitleController
 import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.playback.DataSaverGate
 import tv.own.owntv.mobile.playback.PipController
-import tv.own.owntv.mobile.playback.SleepTimer
 import tv.own.owntv.mobile.ui.player.SubtitleSearchViewModel
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.OwnTVPlayer
 import tv.own.owntv.player.PlaybackSession
 import tv.own.owntv.player.PlayerDiagnostics
+import tv.own.owntv.player.SleepTimer
 
 /**
  * The libmpv player, bound app-side.
@@ -108,12 +108,13 @@ val playerModule = module {
     // Backs the player's "Add subtitles" sheet.
     viewModelOf(::SubtitleSearchViewModel)
     // The sleep timer stops whichever tuner is playing. Both are resolved when it fires rather than
-    // when it is built, so a timer nobody set never creates them.
+    // when it is built, so a timer nobody set never creates them. It ends itself once the session
+    // detaches (nothing playing), so a stop by hand no longer leaves it counting.
     single {
-        SleepTimer(
+        SleepTimer(active = get<PlaybackSession>().active).apply {
             stopPlayback = {
                 if (get<LiveTuner>().channel.value != null) get<LiveTuner>().stop() else get<VodTuner>().stop()
-            },
-        )
+            }
+        }
     }
 }

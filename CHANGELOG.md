@@ -9,6 +9,21 @@ the tag.
 
 ### ✨ New features
 
+#### 😴 Sleep timer in the full-screen player
+
+The full-screen controls now have the **Sleep timer** (moon icon), as the sound-only screen and the
+floating window already did; it turns green while a timer runs. The timer now follows the real clock
+— it no longer runs late when the phone is busy or asleep — and stopping playback yourself cancels
+it instead of leaving it to stop the next thing you play. "End of programme" is only offered while
+that programme is still on.
+
+#### 📶 Film buffer, network timeout and reconnect attempts
+
+Playback → Video player has **Film buffer** (Auto, 30 s – 5 min), **Network timeout** (Auto,
+10–60 s) and **Reconnect attempts** (1, 3, 5 or 10) for films, episodes and catch-up. Auto and 1 are
+what the app did before; memory limits are unchanged. A film that loses its connection now reopens
+where it stopped on either player, and a minute of steady playback earns the attempts back.
+
 #### 👄 A/V sync works on every player
 
 The **A/V sync** control in the Audio panel (and the Settings default) now also works on ExoPlayer —
