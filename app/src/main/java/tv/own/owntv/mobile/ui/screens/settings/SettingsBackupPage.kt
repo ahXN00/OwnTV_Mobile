@@ -15,6 +15,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -156,6 +157,21 @@ fun SettingsBackupPage(
     }
 
     vm.outcome?.let { outcome -> OutcomeSheet(outcome, vm::dismissOutcome) }
+
+    // A restore can bring a different icon colour than the launcher shows. Offer the restart once the
+    // summary is closed, so the two dialogs never stack.
+    val settings: tv.own.owntv.core.settings.SettingsRepository = org.koin.compose.koinInject()
+    val chosenIcon = settings.appIcon.pref(null)
+    val appliedIcon = tv.own.owntv.mobile.ui.components.rememberAppliedIcon()
+    var restoredPending by remember { mutableStateOf(false) }
+    LaunchedEffect(vm.outcome) { if (vm.outcome is BackupViewModel.Outcome.Restored) restoredPending = true }
+    if (restoredPending && vm.outcome == null) {
+        if (chosenIcon != null && chosenIcon != appliedIcon) {
+            tv.own.owntv.mobile.ui.components.AppIconRestartDialog(chosenIcon) { restoredPending = false }
+        } else {
+            LaunchedEffect(Unit) { restoredPending = false }
+        }
+    }
 }
 
 /** Everything the export needs, decided before the picker opens. */

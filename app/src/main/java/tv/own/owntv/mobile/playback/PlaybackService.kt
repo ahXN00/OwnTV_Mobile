@@ -151,7 +151,7 @@ class PlaybackService : Service() {
         val ctx = localized()
         ensureChannel(ctx)
         val builder = Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(R.drawable.owntv_notification)
             .setContentTitle(meta.title ?: ctx.getString(R.string.app_name))
             // Where it is playing beats what is on next: the second line is the one place outside the
             // app that can say the sound is coming out of another room.
@@ -165,7 +165,9 @@ class PlaybackService : Service() {
                 PendingIntent.getActivity(
                     this,
                     0,
-                    Intent(this, MainActivity::class.java)
+                    // The enabled icon colour's activity: with another colour chosen, MainActivity itself
+                    // is disabled and an Intent to it would open nothing.
+                    Intent().setComponent(tv.own.owntv.core.brand.AppIconSwitcher.launchComponent(this))
                         .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
                         .putExtra(MainActivity.EXTRA_OPEN_PLAYER, true),
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,

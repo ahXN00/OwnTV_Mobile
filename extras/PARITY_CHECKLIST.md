@@ -32,6 +32,7 @@ Two rows ended somewhere other than where the mockup put them. Both are explaine
 | Profiles, PIN, restrictions | ✅ | Plus a profile picture from the phone's photos, which the television has no way to offer |
 | Backup / restore | ✅ | Including the television→phone migration path, encrypted backups included |
 | Theme, accent, Glass Effect | ✅ | The same stored values; a colour picker was added for all three colour settings |
+| App icon (eight colours) | ✅ | The same stored choice and the same restart question; the phone has no banner or TV home channel |
 | Locales | ✅ | 26 packaged, inherited from core's resources — the mockup said 24, and the catalogue has grown since |
 | Player: engine ladder, mpv/Exo | ✅ | `:player-core`, untouched, including the per-channel compatibility pin. The phone ran **half** the ladder until 2026-09-14 — one engine was watched and the other was a terminus. It now walks core's own `LiveLadder`: four engine/format rungs, each at most once, with the whole-tune budget behind Settings → "Give up after" |
 | External player handoff | ✅ | Richer here than on the television, because a phone has more players installed |

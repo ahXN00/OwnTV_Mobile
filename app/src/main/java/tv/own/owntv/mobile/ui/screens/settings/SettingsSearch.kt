@@ -131,6 +131,7 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         // error log, About or Profiles: none of them is in Settings any more, and a result for
         // something that is not here is a lie about where it lives. The no-results state is left
         // exactly as it was — it must not gain a line explaining where anything went.
+        SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_app_icon, R.string.settings_app_icon_summary),
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_app_startup, R.string.settings_search_keywords_startup),
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_startup_specific_channel, R.string.settings_search_keywords_startup),
         SettingsRowEntry(SettingsGroup.APP, null, R.string.settings_check_updates, R.string.settings_search_keywords_updates),

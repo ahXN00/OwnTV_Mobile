@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import tv.own.owntv.core.brand.AppIcon
+import tv.own.owntv.mobile.ui.components.AppIconPicker
+import tv.own.owntv.mobile.ui.components.BrandLockup
 import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.i18n.LocaleStore
 import tv.own.owntv.core.i18n.SupportedLocales
@@ -65,11 +68,8 @@ fun WelcomeStep(onNext: () -> Unit) {
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
         )
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        // The stacked logo, as on the mockup's phone Welcome screen, in the colour the launcher shows.
+        BrandLockup(markSize = 64, textSize = 26, stacked = true)
         Text(
             text = stringResource(R.string.setup_welcome_tagline),
             style = MaterialTheme.typography.titleMedium,
@@ -104,6 +104,7 @@ fun DisplaySizeStep(onNext: () -> Unit, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val zoom by settings.uiZoomPercent.collectAsStateWithLifecycle(UiZoom.DEFAULT)
     val fonts by settings.fontCustomization.collectAsStateWithLifecycle(FontCustomization())
+    val appIcon by settings.appIcon.collectAsStateWithLifecycle(AppIcon.DEFAULT)
     var pendingLowZoom by remember { mutableStateOf<Int?>(null) }
     var lowZoomAccepted by remember { mutableStateOf(zoom < UiZoom.LOW_RAM_WARN) }
     SetupPage {
@@ -145,6 +146,13 @@ fun DisplaySizeStep(onNext: () -> Unit, onBack: () -> Unit) {
                 }
             },
         )
+        // No restart prompt here: the pick applies as soon as the app is next in the background.
+        Text(
+            text = stringResource(R.string.settings_app_icon),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        AppIconPicker(selected = appIcon, onPick = { scope.launch { settings.setAppIcon(it) } })
         Spacer(Modifier.height(MobileDimens.GapSmall))
         Text(
             text = stringResource(R.string.setup_display_size_preview),

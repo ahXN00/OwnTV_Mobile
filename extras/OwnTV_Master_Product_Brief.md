@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="logo.png" alt="OwnTV Mobile" width="300">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="brand/app-logos/logo_eggshell_light.png">
+    <img src="brand/app-logos/logo_eggshell.png" alt="OwnTV Mobile" width="300">
+  </picture>
 </p>
 
 <h1 align="center">OwnTV Mobile — Master Product Brief</h1>

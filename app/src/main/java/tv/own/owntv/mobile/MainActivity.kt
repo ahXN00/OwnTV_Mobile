@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.util.Rational
 import android.view.WindowManager
 import androidx.activity.compose.setContent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalConfiguration
@@ -49,7 +50,7 @@ import tv.own.owntv.mobile.ui.theme.MobileTheme
  * cast picker requires in order to open at all.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MainActivity : FragmentActivity() {
+open class MainActivity : FragmentActivity() {
 
     private val tuner: LiveTuner by inject()
     private val pip: PipController by inject()
@@ -101,6 +102,9 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The launch screen (the icon colour's flip card) must be installed before super.onCreate;
+        // it then swaps the activity to Theme.OwnTVMobile via postSplashScreenTheme.
+        installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         askForNotifications()

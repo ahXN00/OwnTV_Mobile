@@ -22,7 +22,8 @@ Welcome  →  Text size  →  Disclaimer  →  Set up OwnTV  →  Profile  →  
 
 1. **Welcome** — the language picker is on this screen: one of 26, or **System default**. Tap
    **Get started**.
-2. **Text size** — interface zoom and font size, with a sample that resizes as you adjust.
+2. **Text size** — interface zoom and font size, with a sample that resizes as you adjust, and the
+   **App icon** colour.
 3. **Disclaimer** — OwnTV is a player; you bring the sources.
 4. **Set up OwnTV** — **New profile**, **Restore a backup**, or **From another device** (copy
    everything off a television you already have — see below).
@@ -395,6 +396,11 @@ chosen channel.
 Light, dark or system, with an accent colour. Three colour settings — accent, selection highlight and
 subtitle text — each open a **real colour picker**: hue bar, saturation square, live preview and a
 hex box.
+
+**App icon** (Settings → App): eight colours for the OwnTV icon and logo — Petrol,
+Sunflower, Cobalt, Tomato, Station Board, **Eggshell** (default), Olive and Olive on Cream. **Restart
+now** switches at once; **Later** switches when you next leave the app. Some launchers take a moment
+to show the new icon, and a few move it from the home screen to the app list.
 
 **Glass Effect** has its own page: presets including **Aurora**, transparency, frost, and which
 surfaces get it. Real frost needs Android 12+.

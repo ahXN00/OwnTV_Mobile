@@ -318,6 +318,8 @@ dependencies {
 
     // Core
     implementation(libs.androidx.core.ktx)
+    // The launch screen: the flip-card animation, one theme per icon colour (see themes.xml).
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
     implementation(libs.kotlinx.coroutines.android)
 

@@ -17,6 +17,7 @@
 
 ### New features
 
+- **🎨 New icon and logo, in eight colours**
 - **😴 Sleep timer in the full-screen player, and it can switch the screen off**
 - **📶 Film buffer, network timeout and reconnect attempts**
 - **👄 A/V sync works on every player**

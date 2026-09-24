@@ -96,6 +96,8 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
         // res/font files. The result was a Subtitle font setting that reached the app's own subtitle
         // layer and nothing else.
         tv.own.owntv.player.SubtitleFontAssets.resourceOf = { it.subtitleFontResource }
+        // The eight icon colours are MainActivity + a suffix (see MainActivityColours.kt); core switches them.
+        tv.own.owntv.core.brand.AppIconSwitcher.mainActivityClass = MainActivity::class.java.name
         startKoin {
             androidLogger(if (BuildConfig.DEBUG) Level.ERROR else Level.NONE)
             androidContext(this@OwnTVMobileApp)
@@ -105,6 +107,9 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
                 downloadsModule, settingsModule,
             )
         }
+        // A chosen icon colour ("Later", the first-run pick, a restore) reaches the launcher when the app
+        // is next in the background, never while it is on screen.
+        tv.own.owntv.core.brand.AppIconSwitcher.start(this, org.koin.core.context.GlobalContext.get().get())
         // Diagnostics switch, the persisted archive-decode quirk and the one-shot settings migrations.
         tv.own.owntv.player.PlaybackStartup.start(
             scope = appScope,

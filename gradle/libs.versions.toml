@@ -7,6 +7,7 @@ kotlin = "2.4.20"
 
 # --- AndroidX / Jetpack ---
 coreKtx = "1.19.0"
+splashscreen = "1.2.0"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 # Window size classes / adaptive layouts — a phone-and-tablet concern the TV app has no use for, and
@@ -78,6 +79,7 @@ androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.re
 
 # Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 
 # Compose (versions managed by the BOM)
