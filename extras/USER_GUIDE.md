@@ -312,6 +312,7 @@ Every gesture above also has a button on the control bar:
 | **Subtitles · Audio** | Tracks (the language you pick is remembered per channel, film or series), plus subtitle search, subtitle timing and A/V sync. Both are always on the bar — a film with one soundtrack still has A/V sync. Scroll the panel to reach what is below the tracks |
 | **Previous · Next** | The episode either side of this one, beside play. Series only |
 | **Aspect** | Fit · Fill · Stretch · Original · Force 16:9 · Force 4:3 |
+| **Quality** | Only when the stream offers several picture sizes. Auto, or one size for what is playing now |
 | **Favourite** | Adds what is playing |
 | **Catch-up** | *Go back to…* on archive channels |
 | **Previous channel** | Back to the channel you watched before; tap again to flip back. Headphone "previous" does the same on live |
@@ -440,6 +441,9 @@ Settings is a list of groups, each opening its own page. There's a **search box*
 | **Auto frame rate** | Playback → Video player | Off by default; full screen, seamless switches only; warns where the display can't be asked |
 | **Film buffer** · **Network timeout** · **Reconnect attempts** | Playback → Video player | Films, episodes and catch-up on a bad line. Auto / 1 = as before |
 | **Reset saved live TV player choices** · **Forget learned stream fixes** | Playback → Video player | Undo per-channel player choices; forget what the player learned about a provider |
+| **Dolby and DTS passthrough** · **Night mode** · **Volume leveling** | Playback → Video player | Send Dolby/DTS undecoded (on) or decode in the app; turn loud scenes down; even out loudness between channels. Night mode and leveling work on ExoPlayer, not on mpv |
+| **Maximum video quality** · **Maximum quality on mobile data** | Playback → Video player | The highest picture played when a stream offers several; the mobile-data limit follows a Wi-Fi ⇄ mobile switch while playing |
+| **Tunneled playback** | Playback → Video player | Experimental, off. Only on phones that support it; turns itself off after a failure |
 | **Preferred audio / subtitle language** | Playback → Video player | Per profile, 50 languages. **Original language** (audio) plays a film or series in the language it was made in, when the stream has it |
 | **Subtitle appearance** | Playback → Subtitle appearance | Size, **font**, colour, position, background |
 | **Gesture sensitivity** | Playback → Mobile | How far a value moves per centimetre of finger |

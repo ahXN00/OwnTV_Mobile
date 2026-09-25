@@ -42,7 +42,7 @@ import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 private enum class PlaybackSheet {
     LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
     RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER, MULTIVIEW_TILES,
-    VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS,
+    VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS, MAX_QUALITY, MOBILE_QUALITY,
 
     /**
      * The per-playlist overrides, two levels each: pick the playlist, then pick its value. The second
@@ -134,6 +134,13 @@ fun SettingsVideoPlayerPage(
     val vodBufferSecs = s.vodBufferSecs.pref(0)
     val vodTimeoutSecs = s.vodNetworkTimeoutSecs.pref(0)
     val vodReconnects = s.vodReconnects.pref(1)
+    val audioPassthrough = s.audioPassthrough.pref(true)
+    val nightMode = s.nightMode.pref(false)
+    val volumeLevelling = s.volumeLevelling.pref(false)
+    val maxVideoHeight = s.maxVideoHeight.pref(0)
+    val mobileDataMaxVideoHeight = s.mobileDataMaxVideoHeight.pref(0)
+    val tunneledPlayback = s.tunneledPlayback.pref(false)
+    val tunnelingFailed = s.tunnelingFailed.pref(false)
     val rewindStep = s.liveRewindStepSec.pref(SeekSteps.DEFAULT_LIVE_REWIND_STEP_SEC)
     // ASK, because that is what core stores when nothing has been chosen. Showing AUTO here named a
     // setting the app was not actually using, in the one frame before the real value arrives.
@@ -219,6 +226,35 @@ fun SettingsVideoPlayerPage(
                 toggle = quickToggle("vp_hdr"),
                 subtitle = stringResource(R.string.settings_hdr_description_mobile),
             )
+
+            // N11 — the Settings limit, and a lower one for mobile data; the player's Quality
+            // button picks within a stream.
+            SettingRow(
+                title = stringResource(R.string.settings_max_video_quality),
+                subtitle = stringResource(R.string.settings_max_video_quality_description),
+                value = qualityLabel(maxVideoHeight, R.string.settings_auto),
+                onClick = { sheet = PlaybackSheet.MAX_QUALITY },
+            )
+            SettingRow(
+                title = stringResource(R.string.settings_mobile_data_quality),
+                subtitle = stringResource(R.string.settings_mobile_data_quality_description),
+                value = qualityLabel(mobileDataMaxVideoHeight, R.string.common_off),
+                onClick = { sheet = PlaybackSheet.MOBILE_QUALITY },
+            )
+
+            // N19 — only where a decoder can tunnel; after a failure it says why it is off.
+            if (tv.own.owntv.player.Tunneling.supported) {
+                SettingRow(
+                    title = stringResource(R.string.settings_tunneled_playback),
+                    subtitle = stringResource(R.string.settings_tunneled_playback_description_mobile) +
+                        if (tunnelingFailed && !tunneledPlayback) " " + stringResource(R.string.settings_tunneled_playback_failed) else "",
+                    checked = tunneledPlayback,
+                    onCheckedChange = { on ->
+                        if (on) tv.own.owntv.player.Tunneling.failedThisSession = false // another try
+                        vm.edit { setTunneledPlayback(on) }
+                    },
+                )
+            }
 
             SettingRow(
                 title = stringResource(R.string.settings_auto_frame_rate),
@@ -413,7 +449,9 @@ fun SettingsVideoPlayerPage(
         settingsGroup(key = "volume") {
             SettingsSlider(
                 title = stringResource(R.string.settings_default_volume),
-                subtitle = stringResource(R.string.settings_default_volume_description),
+                // Through the formatting overload: the string writes its "%" as "%%" (the i18n rule), and only
+                // formatting turns it back into one — the plain overload showed "100%%".
+                subtitle = stringResource(R.string.settings_default_volume_description, *emptyArray<Any>()),
                 value = volume,
                 range = 0..150,
                 onValueChange = { pct -> vm.edit { setDefaultVolume(pct) } },
@@ -432,6 +470,26 @@ fun SettingsVideoPlayerPage(
                 subtitle = stringResource(R.string.settings_surround_description_mobile),
                 value = stringResource(surround.labelRes()),
                 onClick = { sheet = PlaybackSheet.SURROUND },
+            )
+
+            // P14 — N8, N9, N10.
+            SettingRow(
+                title = stringResource(R.string.settings_audio_passthrough),
+                subtitle = stringResource(R.string.settings_audio_passthrough_description_mobile),
+                checked = audioPassthrough,
+                onCheckedChange = { on -> vm.edit { setAudioPassthrough(on) } },
+            )
+            SettingRow(
+                title = stringResource(R.string.settings_night_mode),
+                subtitle = stringResource(R.string.settings_night_mode_description),
+                checked = nightMode,
+                onCheckedChange = { on -> vm.edit { setNightMode(on) } },
+            )
+            SettingRow(
+                title = stringResource(R.string.settings_volume_leveling),
+                subtitle = stringResource(R.string.settings_volume_leveling_description),
+                checked = volumeLevelling,
+                onCheckedChange = { on -> vm.edit { setVolumeLevelling(on) } },
             )
 
             SettingRow(
@@ -612,6 +670,20 @@ fun SettingsVideoPlayerPage(
             },
             selected = rewindStep,
             onSelect = { secs -> vm.edit { setLiveRewindStepSec(secs) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.MAX_QUALITY -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_max_video_quality),
+            choices = s.maxVideoHeightChoices.map { SettingsChoice(it, qualityLabel(it, R.string.settings_auto)) },
+            selected = maxVideoHeight,
+            onSelect = { h -> vm.edit { setMaxVideoHeight(h) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.MOBILE_QUALITY -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_mobile_data_quality),
+            choices = s.mobileDataMaxVideoHeightChoices.map { SettingsChoice(it, qualityLabel(it, R.string.common_off)) },
+            selected = mobileDataMaxVideoHeight,
+            onSelect = { h -> vm.edit { setMobileDataMaxVideoHeight(h) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.VOD_BUFFER -> SettingsChoiceSheet(
@@ -1032,6 +1104,11 @@ private fun trackLanguageChoices(withOriginal: Boolean): List<SettingsChoice<Str
         remember(display) { TrackLanguages.sortedFor(display) }
     return codes.map { SettingsChoice(it, trackLanguageName(it)) }
 }
+
+/** [noneRes] ("Auto" / "Off") for 0, else the picture height ("1080p") — N11. */
+@Composable
+private fun qualityLabel(height: Int, noneRes: Int): String =
+    if (height <= 0) stringResource(noneRes) else stringResource(R.string.settings_video_quality_lines, height)
 
 private fun SurroundMode.labelRes() = when (this) {
     SurroundMode.AUTO -> R.string.settings_auto

@@ -111,7 +111,41 @@ same language next time — subtitles off is remembered too. Each profile keeps 
 With **Auto-play next** on, a catch-up programme that ends goes on to the next one in the guide — or
 back to the live channel once you have caught up with what is on now — exactly as on the TV.
 
+#### 🔊 Dolby and DTS passthrough, Night mode and Volume leveling
+
+Playback → Video player → Sound has three new switches:
+
+- **Dolby and DTS passthrough** (on, as before): ExoPlayer sends Dolby and DTS undecoded to a
+  connected TV or receiver when it says it can play them. Off: OwnTV decodes them itself. mpv always
+  decodes.
+- **Night mode** (off): loud scenes are turned down and quiet dialogue up.
+- **Volume leveling** (off): every channel and film is brought slowly to the same loudness.
+- Night mode and Volume leveling work on the ExoPlayer engine. On mpv they have no effect: the mpv
+  build OwnTV uses has no sound filters.
+
+#### 📺 Maximum video quality, a mobile-data limit and a Quality button
+
+- **Maximum video quality** (Auto, 2160p, 1080p, 720p, 480p) and **Maximum quality on mobile data**
+  (Off, 1080p, 720p, 480p): the lower of the two applies while the phone is on mobile data, and it
+  follows a switch between Wi-Fi and mobile data during playback.
+- The full-screen tool bar has a **Quality** button whenever the stream offers more than one picture
+  size. A pick applies to what is playing now.
+
+#### 🧪 Tunneled playback (experimental)
+
+Shown only on a phone whose decoder supports it: live TV on ExoPlayer lets the hardware keep picture
+and sound together. It switches itself off after the first failure. Off by default.
+
 ### 🩹 Fixes
+
+#### ⚙️ Hardware decoding, Stereo only and default zoom apply from the first channel
+
+Right after OwnTV started, the live player could ignore Hardware decoding Off, Stereo only, the
+default zoom, the default volume and the preferred languages until one of them was changed again.
+
+#### 💯 "Above 100%" shows one percent sign
+
+The Default volume description showed "100%%". It now shows "100%".
 
 #### 🎞️ Deinterlacing is automatic
 

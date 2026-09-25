@@ -59,7 +59,7 @@ import java.text.NumberFormat
 
 /** The pickers the tool bar opens. Each one is a sheet; each one also has a gesture. */
 enum class PlayerSheet {
-    VOLUME, BRIGHTNESS, SUBTITLES, SUBTITLE_SEARCH, AUDIO, ASPECT, SPEED, INFO, CHANNELS, CATCHUP, SLEEP_TIMER,
+    VOLUME, BRIGHTNESS, SUBTITLES, SUBTITLE_SEARCH, AUDIO, ASPECT, QUALITY, SPEED, INFO, CHANNELS, CATCHUP, SLEEP_TIMER,
 }
 
 /**
@@ -458,6 +458,8 @@ private fun ToolBar(
     val sleepLeft = sleepTimer.remainingMs.collectAsStateWithLifecycle()
     val sleepRunning by remember { derivedStateOf { sleepLeft.value != null } }
     val engineName by engine.engineChip.collectAsStateWithLifecycle()
+    val qualities by engine.videoQualities.collectAsStateWithLifecycle()
+    val qualityPick by engine.videoQualityPick.collectAsStateWithLifecycle()
     // The engine chip in the title line is small and easy to miss, so the swap says which engine it
     // landed on — otherwise the only feedback for the button is a picture that blinks.
     val switchedToExo = stringResource(R.string.player_switch_exo)
@@ -569,6 +571,15 @@ private fun ToolBar(
                 label = stringResource(R.string.player_tool_aspect),
                 onClick = { onOpenSheet(PlayerSheet.ASPECT) },
             )
+            // N11 — only when this stream offers several; tinted while a pick overrides Auto.
+            PlayerControl.QUALITY -> if (qualities.isNotEmpty()) {
+                CtrlButton(
+                    icon = MobileIcons.VideoLibrary,
+                    label = stringResource(R.string.player_tool_quality),
+                    onClick = { onOpenSheet(PlayerSheet.QUALITY) },
+                    active = qualityPick != null,
+                )
+            }
             // Phone-only today; the television reaches the same list with Left.
             PlayerControl.CHANNEL_LIST -> if (isLive) {
                 CtrlButton(MobileIcons.FormatListBulleted, stringResource(R.string.content_channel_overlay_title), {

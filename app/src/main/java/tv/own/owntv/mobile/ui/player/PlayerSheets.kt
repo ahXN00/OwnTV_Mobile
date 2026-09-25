@@ -91,6 +91,7 @@ fun PlayerSheetHost(
         PlayerSheet.SUBTITLE_SEARCH -> SubtitleSearchSheet(onDismiss)
         PlayerSheet.AUDIO -> AudioSheet(player, onDismiss)
         PlayerSheet.ASPECT -> AspectSheet(player, onDismiss)
+        PlayerSheet.QUALITY -> QualitySheet(player, onDismiss)
         PlayerSheet.SPEED -> SpeedSheet(player, onDismiss)
         PlayerSheet.INFO -> StreamInfoSheet(player, onDismiss)
         PlayerSheet.CHANNELS -> ChannelSheet(channels, onTuneToNumber, onPickChannel, onDismiss)
@@ -330,6 +331,24 @@ private fun AspectSheet(player: PlaybackEngine, onDismiss: () -> Unit) {
                     title = stringResource(mode.labelRes),
                     subtitle = if (mode == current) stringResource(R.string.common_on) else null,
                     onClick = { player.setZoomModeByUser(mode); onDismiss() },
+                )
+            }
+        }
+    }
+}
+
+/** N11 — Auto (Settings → Maximum video quality), then every height this stream offers, highest first. */
+@Composable
+private fun QualitySheet(player: PlaybackEngine, onDismiss: () -> Unit) {
+    val heights by player.videoQualities.collectAsStateWithLifecycle()
+    val current by player.videoQualityPick.collectAsStateWithLifecycle()
+    MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.player_tool_quality)) {
+        SheetScroll {
+            (listOf<Int?>(null) + heights).forEach { height ->
+                MobileListRow(
+                    title = if (height == null) stringResource(R.string.settings_auto) else stringResource(R.string.settings_video_quality_lines, height),
+                    subtitle = if (height == current) stringResource(R.string.common_on) else null,
+                    onClick = { player.selectVideoQuality(height); onDismiss() },
                 )
             }
         }

@@ -30,9 +30,14 @@
 - **🗣️ The player remembers your audio and subtitle language**
 - **🌐 Preferred languages per profile, more languages, and "Original language"**
 - **▶️ Catch-up carries on to the next programme**
+- **🔊 Dolby and DTS passthrough, Night mode and Volume leveling**
+- **📺 Maximum video quality, a mobile-data limit and a Quality button**
+- **🧪 Tunneled playback (experimental)**
 
 ### Fixes
 
+- **⚙️ Hardware decoding, Stereo only and default zoom apply from the first channel**
+- **💯 "Above 100%" shows one percent sign**
 - **🎞️ Deinterlacing is automatic**
 - **🌈 HDR says it is mpv only**
 - **📱 Settings speak about your phone, not a television**

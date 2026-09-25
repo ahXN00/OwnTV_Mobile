@@ -88,6 +88,11 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_audio_sync, R.string.settings_search_keywords_audio),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_reset_saved_audio_delay, R.string.settings_search_keywords_audio),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_preferred_audio_language, R.string.settings_search_keywords_audio),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_audio_passthrough, R.string.settings_search_keywords_surround),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_night_mode, R.string.settings_search_keywords_audio),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_volume_leveling, R.string.settings_search_keywords_audio),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_max_video_quality, R.string.settings_search_keywords_video),
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_mobile_data_quality, R.string.settings_search_keywords_data_saver),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_preferred_subtitle_language, R.string.settings_search_keywords_subtitle_appearance),
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_resume_playback, R.string.settings_search_keywords_autoplay),
         // Switches drawn from the Quick registry rather than with a title of their own, which is how
@@ -139,6 +144,10 @@ fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         // Detailed logging sits in the video player's own diagnostics block, not on the App page —
         // a result that lands somewhere the row is not is worse than no result at all.
         SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_diagnostics, R.string.settings_search_keywords_detailed_logging),
+    ) + listOfNotNull(
+        // N19 — no row to find where no decoder can tunnel.
+        SettingsRowEntry(SettingsGroup.PLAYBACK, SettingsLeaf.VIDEO_PLAYER, R.string.settings_tunneled_playback, R.string.settings_search_keywords_video)
+            .takeIf { tv.own.owntv.player.Tunneling.supported },
     )
 
     val leaves = SettingsLeaf.entries.map {
