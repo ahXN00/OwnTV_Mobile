@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -67,6 +68,7 @@ import tv.own.owntv.core.subtitles.SubtitleController
 import tv.own.owntv.mobile.ui.screens.ContentActions
 import tv.own.owntv.mobile.ui.setup.copyPickedFile
 import tv.own.owntv.mobile.ui.theme.LocalAccentOnVideo
+import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.player.ErrorInfo
@@ -268,12 +270,31 @@ fun PlayerScreen(
     val replaying by tuner.replaying.collectAsStateWithLifecycle()
     val isLive = channel != null && !replaying
 
-    // "Go back to…", for a live channel whose provider keeps an archive. Recomputed per channel, since
-    // the depth of the archive is the channel's, not the playlist's.
-    val catchup = remember(channel?.id) {
+    // "Go back to…", for a live channel whose provider keeps an archive — or its own saved copy (N4),
+    // which exists only once the tune has started saving. Recomputed per channel, since the depth of
+    // the archive is the channel's, not the playlist's.
+    val hasLocalCopy by tuner.hasLocalCopy.collectAsStateWithLifecycle()
+    val catchup = remember(channel?.id, hasLocalCopy) {
         tuner.jumpOptions().takeIf { it.isNotEmpty() }?.let { offsets ->
             CatchupOptions(offsets, tuner.archiveWindowSec(), tuner::jumpBackTo)
         }
+    }
+
+    // N4 — back on a channel whose saved copy was kept: continue from there, or stay live.
+    val timeshiftResumeAt by tuner.timeshiftResumeAt.collectAsStateWithLifecycle()
+    if (timeshiftResumeAt != null) {
+        AlertDialog(
+            modifier = Modifier.glassDialogWindow(),
+            onDismissRequest = tuner::dismissTimeshiftResume,
+            title = { Text(stringResource(R.string.player_timeshift_resume_title)) },
+            text = { Text(stringResource(R.string.player_timeshift_resume_message)) },
+            confirmButton = {
+                TextButton(onClick = tuner::resumeTimeshift) { Text(stringResource(R.string.common_resume)) }
+            },
+            dismissButton = {
+                TextButton(onClick = tuner::dismissTimeshiftResume) { Text(stringResource(R.string.player_go_live)) }
+            },
+        )
     }
 
     // The automatic advance, made visible. The engine starts the next episode eight seconds before the
@@ -596,11 +617,13 @@ fun PlayerScreen(
             // channel has only one engine that can obtain its key, so swapping would trade a playing
             // picture for a guaranteed failure. `isLive` already excludes a replay.
             onToggleLiveEngine = tuner::toggleLiveEngine.takeIf {
-                isLive && (offsetSec ?: 0) <= 1 && channel?.drmConfig == null
+                isLive && ((offsetSec ?: 0) <= 1 || hasLocalCopy) && channel?.drmConfig == null
             },
             onBack = stopAndExit,
             onGoLive = tuner::goToLive,
             onScrubLive = tuner::scrubLive,
+            onSkipLive = tuner::skipLive.takeIf { tuner.archiveWindowSec() > 0 },
+            liveGaps = tuner::timeshiftGaps,
             onOpenSheet = { sheet = it },
             // Shrink the picture without stopping it: the stream carries on in the mini player, docked
             // or floating as the user set it. This is the app's own small window and stays inside the

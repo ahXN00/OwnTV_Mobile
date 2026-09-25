@@ -198,7 +198,26 @@ shows while it does, so the phone lets it finish instead of stopping it and star
 
 ### 🕐 Rewind live
 **Where:** full-screen player, on a channel with an archive
-Drag the live bar back, or use **Go back to…** for a list of times. **Go live** returns.
+Drag the live bar back, tap the rewind button, or use **Go back to…** for a list of times. **Go live**
+returns.
+
+### ⏸️ Pause and rewind channels without catch-up
+**Where:** **Settings → Playback → Video Player Settings → Pause and rewind live TV**
+Off by default. While you watch a channel full screen, OwnTV saves it on this phone and plays it
+from that copy, so it still looks live — and you can **pause**, rewind and go forward on channels
+whose provider keeps no archive. Pause, the rewind button, forward (once you are behind), the bar and **Go live** work as on a catch-up channel. A dark stretch on the bar is a moment the connection
+dropped; playback jumps over it.
+
+- **Rewind length:** 15 (default), 30, 45 or 60 minutes. At least **1 GB** of the phone's storage always
+  stays free; the oldest part goes first.
+- **Picture-in-picture and sound-only playback are not leaving: they keep saving.**
+- **The delete rules:**
+  - Leave the channel and its copy is kept for **5 minutes**. Come back within them and OwnTV asks
+    **Continue where you left off?** — **Resume** plays on from where you left, **Go live** jumps to now.
+  - Watch another channel for **2 minutes** and the copy you left is deleted at once — you have moved on.
+  - After 5 minutes it is deleted anyway, and every copy is deleted when OwnTV starts.
+- Catch-up channels still rewind into the provider's archive. Protected (DRM) and encrypted channels
+  play as before, without a copy.
 
 ### ⏺️ Record
 **Where:** long-press a programme in the Guide, or a channel in the list, or the **Record** button in

@@ -25,6 +25,7 @@ import tv.own.owntv.core.player.SurroundMode
 import tv.own.owntv.core.player.TrackLanguages
 import tv.own.owntv.core.settings.LiveBuffer
 import tv.own.owntv.core.settings.LiveLatency
+import tv.own.owntv.core.timeshift.TimeshiftRules
 import tv.own.owntv.core.settings.SeekSteps
 import tv.own.owntv.core.live.DEFAULT_MULTIVIEW_TILES
 import tv.own.owntv.core.live.MAX_MULTIVIEW_TILES
@@ -42,7 +43,7 @@ import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 private enum class PlaybackSheet {
     LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
     RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER, MULTIVIEW_TILES,
-    VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS, MAX_QUALITY, MOBILE_QUALITY,
+    VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS, MAX_QUALITY, MOBILE_QUALITY, TIMESHIFT_WINDOW,
 
     /**
      * The per-playlist overrides, two levels each: pick the playlist, then pick its value. The second
@@ -142,6 +143,8 @@ fun SettingsVideoPlayerPage(
     val tunneledPlayback = s.tunneledPlayback.pref(false)
     val tunnelingFailed = s.tunnelingFailed.pref(false)
     val rewindStep = s.liveRewindStepSec.pref(SeekSteps.DEFAULT_LIVE_REWIND_STEP_SEC)
+    val timeshiftEnabled = s.timeshiftEnabled.pref(false)
+    val timeshiftWindow = s.timeshiftWindowMinutes.pref(TimeshiftRules.DEFAULT_WINDOW_MINUTES)
     // ASK, because that is what core stores when nothing has been chosen. Showing AUTO here named a
     // setting the app was not actually using, in the one frame before the real value arrives.
     val resume = s.resumeMode.pref(SettingsRepository.ResumeMode.ASK)
@@ -322,6 +325,22 @@ fun SettingsVideoPlayerPage(
                 subtitle = stringResource(R.string.settings_live_rewind_step_description),
                 value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
                 onClick = { sheet = PlaybackSheet.REWIND_STEP },
+            )
+
+            // N4 — pause and rewind channels without catch-up, from a copy saved while watching.
+            SettingRow(
+                title = stringResource(R.string.settings_timeshift),
+                subtitle = stringResource(R.string.settings_timeshift_description),
+                checked = timeshiftEnabled,
+                onCheckedChange = { on -> vm.edit { setTimeshiftEnabled(on) } },
+            )
+
+            // The length means nothing while saving is off, so it appears with the switch.
+            if (timeshiftEnabled) SettingRow(
+                title = stringResource(R.string.settings_timeshift_window),
+                subtitle = stringResource(R.string.settings_timeshift_window_description),
+                value = stringResource(R.string.player_duration_minutes, timeshiftWindow),
+                onClick = { sheet = PlaybackSheet.TIMESHIFT_WINDOW },
             )
 
             // N18 — films, episodes and catch-up only; live keeps its own latency and give-up settings.
@@ -670,6 +689,15 @@ fun SettingsVideoPlayerPage(
             },
             selected = rewindStep,
             onSelect = { secs -> vm.edit { setLiveRewindStepSec(secs) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.TIMESHIFT_WINDOW -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_timeshift_window),
+            choices = TimeshiftRules.WINDOW_CHOICES_MINUTES.map {
+                SettingsChoice(it, stringResource(R.string.player_duration_minutes, it))
+            },
+            selected = timeshiftWindow,
+            onSelect = { minutes -> vm.edit { setTimeshiftWindowMinutes(minutes) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.MAX_QUALITY -> SettingsChoiceSheet(

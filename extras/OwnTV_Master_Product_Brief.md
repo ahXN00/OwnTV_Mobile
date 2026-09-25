@@ -196,7 +196,9 @@ order, so both apps offer the same actions in the same arrangement.
 ## 4. EPG, catch-up & recording
 
 The guide, catch-up, live rewind, auto-matching, guide offsets and multiple XMLTV feeds are core's
-and behave as they do on the television. Mobile-specific shapes:
+and behave as they do on the television — including **Pause and rewind live TV** (a channel without
+catch-up saved on the phone while watched, kept through picture-in-picture and sound-only playback).
+Mobile-specific shapes:
 
 - The **three guide views** above, with a day strip, a jump-to-now button and a category filter.
 - A **programme sheet** whose synopsis is fetched when it opens, carrying watch, watch-from-start,

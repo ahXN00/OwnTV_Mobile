@@ -112,6 +112,7 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
         tv.own.owntv.core.brand.AppIconSwitcher.start(this, org.koin.core.context.GlobalContext.get().get())
         // Diagnostics switch, the persisted archive-decode quirk and the one-shot settings migrations.
         tv.own.owntv.player.PlaybackStartup.start(
+            context = this,
             scope = appScope,
             settings = org.koin.core.context.GlobalContext.get().get(),
             archiveStore = org.koin.core.context.GlobalContext.get().get(),

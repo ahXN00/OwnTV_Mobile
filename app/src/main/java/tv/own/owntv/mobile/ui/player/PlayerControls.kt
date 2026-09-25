@@ -112,6 +112,10 @@ fun PlayerControls(
     onBack: () -> Unit,
     onGoLive: () -> Unit,
     onScrubLive: (deltaSec: Int) -> Unit,
+    /** N4 — the saved copy's holes, for the live bar. */
+    liveGaps: () -> List<LongRange> = { emptyList() },
+    /** One Live-rewind-step back (false) or forward (true); null on a channel that cannot be rewound. */
+    onSkipLive: ((forward: Boolean) -> Unit)? = null,
     onOpenSheet: (PlayerSheet) -> Unit,
     /** Shrink into the app's own mini player, still playing. */
     onMini: () -> Unit,
@@ -178,7 +182,14 @@ fun PlayerControls(
                 }
             }
 
-            TransportRow(player = engine, isLive = isLive, modifier = Modifier.align(Alignment.Center))
+            TransportRow(
+                player = engine,
+                isLive = isLive,
+                onSkipLive = onSkipLive,
+                // Forward only while behind live, as on the television: at the edge there is nothing ahead.
+                behindLive = (offsetSec ?: 0) > 1,
+                modifier = Modifier.align(Alignment.Center),
+            )
 
             Column(
                 Modifier
@@ -195,6 +206,7 @@ fun PlayerControls(
                             archiveWindowSec = archiveWindowSec,
                             programmes = timelineProgrammes,
                             onScrubLive = onScrubLive,
+                            gaps = liveGaps,
                         )
                     } else {
                         SeekBar(player, gestureScrubMs)
@@ -279,7 +291,13 @@ private fun TopRow(
 }
 
 @Composable
-private fun TransportRow(player: PlaybackEngine, isLive: Boolean, modifier: Modifier = Modifier) {
+private fun TransportRow(
+    player: PlaybackEngine,
+    isLive: Boolean,
+    onSkipLive: ((forward: Boolean) -> Unit)?,
+    behindLive: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val playing by player.isPlaying.collectAsStateWithLifecycle()
     val step by player.seekStepMs.collectAsStateWithLifecycle()
     // Whether there is an episode either side of this one. The engine answers "no" for a film and for
@@ -296,6 +314,9 @@ private fun TransportRow(player: PlaybackEngine, isLive: Boolean, modifier: Modi
         }
         if (!isLive) {
             RoundControl(MobileIcons.FastRewind, R.string.player_skip_back) { player.seekBy(-step) }
+        } else if (onSkipLive != null) {
+            // Live, on a channel that can be rewound (catch-up, or its saved copy): the television's buttons.
+            RoundControl(MobileIcons.FastRewind, R.string.player_skip_back) { onSkipLive(false) }
         }
         RoundControl(
             icon = if (playing) MobileIcons.Pause else MobileIcons.PlayArrow,
@@ -305,6 +326,8 @@ private fun TransportRow(player: PlaybackEngine, isLive: Boolean, modifier: Modi
         )
         if (!isLive) {
             RoundControl(MobileIcons.FastForward, R.string.player_skip_forward) { player.seekBy(step) }
+        } else if (onSkipLive != null && behindLive) {
+            RoundControl(MobileIcons.FastForward, R.string.player_skip_forward) { onSkipLive(true) }
         }
         if (nav.hasNext) {
             RoundControl(MobileIcons.SkipNext, R.string.settings_remote_button_next) { player.next() }
@@ -387,6 +410,7 @@ private fun LiveBar(
     archiveWindowSec: Int,
     programmes: List<LiveProgramme>,
     onScrubLive: (Int) -> Unit,
+    gaps: () -> List<LongRange>,
 ) {
     val liveEdgeMs by rememberClockTick()
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -401,6 +425,7 @@ private fun LiveBar(
                 accent = LocalAccentOnVideo.current,
                 onScrub = onScrubLive,
                 modifier = Modifier.weight(1f).padding(end = MobileDimens.GapSmall),
+                gaps = gaps,
             )
         } else {
             Spacer(Modifier.weight(1f))

@@ -421,7 +421,29 @@ class LiveTuner(
         },
         loadArchive = ::loadArchiveStream,
         onLiveEdge = { goToLive() },
+        // N4 — a channel without catch-up rewinds into its own saved copy.
+        local = live.localRewind,
     )
+
+    /** N4 — the user came back to a channel whose copy was kept: where they were, for "Resume from
+     *  buffer / Go live". Null when there is nothing to offer. */
+    val timeshiftResumeAt: StateFlow<Long?> = live.localTimeshift.map { it?.resumeAtWallMs }
+        .stateIn(scope, SharingStarted.Eagerly, null)
+
+    fun resumeTimeshift() {
+        val at = timeshiftResumeAt.value ?: return
+        live.dismissResumeOffer()
+        live.seekTimeshift(at)
+    }
+
+    fun dismissTimeshiftResume() = live.dismissResumeOffer()
+
+    /** N4 — the wall-clock holes in the saved copy on screen, for the live bar. */
+    fun timeshiftGaps(): List<LongRange> = live.localGaps()
+
+    /** N4 — the channel on screen is playing from its saved copy, so it can be rewound. */
+    val hasLocalCopy: StateFlow<Boolean> = live.localTimeshift.map { it != null }
+        .stateIn(scope, SharingStarted.Eagerly, false)
 
     /** Seconds behind the live edge; null at the edge — what the red bar and the pill read. */
     val offsetSec: StateFlow<Int?> = timeshift.offsetSec
@@ -592,7 +614,8 @@ class LiveTuner(
     fun toggleLiveEngine() {
         // A replay is a recorded programme, not the live stream: re-tuning here would swap what the
         // user is watching for whatever is on that channel now.
-        if (_replaying.value || timeshift.isRewound) return
+        // A copy saved on this device (N4) is the exception: the other engine continues it at the same moment.
+        if (_replaying.value || (timeshift.isRewound && !hasLocalCopy.value)) return
         live.toggleEngine()
     }
 
@@ -828,7 +851,7 @@ class LiveTuner(
      */
     fun jumpBackTo(offsetSec: Int) {
         if (casting()) return
-        val ch = _channel.value?.takeIf { it.catchup } ?: return
+        val ch = _channel.value?.takeIf { timeshift.canRewind(it) } ?: return
         _replaying.value = false
         timeshift.beginAt(ch, offsetSec)
     }
@@ -850,7 +873,8 @@ class LiveTuner(
 
     /** Offsets worth offering in the catch-up sheet, nearest first; empty without an archive. */
     fun jumpOptions(): List<Int> =
-        if (casting()) emptyList() else _channel.value?.let { timeshift.jumpOptions(it) } ?: emptyList()
+        // The provider archive's alone — a channel without catch-up gets no catch-up control for its saved copy.
+        if (casting()) emptyList() else _channel.value?.takeIf { it.catchup }?.let { timeshift.jumpOptions(it) } ?: emptyList()
 
     /**
      * Tune the channel carrying provider number [number] — the numeric entry in the channel sheet.
