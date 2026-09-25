@@ -142,7 +142,8 @@ than growing.
 
 Text, image (PGS/VOBSUB/DVB) and closed captions, with size, **font**, colour, position and
 background; the chosen font file is handed to the engine so mpv draws it too. OpenSubtitles search
-and local files, a timing nudge, preferred audio and subtitle languages, A/V sync with a
+and local files, a timing nudge, preferred audio and subtitle languages (per profile, 50 languages, plus "Original
+language" from TMDB), A/V sync with a
 remember-this-delay, surround handling and 150% volume boost — all core's, all shared.
 
 ---

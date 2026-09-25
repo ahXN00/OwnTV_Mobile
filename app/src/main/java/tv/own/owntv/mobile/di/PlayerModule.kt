@@ -100,6 +100,7 @@ val playerModule = module {
             vodEngineStore = get(),
             localeStore = get(),
             playbackPrefs = get(),
+            originalLanguage = get(),
         )
     }
     // Bridges the playing item to the OpenSubtitles search, and owns the downloaded-subtitle cache

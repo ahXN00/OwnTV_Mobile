@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -21,6 +22,7 @@ import tv.own.owntv.core.database.entity.FOLLOW_GLOBAL_PREROLL
 import tv.own.owntv.core.database.entity.SourceEntity
 import tv.own.owntv.core.player.EnginePreference
 import tv.own.owntv.core.player.SurroundMode
+import tv.own.owntv.core.player.TrackLanguages
 import tv.own.owntv.core.settings.LiveBuffer
 import tv.own.owntv.core.settings.LiveLatency
 import tv.own.owntv.core.settings.SeekSteps
@@ -434,6 +436,7 @@ fun SettingsVideoPlayerPage(
 
             SettingRow(
                 title = stringResource(R.string.settings_preferred_audio_language),
+                subtitle = stringResource(R.string.settings_preferred_audio_language_description),
                 value = trackLanguageName(audioLang),
                 onClick = { sheet = PlaybackSheet.AUDIO_LANG },
             )
@@ -557,14 +560,14 @@ fun SettingsVideoPlayerPage(
         )
         PlaybackSheet.AUDIO_LANG -> SettingsChoiceSheet(
             title = stringResource(R.string.settings_preferred_audio_language),
-            choices = TRACK_LANGUAGE_CODES.map { SettingsChoice(it, trackLanguageName(it)) },
+            choices = trackLanguageChoices(withOriginal = true),
             selected = audioLang,
             onSelect = { code -> vm.edit { setPreferredAudioLang(code) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.SUB_LANG -> SettingsChoiceSheet(
             title = stringResource(R.string.settings_preferred_subtitle_language),
-            choices = TRACK_LANGUAGE_CODES.map { SettingsChoice(it, trackLanguageName(it)) },
+            choices = trackLanguageChoices(withOriginal = false),
             selected = subLang,
             onSelect = { code -> vm.edit { setPreferredSubLang(code) } },
             onDismiss = dismiss,
@@ -1014,31 +1017,21 @@ private fun engineLabel(preference: EnginePreference): String {
     }
 }
 
-/** The ISO-639-2 codes a stream's tracks are tagged with. Blank means "whatever the stream opens on". */
-private val TRACK_LANGUAGE_CODES = listOf(
-    "", "eng", "spa", "fra", "deu", "ita", "por", "nld", "rus", "ara", "hin", "zho", "jpn", "kor", "tur",
-)
-
 @Composable
-private fun trackLanguageName(code: String): String = stringResource(
-    when (code) {
-        "eng" -> R.string.settings_language_english
-        "spa" -> R.string.settings_language_spanish
-        "fra" -> R.string.settings_language_french
-        "deu" -> R.string.settings_language_german
-        "ita" -> R.string.settings_language_italian
-        "por" -> R.string.settings_language_portuguese
-        "nld" -> R.string.settings_language_dutch
-        "rus" -> R.string.settings_language_russian
-        "ara" -> R.string.settings_language_arabic
-        "hin" -> R.string.settings_language_hindi
-        "zho" -> R.string.settings_language_chinese
-        "jpn" -> R.string.settings_language_japanese
-        "kor" -> R.string.settings_language_korean
-        "tur" -> R.string.settings_language_turkish
-        else -> R.string.settings_none_auto
-    },
-)
+private fun trackLanguageName(code: String): String = when (code) {
+    "" -> stringResource(R.string.settings_none_auto)
+    TrackLanguages.ORIGINAL -> stringResource(R.string.settings_language_original)
+    else -> TrackLanguages.displayName(code, LocalConfiguration.current.locales[0])
+}
+
+/** No preference first, then (audio only) the title's original language, then every language by name. */
+@Composable
+private fun trackLanguageChoices(withOriginal: Boolean): List<SettingsChoice<String>> {
+    val display = LocalConfiguration.current.locales[0]
+    val codes = listOf("") + listOfNotNull(TrackLanguages.ORIGINAL.takeIf { withOriginal }) +
+        remember(display) { TrackLanguages.sortedFor(display) }
+    return codes.map { SettingsChoice(it, trackLanguageName(it)) }
+}
 
 private fun SurroundMode.labelRes() = when (this) {
     SurroundMode.AUTO -> R.string.settings_auto

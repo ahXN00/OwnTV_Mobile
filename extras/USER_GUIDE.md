@@ -440,6 +440,7 @@ Settings is a list of groups, each opening its own page. There's a **search box*
 | **Auto frame rate** | Playback → Video player | Off by default; full screen, seamless switches only; warns where the display can't be asked |
 | **Film buffer** · **Network timeout** · **Reconnect attempts** | Playback → Video player | Films, episodes and catch-up on a bad line. Auto / 1 = as before |
 | **Reset saved live TV player choices** · **Forget learned stream fixes** | Playback → Video player | Undo per-channel player choices; forget what the player learned about a provider |
+| **Preferred audio / subtitle language** | Playback → Video player | Per profile, 50 languages. **Original language** (audio) plays a film or series in the language it was made in, when the stream has it |
 | **Subtitle appearance** | Playback → Subtitle appearance | Size, **font**, colour, position, background |
 | **Gesture sensitivity** | Playback → Mobile | How far a value moves per centimetre of finger |
 | **Background playback** | Playback → Mobile | Keep the sound when the app leaves the screen |
