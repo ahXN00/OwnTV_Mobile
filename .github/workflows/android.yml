@@ -13,31 +13,14 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      force_core_source:
-        description: 'Build core from source, as a fork pull request does (ignores GPR_TOKEN)'
-        type: boolean
-        required: false
-        default: false
 
 permissions:
   contents: write   # required so tag builds can create a Release
 
-# Resolving tv.own.owntv:core and :player-core from GitHub Packages. That registry belongs to a
-# DIFFERENT repository (ahXN00/OwnTV_Core) and the built-in GITHUB_TOKEN is scoped to this one, so a
-# personal access token with read:packages is required, stored as the GPR_TOKEN secret. GitHub's
-# Maven registry demands credentials even for public packages, so this is not optional. Every Gradle
-# step needs it, hence workflow level rather than per job.
-#
-# Note there is no owntv.corePath here: CI deliberately builds against the PINNED artifact, which is
-# what a release actually ships. Local builds use the composite and ignore the pin entirely.
-#
-# The one exception is a fork pull request, which GitHub gives no secrets at all — GPR_TOKEN is empty
-# there and this resolution cannot work. The resolve-core action below covers that case by building
-# core from source, because there is no other way for an outside contributor's build to pass.
-env:
-  GITHUB_ACTOR: ${{ github.actor }}
-  GPR_TOKEN: ${{ secrets.GPR_TOKEN }}
+# Core (tv.own.owntv:core, :player-core) and the mpv engine (tv.own.owntv:libmpv) resolve from OwnTV's
+# public Maven repository, https://ahxn00.github.io/OwnTV_Core/maven — no token, so fork pull requests
+# build exactly like the maintainer's. There is no owntv.corePath here: CI deliberately builds against
+# the PINNED artifact, which is what a release actually ships. Local builds use the composite.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -124,11 +107,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Resolve core
-        uses: ./.github/actions/resolve-core
-        with:
-          force-source-build: ${{ inputs.force_core_source || false }}
-
       # One variant, not `test`/`lint` across every flavor: standard+debug is the variant the JVM
       # tests are written against, and the ABI flavors differ only in the packaged native libs.
       - name: Unit tests
@@ -181,11 +159,6 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Resolve core
-        uses: ./.github/actions/resolve-core
-        with:
-          force-source-build: ${{ inputs.force_core_source || false }}
 
       - name: Compute version (from the git tag on releases)
         id: ver

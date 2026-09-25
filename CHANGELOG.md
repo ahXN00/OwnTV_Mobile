@@ -120,8 +120,7 @@ Playback → Video player → Sound has three new switches:
   decodes.
 - **Night mode** (off): loud scenes are turned down and quiet dialogue up.
 - **Volume leveling** (off): every channel and film is brought slowly to the same loudness.
-- Night mode and Volume leveling work on the ExoPlayer engine. On mpv they have no effect: the mpv
-  build OwnTV uses has no sound filters.
+- Night mode and Volume leveling work on both engines, ExoPlayer and mpv.
 
 #### 📺 Maximum video quality, a mobile-data limit and a Quality button
 
@@ -135,6 +134,19 @@ Playback → Video player → Sound has three new switches:
 
 Shown only on a phone whose decoder supports it: live TV on ExoPlayer lets the hardware keep picture
 and sound together. It switches itself off after the first failure. Off by default.
+
+#### 🎛️ A newer mpv player
+
+OwnTV now builds its own copy of mpv, the player used for films, series and as Live TV's second
+engine: the newest mpv (from December 2025's 0.41 to the current version) and FFmpeg 9.0.2, checked and
+updated every month.
+
+- Night mode and Volume leveling now work on mpv too (above).
+- Interlaced broadcast channels are deinterlaced when mpv draws the picture itself (Hardware decoding
+  off, or the software fallback), so moving edges no longer show comb lines.
+- **Stream info** has a new **Interlacing** row on mpv: *None (progressive)*, *Interlaced · deinterlaced
+  by the player*, *Interlaced · deinterlaced by the device* (the phone's own video hardware) or
+  *Interlaced · not deinterlaced*.
 
 ### 🩹 Fixes
 

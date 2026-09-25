@@ -322,7 +322,7 @@ Every gesture above also has a button on the control bar:
 | **Sound only** | Drop the picture, keep the sound |
 | **Record · Multiview** | Once enabled in Settings |
 | 🌙 **Sleep timer** | 15–90 min, end of programme on a live channel, or end of movie / episode (the next episode then does not start); green while running. Stopping playback yourself cancels it. **Also turn off the screen** locks the phone when it ends — Android asks for permission once |
-| **Info** | The technical readout — and **Report** appears while it is open |
+| **Info** | The technical readout (on mpv including **Interlacing**: none, deinterlaced by the player or by the phone, or not deinterlaced) — and **Report** appears while it is open |
 
 **Back stops the stream.** The mini-player button and the swipe down are what keep it playing.
 
@@ -441,7 +441,7 @@ Settings is a list of groups, each opening its own page. There's a **search box*
 | **Auto frame rate** | Playback → Video player | Off by default; full screen, seamless switches only; warns where the display can't be asked |
 | **Film buffer** · **Network timeout** · **Reconnect attempts** | Playback → Video player | Films, episodes and catch-up on a bad line. Auto / 1 = as before |
 | **Reset saved live TV player choices** · **Forget learned stream fixes** | Playback → Video player | Undo per-channel player choices; forget what the player learned about a provider |
-| **Dolby and DTS passthrough** · **Night mode** · **Volume leveling** | Playback → Video player | Send Dolby/DTS undecoded (on) or decode in the app; turn loud scenes down; even out loudness between channels. Night mode and leveling work on ExoPlayer, not on mpv |
+| **Dolby and DTS passthrough** · **Night mode** · **Volume leveling** | Playback → Video player | Send Dolby/DTS undecoded (on) or decode in the app; turn loud scenes down; even out loudness between channels. Night mode and leveling work on both engines |
 | **Maximum video quality** · **Maximum quality on mobile data** | Playback → Video player | The highest picture played when a stream offers several; the mobile-data limit follows a Wi-Fi ⇄ mobile switch while playing |
 | **Tunneled playback** | Playback → Video player | Experimental, off. Only on phones that support it; turns itself off after a failure |
 | **Preferred audio / subtitle language** | Playback → Video player | Per profile, 50 languages. **Original language** (audio) plays a film or series in the language it was made in, when the stream has it |

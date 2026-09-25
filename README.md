@@ -216,8 +216,8 @@ sdk.dir=C:/Users/<you>/AppData/Local/Android/Sdk
 ```
 
 **Resolving the core library.** By default the build takes the pinned `owntvCore` version from
-GitHub Packages, which needs `gpr.user` and `gpr.token` (a PAT with `read:packages`) in
-`~/.gradle/gradle.properties`. That is what CI does. To build against a local checkout of core
+OwnTV's public Maven repository (https://ahxn00.github.io/OwnTV_Core/maven) — no account or token
+needed. That is what CI does, fork pull requests included. To build against a local checkout of core
 instead — a composite build, so an edit there reaches the app with no publish step — add this to the
 same file, **never to a file in this repository**:
 

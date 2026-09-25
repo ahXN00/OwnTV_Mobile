@@ -144,8 +144,8 @@ Text, image (PGS/VOBSUB/DVB) and closed captions, with size, **font**, colour, p
 background; the chosen font file is handed to the engine so mpv draws it too. OpenSubtitles search
 and local files, a timing nudge, preferred audio and subtitle languages (per profile, 50 languages, plus "Original
 language" from TMDB), A/V sync with a
-remember-this-delay, surround handling and 150% volume boost, Night mode and Volume leveling (ExoPlayer
-only), a Dolby/DTS passthrough switch, Maximum video quality with a mobile-data limit and a per-item
+remember-this-delay, surround handling and 150% volume boost, Night mode and Volume leveling (both
+engines), a Dolby/DTS passthrough switch, Maximum video quality with a mobile-data limit and a per-item
 Quality button, and experimental tunneled playback — all core's, all shared.
 
 ---
