@@ -58,6 +58,9 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // "Restart now" after an icon change runs a few milliseconds in a process of its own; nothing
+        // below may start there (core's AppRestartActivity).
+        if (tv.own.owntv.core.brand.AppIconSwitcher.isRestartProcess(this)) return
         // Zero-point for the OwnTVPerf startup timeline (adb logcat -s OwnTVPerf), matching the TV
         // app. Without it every Perf.stamp in core is a silent no-op — which mattered more than a
         // missing timeline: core's database-open stamp is the only thing that proves Room's onOpen
