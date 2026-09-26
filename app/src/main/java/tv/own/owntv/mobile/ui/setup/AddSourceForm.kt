@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.settings.PlaylistAutoRefresh
@@ -180,6 +182,7 @@ fun AddSourceForm(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .imePadding()
             .navigationBarsPadding()
@@ -215,6 +218,7 @@ fun AddSourceForm(
             onValueChange = { name = it },
             label = stringResource(R.string.setup_source_name_optional),
             placeholder = stringResource(R.string.setup_default_iptv),
+            imeAction = ImeAction.Next,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -226,12 +230,14 @@ fun AddSourceForm(
                     label = stringResource(R.string.setup_server_url),
                     placeholder = stringResource(R.string.setup_server_example),
                     keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = stringResource(R.string.setup_username),
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileTextField(
@@ -241,6 +247,7 @@ fun AddSourceForm(
                         if (editing) R.string.setup_password_keep else R.string.setup_password,
                     ),
                     isPassword = true,
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 SwitchRow(
@@ -257,6 +264,7 @@ fun AddSourceForm(
                     label = stringResource(R.string.setup_playlist_url_local_file),
                     placeholder = stringResource(R.string.setup_playlist_example),
                     keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileButton(
@@ -273,6 +281,7 @@ fun AddSourceForm(
                     label = stringResource(R.string.setup_portal_url),
                     placeholder = stringResource(R.string.setup_portal_example),
                     keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileTextField(
@@ -280,6 +289,7 @@ fun AddSourceForm(
                     onValueChange = { mac = it },
                     label = stringResource(R.string.setup_mac_address),
                     placeholder = stringResource(R.string.setup_mac_example),
+                    imeAction = ImeAction.Next,
                     isError = mac.isNotBlank() && !macValid,
                     supportingText = stringResource(R.string.setup_mac_invalid).takeIf { mac.isNotBlank() && !macValid },
                     modifier = Modifier.fillMaxWidth(),
@@ -293,24 +303,28 @@ fun AddSourceForm(
                     value = serialNumber,
                     onValueChange = { serialNumber = it },
                     label = stringResource(R.string.setup_stalker_serial_number_optional),
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileTextField(
                     value = deviceId,
                     onValueChange = { deviceId = it },
                     label = stringResource(R.string.setup_stalker_device_id_optional),
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileTextField(
                     value = deviceId2,
                     onValueChange = { deviceId2 = it },
                     label = stringResource(R.string.setup_stalker_device_id2_optional),
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileTextField(
                     value = signature,
                     onValueChange = { signature = it },
                     label = stringResource(R.string.setup_stalker_signature_optional),
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 MobileListRow(
@@ -329,6 +343,7 @@ fun AddSourceForm(
             onValueChange = { userAgent = it },
             label = stringResource(R.string.setup_user_agent_optional),
             placeholder = stringResource(R.string.setup_user_agent_example),
+            imeAction = ImeAction.Next,
             modifier = Modifier.fillMaxWidth(),
         )
         MobileTextField(
@@ -350,6 +365,7 @@ fun AddSourceForm(
                 label = stringResource(R.string.settings_sources_refresh_days_title),
                 supportingText = stringResource(R.string.settings_sources_refresh_days_hint),
                 keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
