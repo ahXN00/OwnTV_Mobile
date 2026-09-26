@@ -7,7 +7,7 @@
 > Issue numbers that are part of a title are fine; explanatory parentheticals are not. The detail —
 > what, why, files and verification — belongs in the commit message, never here.
 
-## Unreleased
+## v1.0.3 — 2026-09-26
 
 ### New features
 - **🖼️ Match EPG can bring the guide's logo**
