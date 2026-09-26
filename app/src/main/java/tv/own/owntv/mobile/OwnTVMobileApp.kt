@@ -120,6 +120,14 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
             settings = org.koin.core.context.GlobalContext.get().get(),
             archiveStore = org.koin.core.context.GlobalContext.get().get(),
         )
+        // "Use this guide's logos": never started on the phone before, so the toggle did nothing here.
+        // Reads no EPG data at all while no guide source has it on.
+        tv.own.owntv.core.epg.EpgLogoStore.start(
+            scope = appScope,
+            settings = org.koin.core.context.GlobalContext.get().get(),
+            epgDao = org.koin.core.context.GlobalContext.get().get(),
+            customize = org.koin.core.context.GlobalContext.get().get(),
+        )
     }
 
     /** Process-long scope for [tv.own.owntv.player.PlaybackStartup]; never cancelled. */

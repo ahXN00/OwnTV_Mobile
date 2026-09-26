@@ -14,10 +14,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.database.entity.SourceEntity
+import tv.own.owntv.core.settings.GuideRetention
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
@@ -38,6 +40,7 @@ fun SettingsSourcesPage(
     vm: SettingsViewModel = koinViewModel(),
 ) {
     var epgOffsetSheet by remember { mutableStateOf(false) }
+    var guideDaysSheet by remember { mutableStateOf(false) }
     var catchupSheet by remember { mutableStateOf(false) }
     // The per-playlist catch-up zone: the playlist list, then the zone of the one picked.
     var catchupSourcesSheet by remember { mutableStateOf(false) }
@@ -53,6 +56,15 @@ fun SettingsSourcesPage(
                 subtitle = stringResource(R.string.settings_epg_offset_root_description),
                 value = utcOffsetLabel(vm.settings.epgOffsetMinutes.pref(0)),
                 onClick = { epgOffsetSheet = true },
+            )
+
+            // How far ahead the guide is stored: one horizon every feed is trimmed to, so it sits with
+            // the other guide-wide setting rather than inside the feed list.
+            val guideDays = vm.settings.guideDaysToKeep.pref(GuideRetention.DEFAULT_DAYS)
+            SettingRow(
+                title = stringResource(R.string.settings_epg_guide_days),
+                value = pluralStringResource(R.plurals.settings_epg_guide_days_value, guideDays, guideDays),
+                onClick = { guideDaysSheet = true },
             )
 
             val tz = vm.settings.catchupTimezone.pref(SettingsRepository.CatchupTimezone.DEVICE)
@@ -113,6 +125,20 @@ fun SettingsSourcesPage(
             },
             // Back goes back one level, to the playlist list, like the other per-playlist pickers.
             onDismiss = { catchupSource = null },
+        )
+    }
+
+    if (guideDaysSheet) {
+        // Preset days rather than a free number: a phone picks from a list far more comfortably than
+        // it steps a counter, and the presets cover the whole useful range.
+        SettingsChoiceSheet(
+            title = stringResource(R.string.settings_epg_guide_days),
+            choices = GuideRetention.PRESET_DAYS.map {
+                SettingsChoice(it, pluralStringResource(R.plurals.settings_epg_guide_days_value, it, it))
+            },
+            selected = vm.settings.guideDaysToKeep.pref(GuideRetention.DEFAULT_DAYS),
+            onSelect = { days -> vm.edit { setGuideDaysToKeep(days) } },
+            onDismiss = { guideDaysSheet = false },
         )
     }
 

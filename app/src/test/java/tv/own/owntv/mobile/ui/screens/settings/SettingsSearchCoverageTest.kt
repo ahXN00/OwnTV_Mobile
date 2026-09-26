@@ -112,4 +112,42 @@ class SettingsSearchCoverageTest {
                 .findAll(search).map { it.groupValues[1] }.toList(),
         )
     }
+
+    /**
+     * Every setting on every settings page, not only the Video player's. Sheet titles, picker options,
+     * one-off actions and status lines are not settings and are listed here instead; Backup and Local
+     * sync are More pages, not settings.
+     */
+    @Test
+    fun `every setting on every settings page can be found by search`() {
+        val notSettings = setOf(
+            "settings_about", "settings_app_startup_dialog", "settings_join_telegram", "settings_color_picker",
+            "settings_focus_thickness", "settings_epg_sources_add", "settings_epg_sources_fill_playlist",
+            "settings_sources_delete", "settings_sources_edit", "settings_sources_refresh_days_title",
+            "common_clear", "settings_glass_effect_title", "settings_glass_preset_custom", "settings_glass_reset_balanced",
+            "settings_mode", "settings_language_help_translate", "settings_size", "settings_metadata_active_source",
+            "settings_metadata_clear_advanced_title", "player_subtitles_connected_as", "player_subtitles_delete_action",
+            "player_subtitles_downloads", "player_subtitles_resets", "player_subtitles_sign_in", "player_subtitles_sign_out",
+            "settings_sources_add", "settings_sources_cancel", "settings_sources_info", "settings_sources_resync_now_full",
+            "settings_sources_resync_remove_full", "settings_sources_test_title", "setup_auto_refresh",
+            "setup_auto_refresh_title", "setup_default_playlist", "profiles_add_button", "profiles_delete_title",
+            "settings_catchup_timezone_device", "settings_subtitle_color", "settings_subtitle_default",
+        ) + notRows
+        val quick = read("SettingsQuick.kt")
+        val quickTitle = Regex("""QuickToggle\(\s*"([a-z_]+)",\s*R\.string\.([a-z_0-9]+)""")
+            .findAll(quick).associate { it.groupValues[1] to it.groupValues[2] }
+        val skipped = setOf("SettingsBackupPage.kt", "SettingsLocalSyncPage.kt")
+        val pages = File("src/main/java/tv/own/owntv/mobile/ui/screens/settings").listFiles { f ->
+            f.name.startsWith("Settings") && f.name.contains("Page") && f.name !in skipped
+        }.orEmpty()
+        assertTrue("no settings pages found", pages.size > 15)
+        val missing = pages.flatMap { f ->
+            val text = f.readText()
+            val titles = Regex("""(?<![a-z])title = stringResource\(R\.string\.([a-z_0-9]+)""").findAll(text).map { it.groupValues[1] } +
+                Regex("""quickToggle\("([a-z_]+)"\)""").findAll(text).mapNotNull { quickTitle[it.groupValues[1]] }
+            titles.filterNot { it.endsWith("_description") || it in notSettings || it in indexed }
+                .map { "${f.name}: $it" }.toList()
+        }.distinct().sorted()
+        assertEquals("settings missing from the settings search index", emptyList<String>(), missing)
+    }
 }

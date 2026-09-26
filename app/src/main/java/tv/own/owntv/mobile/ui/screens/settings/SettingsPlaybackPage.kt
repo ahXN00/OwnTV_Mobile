@@ -3,6 +3,7 @@ package tv.own.owntv.mobile.ui.screens.settings
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +35,7 @@ import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.settings.SubtitleStyle
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
+import tv.own.owntv.mobile.ui.components.MobileListRow
 import tv.own.owntv.mobile.ui.components.SettingRow
 import tv.own.owntv.mobile.ui.theme.MobileDimens
 import tv.own.owntv.player.ZoomMode
@@ -87,8 +89,8 @@ private enum class ResetTarget(
 }
 
 /**
- * The video player, in the television's own six sections: Engine & picture, Live TV, Sound,
- * Subtitles, Episodes, Diagnostics.
+ * The video player. With no [category] it is the list of categories — the television's own sections —
+ * and each category is this page again showing only its rows, so no page is one long scroll.
  *
  * These settings are core's and shared with the TV app — the same stored values under the same keys,
  * so a backup taken here restores onto a television and means the same thing, and a row pinned to
@@ -99,6 +101,8 @@ private enum class ResetTarget(
 fun SettingsVideoPlayerPage(
     onOpenLeaf: (SettingsLeaf) -> Unit,
     modifier: Modifier = Modifier,
+    /** One of [VIDEO_PLAYER_CATEGORIES], or null for the list of them. */
+    category: SettingsLeaf? = null,
     vm: SettingsViewModel = koinViewModel(),
 ) {
     val s = vm.settings
@@ -157,437 +161,467 @@ fun SettingsVideoPlayerPage(
     val multiviewTiles = s.multiviewTiles.pref(DEFAULT_MULTIVIEW_TILES)
 
     SettingsPage(modifier) {
-        settingsSection(R.string.settings_vp_section_engine)
-        settingsNote(R.string.settings_vp_section_engine_summary)
-        settingsGroup(key = "live-engine") {
-            SettingRow(
-                title = stringResource(R.string.settings_live_tv_player),
-                subtitle = stringResource(R.string.settings_live_player_description_mobile),
-                value = engineLabel(liveEngine),
-                onClick = { sheet = PlaybackSheet.LIVE_ENGINE },
-            )
-        }
-        if (sources.isNotEmpty()) {
-            settingsGroup(key = "live-engine-sources") {
-                SettingRow(
-                    title = stringResource(R.string.settings_live_engine_per_playlist),
-                    subtitle = stringResource(R.string.settings_live_engine_per_playlist_description),
-                    value = overrideCountLabel(sources.count { it.liveEnginePreference != null }),
-                    onClick = { sheet = PlaybackSheet.ENGINE_SOURCES },
-                )
+        // Playback settings open on this list of categories; each opens a page of its own.
+        if (category == null) {
+            settingsGroup(key = "categories") {
+                VIDEO_PLAYER_CATEGORIES.forEach { leaf ->
+                    MobileListRow(
+                        title = stringResource(leaf.titleRes),
+                        subtitle = leaf.summaryRes?.let { stringResource(it) },
+                        leading = { Icon(leaf.icon, contentDescription = null) },
+                        onClick = { onOpenLeaf(leaf) },
+                    )
+                }
             }
+            return@SettingsPage
         }
-        settingsGroup(key = "live-engine-reset") {
-            SettingRow(
-                title = stringResource(R.string.settings_reset_live_player_choices),
-                subtitle = stringResource(R.string.settings_reset_live_player_choices_description),
-                value = rememberedCountLabel(livePins),
-                enabled = livePins > 0,
-                onClick = { resetting = ResetTarget.LIVE_ENGINE_PINS },
-            )
-        }
-        settingsGroup(key = "vod-engine") {
-            SettingRow(
-                title = stringResource(R.string.settings_movies_series_player),
-                subtitle = stringResource(R.string.settings_movies_player_description_mobile),
-                value = engineLabel(vodEngine),
-                onClick = { sheet = PlaybackSheet.VOD_ENGINE },
-            )
-        }
-        if (sources.isNotEmpty()) {
-            settingsGroup(key = "vod-engine-sources") {
-                SettingRow(
-                    title = stringResource(R.string.settings_vod_engine_per_playlist),
-                    subtitle = stringResource(R.string.settings_vod_engine_per_playlist_description),
-                    value = overrideCountLabel(sources.count { it.vodEnginePreference != null }),
-                    onClick = { sheet = PlaybackSheet.VOD_ENGINE_SOURCES },
-                )
+        category.summaryRes?.let { settingsNote(it) }
+        when (category) {
+            SettingsLeaf.VP_PLAYER -> {
+                settingsGroup(key = "live-engine") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_live_tv_player),
+                        subtitle = stringResource(R.string.settings_live_player_description_mobile),
+                        value = engineLabel(liveEngine),
+                        onClick = { sheet = PlaybackSheet.LIVE_ENGINE },
+                    )
+                }
+                if (sources.isNotEmpty()) {
+                    settingsGroup(key = "live-engine-sources") {
+                        SettingRow(
+                            title = stringResource(R.string.settings_live_engine_per_playlist),
+                            subtitle = stringResource(R.string.settings_live_engine_per_playlist_description),
+                            value = overrideCountLabel(sources.count { it.liveEnginePreference != null }),
+                            onClick = { sheet = PlaybackSheet.ENGINE_SOURCES },
+                        )
+                    }
+                }
+                settingsGroup(key = "live-engine-reset") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_reset_live_player_choices),
+                        subtitle = stringResource(R.string.settings_reset_live_player_choices_description),
+                        value = rememberedCountLabel(livePins),
+                        enabled = livePins > 0,
+                        onClick = { resetting = ResetTarget.LIVE_ENGINE_PINS },
+                    )
+                }
+                settingsGroup(key = "vod-engine") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_movies_series_player),
+                        subtitle = stringResource(R.string.settings_movies_player_description_mobile),
+                        value = engineLabel(vodEngine),
+                        onClick = { sheet = PlaybackSheet.VOD_ENGINE },
+                    )
+                }
+                if (sources.isNotEmpty()) {
+                    settingsGroup(key = "vod-engine-sources") {
+                        SettingRow(
+                            title = stringResource(R.string.settings_vod_engine_per_playlist),
+                            subtitle = stringResource(R.string.settings_vod_engine_per_playlist_description),
+                            value = overrideCountLabel(sources.count { it.vodEnginePreference != null }),
+                            onClick = { sheet = PlaybackSheet.VOD_ENGINE_SOURCES },
+                        )
+                    }
+                }
+                settingsGroup(key = "player-more") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_reset_player_choices),
+                        subtitle = stringResource(R.string.settings_reset_player_choices_description),
+                        value = rememberedCountLabel(enginePins),
+                        enabled = enginePins > 0,
+                        onClick = { resetting = ResetTarget.ENGINE_PINS },
+                    )
+
+                    SettingRow(
+                        title = stringResource(R.string.settings_forget_stream_fixes),
+                        subtitle = stringResource(R.string.settings_forget_stream_fixes_description),
+                        onClick = { resetting = ResetTarget.STREAM_FIXES },
+                    )
+
+                    SettingRow(
+                        title = stringResource(R.string.settings_external_player),
+                        subtitle = stringResource(R.string.settings_external_player_row_description),
+                        value = stringResource(if (externalOn) R.string.common_on else R.string.common_off),
+                        onClick = { sheet = PlaybackSheet.EXTERNAL_PLAYER },
+                    )
+                }
             }
-        }
-        settingsGroup(key = "vod-engine-more") {
-            SettingRow(
-                title = stringResource(R.string.settings_reset_player_choices),
-                subtitle = stringResource(R.string.settings_reset_player_choices_description),
-                value = rememberedCountLabel(enginePins),
-                enabled = enginePins > 0,
-                onClick = { resetting = ResetTarget.ENGINE_PINS },
-            )
-            SettingRow(
-                title = stringResource(R.string.settings_forget_stream_fixes),
-                subtitle = stringResource(R.string.settings_forget_stream_fixes_description),
-                onClick = { resetting = ResetTarget.STREAM_FIXES },
-            )
+            SettingsLeaf.VP_PICTURE -> {
+                settingsGroup(key = "picture") {
+                    QuickSwitchRow(
+                        vm = vm,
+                        toggle = quickToggle("vp_hw"),
+                        subtitle = stringResource(R.string.settings_hardware_decoding_description_mobile),
+                    )
 
-            QuickSwitchRow(
-                vm = vm,
-                toggle = quickToggle("vp_hw"),
-                subtitle = stringResource(R.string.settings_hardware_decoding_description_mobile),
-            )
+                    QuickSwitchRow(
+                        vm = vm,
+                        toggle = quickToggle("vp_hdr"),
+                        subtitle = stringResource(R.string.settings_hdr_description_mobile),
+                    )
 
-            QuickSwitchRow(
-                vm = vm,
-                toggle = quickToggle("vp_hdr"),
-                subtitle = stringResource(R.string.settings_hdr_description_mobile),
-            )
+                    // N11 — the Settings limit, and a lower one for mobile data; the player's Quality
+                    // button picks within a stream.
+                    SettingRow(
+                        title = stringResource(R.string.settings_max_video_quality),
+                        subtitle = stringResource(R.string.settings_max_video_quality_description),
+                        value = qualityLabel(maxVideoHeight, R.string.settings_auto),
+                        onClick = { sheet = PlaybackSheet.MAX_QUALITY },
+                    )
 
-            // N11 — the Settings limit, and a lower one for mobile data; the player's Quality
-            // button picks within a stream.
-            SettingRow(
-                title = stringResource(R.string.settings_max_video_quality),
-                subtitle = stringResource(R.string.settings_max_video_quality_description),
-                value = qualityLabel(maxVideoHeight, R.string.settings_auto),
-                onClick = { sheet = PlaybackSheet.MAX_QUALITY },
-            )
-            SettingRow(
-                title = stringResource(R.string.settings_mobile_data_quality),
-                subtitle = stringResource(R.string.settings_mobile_data_quality_description),
-                value = qualityLabel(mobileDataMaxVideoHeight, R.string.common_off),
-                onClick = { sheet = PlaybackSheet.MOBILE_QUALITY },
-            )
+                    SettingRow(
+                        title = stringResource(R.string.settings_mobile_data_quality),
+                        subtitle = stringResource(R.string.settings_mobile_data_quality_description),
+                        value = qualityLabel(mobileDataMaxVideoHeight, R.string.common_off),
+                        onClick = { sheet = PlaybackSheet.MOBILE_QUALITY },
+                    )
 
-            // N19 — only where a decoder can tunnel; after a failure it says why it is off.
-            if (tv.own.owntv.player.Tunneling.supported) {
-                SettingRow(
-                    title = stringResource(R.string.settings_tunneled_playback),
-                    subtitle = stringResource(R.string.settings_tunneled_playback_description_mobile) +
-                        if (tunnelingFailed && !tunneledPlayback) " " + stringResource(R.string.settings_tunneled_playback_failed) else "",
-                    checked = tunneledPlayback,
-                    onCheckedChange = { on ->
-                        if (on) tv.own.owntv.player.Tunneling.failedThisSession = false // another try
-                        vm.edit { setTunneledPlayback(on) }
-                    },
-                )
+                    // N19 — only where a decoder can tunnel; after a failure it says why it is off.
+                    if (tv.own.owntv.player.Tunneling.supported) {
+                        SettingRow(
+                            title = stringResource(R.string.settings_tunneled_playback),
+                            subtitle = stringResource(R.string.settings_tunneled_playback_description_mobile) +
+                                if (tunnelingFailed && !tunneledPlayback) " " + stringResource(R.string.settings_tunneled_playback_failed) else "",
+                            checked = tunneledPlayback,
+                            onCheckedChange = { on ->
+                                if (on) tv.own.owntv.player.Tunneling.failedThisSession = false // another try
+                                vm.edit { setTunneledPlayback(on) }
+                            },
+                        )
+                    }
+
+                    SettingRow(
+                        title = stringResource(R.string.settings_auto_frame_rate),
+                        subtitle = stringResource(R.string.settings_auto_frame_rate_description_mobile),
+                        checked = autoFrameRate,
+                        // Below Android 12 there is no way to ask the display which refresh rates it can
+                        // reach without blanking it, so turning this ON asks first. Turning it off is
+                        // immediate — the same rule the television follows.
+                        onCheckedChange = { on ->
+                            if (on && !afrSafe) afrWarning = true else vm.edit { setAutoFrameRate(on) }
+                        },
+                    )
+
+                    SettingRow(
+                        title = stringResource(R.string.settings_default_zoom),
+                        subtitle = stringResource(R.string.settings_default_zoom_description),
+                        value = stringResource(zoomModeOf(zoom).labelRes),
+                        onClick = { sheet = PlaybackSheet.ZOOM },
+                    )
+
+                    SettingRow(
+                        title = stringResource(R.string.settings_reset_saved_zoom),
+                        subtitle = stringResource(R.string.settings_reset_saved_zoom_description),
+                        value = rememberedCountLabel(savedZoom),
+                        enabled = savedZoom > 0,
+                        onClick = { resetting = ResetTarget.ZOOM },
+                    )
+                }
             }
+            SettingsLeaf.VP_STREAMING -> {
+                settingsGroup(key = "streaming") {
+                    // N18 — films, episodes and catch-up only; live keeps its own latency and give-up settings.
+                    SettingRow(
+                        title = stringResource(R.string.settings_vod_buffer),
+                        subtitle = stringResource(R.string.settings_vod_buffer_description),
+                        value = autoOrSeconds(vodBufferSecs),
+                        onClick = { sheet = PlaybackSheet.VOD_BUFFER },
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_auto_frame_rate),
-                subtitle = stringResource(R.string.settings_auto_frame_rate_description_mobile),
-                checked = autoFrameRate,
-                // Below Android 12 there is no way to ask the display which refresh rates it can
-                // reach without blanking it, so turning this ON asks first. Turning it off is
-                // immediate — the same rule the television follows.
-                onCheckedChange = { on ->
-                    if (on && !afrSafe) afrWarning = true else vm.edit { setAutoFrameRate(on) }
-                },
-            )
+                    SettingRow(
+                        title = stringResource(R.string.settings_vod_network_timeout),
+                        subtitle = stringResource(R.string.settings_vod_network_timeout_description),
+                        value = autoOrSeconds(vodTimeoutSecs),
+                        onClick = { sheet = PlaybackSheet.VOD_TIMEOUT },
+                    )
 
-            // Multiview. The phone had neither of these: the feature defaults to off and there was
-            // no way to turn it on, so the grid was unreachable however well it worked.
-            SettingRow(
-                title = stringResource(R.string.settings_multiview),
-                subtitle = stringResource(R.string.settings_multiview_description),
-                checked = multiviewEnabled,
-                onCheckedChange = { on -> vm.edit { setMultiviewEnabled(on) } },
-            )
-
-            if (multiviewEnabled) {
-                SettingRow(
-                    title = stringResource(R.string.settings_multiview_tiles_max),
-                    subtitle = stringResource(R.string.settings_multiview_description),
-                    // "Max 4", not "4": the number is a ceiling. The grid opens with two and grows
-                    // only when the user asks, so a bare number would read as "every grid is this big".
-                    value = stringResource(R.string.settings_multiview_tiles_max_value, multiviewTiles),
-                    onClick = { sheet = PlaybackSheet.MULTIVIEW_TILES },
-                )
+                    SettingRow(
+                        title = stringResource(R.string.settings_vod_reconnects),
+                        subtitle = stringResource(R.string.settings_vod_reconnects_description),
+                        value = stringResource(R.string.settings_vod_reconnects_value, vodReconnects),
+                        onClick = { sheet = PlaybackSheet.VOD_RECONNECTS },
+                    )
+                }
             }
+            SettingsLeaf.VP_LIVE -> {
+                settingsGroup(key = "live") {
+                    QuickSwitchRow(
+                        vm = vm,
+                        toggle = quickToggle("vp_channel_numbers"),
+                        subtitle = stringResource(R.string.settings_channel_numbers_description_mobile),
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_external_player),
-                subtitle = stringResource(R.string.settings_external_player_row_description),
-                value = stringResource(if (externalOn) R.string.common_on else R.string.common_off),
-                onClick = { sheet = PlaybackSheet.EXTERNAL_PLAYER },
-            )
+                    // N4 — pause and rewind channels without catch-up, from a copy saved while watching.
+                    SettingRow(
+                        title = stringResource(R.string.settings_timeshift),
+                        subtitle = stringResource(R.string.settings_timeshift_description),
+                        checked = timeshiftEnabled,
+                        onCheckedChange = { on -> vm.edit { setTimeshiftEnabled(on) } },
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_default_zoom),
-                subtitle = stringResource(R.string.settings_default_zoom_description),
-                value = stringResource(zoomModeOf(zoom).labelRes),
-                onClick = { sheet = PlaybackSheet.ZOOM },
-            )
-
-            SettingRow(
-                title = stringResource(R.string.settings_reset_saved_zoom),
-                subtitle = stringResource(R.string.settings_reset_saved_zoom_description),
-                value = rememberedCountLabel(savedZoom),
-                enabled = savedZoom > 0,
-                onClick = { resetting = ResetTarget.ZOOM },
-            )
-
-            SettingRow(
-                title = stringResource(R.string.settings_seek_step),
-                subtitle = stringResource(R.string.settings_seek_step_description),
-                value = stringResource(R.string.settings_live_buffer_seconds, seekStep),
-                onClick = { sheet = PlaybackSheet.SEEK_STEP },
-            )
-
-            SettingRow(
-                title = stringResource(R.string.settings_live_rewind_step),
-                subtitle = stringResource(R.string.settings_live_rewind_step_description),
-                value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
-                onClick = { sheet = PlaybackSheet.REWIND_STEP },
-            )
-
-            // N4 — pause and rewind channels without catch-up, from a copy saved while watching.
-            SettingRow(
-                title = stringResource(R.string.settings_timeshift),
-                subtitle = stringResource(R.string.settings_timeshift_description),
-                checked = timeshiftEnabled,
-                onCheckedChange = { on -> vm.edit { setTimeshiftEnabled(on) } },
-            )
-
-            // The length means nothing while saving is off, so it appears with the switch.
-            if (timeshiftEnabled) SettingRow(
-                title = stringResource(R.string.settings_timeshift_window),
-                subtitle = stringResource(R.string.settings_timeshift_window_description),
-                value = stringResource(R.string.player_duration_minutes, timeshiftWindow),
-                onClick = { sheet = PlaybackSheet.TIMESHIFT_WINDOW },
-            )
-
-            // N18 — films, episodes and catch-up only; live keeps its own latency and give-up settings.
-            SettingRow(
-                title = stringResource(R.string.settings_vod_buffer),
-                subtitle = stringResource(R.string.settings_vod_buffer_description),
-                value = autoOrSeconds(vodBufferSecs),
-                onClick = { sheet = PlaybackSheet.VOD_BUFFER },
-            )
-
-            SettingRow(
-                title = stringResource(R.string.settings_vod_network_timeout),
-                subtitle = stringResource(R.string.settings_vod_network_timeout_description),
-                value = autoOrSeconds(vodTimeoutSecs),
-                onClick = { sheet = PlaybackSheet.VOD_TIMEOUT },
-            )
-
-            SettingRow(
-                title = stringResource(R.string.settings_vod_reconnects),
-                subtitle = stringResource(R.string.settings_vod_reconnects_description),
-                value = stringResource(R.string.settings_vod_reconnects_value, vodReconnects),
-                onClick = { sheet = PlaybackSheet.VOD_RECONNECTS },
-            )
-        }
-
-        settingsSection(R.string.settings_live_tv)
-        settingsNote(R.string.settings_vp_section_live_summary)
-        settingsGroup(key = "latency") {
-            SettingRow(
-                title = stringResource(R.string.settings_live_latency),
-                subtitle = stringResource(R.string.settings_live_latency_description),
-                value = if (latency == LiveLatency.CUSTOM) {
-                    stringResource(R.string.settings_live_buffer_seconds, latencySecs)
-                } else {
-                    stringResource(latency.labelRes())
-                },
-                onClick = { sheet = PlaybackSheet.LATENCY },
-            )
-        }
-        if (latency == LiveLatency.CUSTOM) {
-            settingsGroup(key = "latency-secs") {
-                SettingsSlider(
-                    title = stringResource(R.string.settings_live_latency_custom),
-                    value = latencySecs,
-                    range = LiveBuffer.CUSTOM_MIN..LiveBuffer.CUSTOM_MAX,
-                    valueLabel = stringResource(R.string.settings_live_buffer_seconds, latencySecs),
-                    // The acknowledgement is asked once, on the drag that crosses below Balanced.
-                    // Asking at every step would make the slider unusable; never asking would let a
-                    // buffer too small for the stream look like the app breaking rather than a choice.
-                    onValueChange = { secs ->
-                        vm.edit { setLiveLatencyCustomSecs(secs) }
-                        if (LiveBuffer.isLowLatency(secs) && !LiveBuffer.isLowLatency(latencySecs)) {
-                            lowWarning = Pair(
-                                {},
-                                { vm.edit { setLiveLatencyMode(LiveLatency.BALANCED.name) } },
-                            )
-                        }
-                    },
-                )
+                    // The length means nothing while saving is off, so it appears with the switch.
+                    if (timeshiftEnabled) SettingRow(
+                        title = stringResource(R.string.settings_timeshift_window),
+                        subtitle = stringResource(R.string.settings_timeshift_window_description),
+                        value = stringResource(R.string.player_duration_minutes, timeshiftWindow),
+                        onClick = { sheet = PlaybackSheet.TIMESHIFT_WINDOW },
+                    )
+                }
             }
-        }
-        if (sources.isNotEmpty()) {
-            settingsGroup(key = "latency-sources") {
-                SettingRow(
-                    title = stringResource(R.string.settings_live_latency_per_playlist),
-                    subtitle = stringResource(R.string.settings_live_latency_per_playlist_description),
-                    value = overrideCountLabel(sources.count { it.liveLatencyMode != null }),
-                    onClick = { sheet = PlaybackSheet.LATENCY_SOURCES },
-                )
+            SettingsLeaf.VP_LIVE_TUNING -> {
+                settingsGroup(key = "latency") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_live_latency),
+                        subtitle = stringResource(R.string.settings_live_latency_description),
+                        value = if (latency == LiveLatency.CUSTOM) {
+                            stringResource(R.string.settings_live_buffer_seconds, latencySecs)
+                        } else {
+                            stringResource(latency.labelRes())
+                        },
+                        onClick = { sheet = PlaybackSheet.LATENCY },
+                    )
+                }
+                if (latency == LiveLatency.CUSTOM) {
+                    settingsGroup(key = "latency-secs") {
+                        SettingsSlider(
+                            title = stringResource(R.string.settings_live_latency_custom),
+                            value = latencySecs,
+                            range = LiveBuffer.CUSTOM_MIN..LiveBuffer.CUSTOM_MAX,
+                            valueLabel = stringResource(R.string.settings_live_buffer_seconds, latencySecs),
+                            // The acknowledgement is asked once, on the drag that crosses below Balanced.
+                            // Asking at every step would make the slider unusable; never asking would let a
+                            // buffer too small for the stream look like the app breaking rather than a choice.
+                            onValueChange = { secs ->
+                                vm.edit { setLiveLatencyCustomSecs(secs) }
+                                if (LiveBuffer.isLowLatency(secs) && !LiveBuffer.isLowLatency(latencySecs)) {
+                                    lowWarning = Pair(
+                                        {},
+                                        { vm.edit { setLiveLatencyMode(LiveLatency.BALANCED.name) } },
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+                if (sources.isNotEmpty()) {
+                    settingsGroup(key = "latency-sources") {
+                        SettingRow(
+                            title = stringResource(R.string.settings_live_latency_per_playlist),
+                            subtitle = stringResource(R.string.settings_live_latency_per_playlist_description),
+                            value = overrideCountLabel(sources.count { it.liveLatencyMode != null }),
+                            onClick = { sheet = PlaybackSheet.LATENCY_SOURCES },
+                        )
+                    }
+                }
+                settingsGroup(key = "preroll") {
+                    SettingsSlider(
+                        title = stringResource(R.string.settings_live_preroll),
+                        subtitle = stringResource(R.string.settings_live_preroll_description),
+                        value = preroll,
+                        range = 0..30,
+                        valueLabel = stringResource(R.string.settings_video_seconds, preroll),
+                        onValueChange = { secs -> vm.edit { setLivePrerollSecs(secs) } },
+                    )
+                }
+                if (sources.isNotEmpty()) {
+                    settingsGroup(key = "preroll-sources") {
+                        SettingRow(
+                            title = stringResource(R.string.settings_live_preroll_per_playlist),
+                            subtitle = stringResource(R.string.settings_live_preroll_per_playlist_description),
+                            value = overrideCountLabel(
+                                sources.count { it.livePrerollSecs != FOLLOW_GLOBAL_PREROLL },
+                            ),
+                            onClick = { sheet = PlaybackSheet.PREROLL_SOURCES },
+                        )
+                    }
+                }
+                settingsGroup(key = "tune-timeout") {
+                    SettingsSlider(
+                        title = stringResource(R.string.settings_live_tune_timeout),
+                        subtitle = stringResource(R.string.settings_live_tune_timeout_description),
+                        value = tuneTimeout,
+                        range = 0..60,
+                        valueLabel = stringResource(R.string.settings_live_buffer_seconds, tuneTimeout),
+                        onValueChange = { secs -> vm.edit { setLiveTuneTimeoutSecs(secs) } },
+                    )
+                }
+                if (sources.isNotEmpty()) {
+                    settingsGroup(key = "tune-timeout-sources") {
+                        SettingRow(
+                            title = stringResource(R.string.settings_live_tune_timeout_per_playlist),
+                            subtitle = stringResource(R.string.settings_live_tune_timeout_per_playlist_description),
+                            value = overrideCountLabel(sources.count { it.liveTuneTimeoutSecs != null }),
+                            onClick = { sheet = PlaybackSheet.TUNE_TIMEOUT_SOURCES },
+                        )
+                    }
+                }
             }
-        }
-        settingsGroup(key = "preroll") {
-            SettingsSlider(
-                title = stringResource(R.string.settings_live_preroll),
-                subtitle = stringResource(R.string.settings_live_preroll_description),
-                value = preroll,
-                range = 0..30,
-                valueLabel = stringResource(R.string.settings_video_seconds, preroll),
-                onValueChange = { secs -> vm.edit { setLivePrerollSecs(secs) } },
-            )
-        }
-        if (sources.isNotEmpty()) {
-            settingsGroup(key = "preroll-sources") {
-                SettingRow(
-                    title = stringResource(R.string.settings_live_preroll_per_playlist),
-                    subtitle = stringResource(R.string.settings_live_preroll_per_playlist_description),
-                    value = overrideCountLabel(
-                        sources.count { it.livePrerollSecs != FOLLOW_GLOBAL_PREROLL },
-                    ),
-                    onClick = { sheet = PlaybackSheet.PREROLL_SOURCES },
-                )
+            SettingsLeaf.VP_CONTROLS -> {
+                settingsGroup(key = "controls") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_seek_step),
+                        subtitle = stringResource(R.string.settings_seek_step_description),
+                        value = stringResource(R.string.settings_live_buffer_seconds, seekStep),
+                        onClick = { sheet = PlaybackSheet.SEEK_STEP },
+                    )
+
+                    SettingRow(
+                        title = stringResource(R.string.settings_live_rewind_step),
+                        subtitle = stringResource(R.string.settings_live_rewind_step_description),
+                        value = stringResource(R.string.settings_live_buffer_seconds, rewindStep),
+                        onClick = { sheet = PlaybackSheet.REWIND_STEP },
+                    )
+                }
             }
-        }
-        settingsGroup(key = "tune-timeout") {
-            SettingsSlider(
-                title = stringResource(R.string.settings_live_tune_timeout),
-                subtitle = stringResource(R.string.settings_live_tune_timeout_description),
-                value = tuneTimeout,
-                range = 0..60,
-                valueLabel = stringResource(R.string.settings_live_buffer_seconds, tuneTimeout),
-                onValueChange = { secs -> vm.edit { setLiveTuneTimeoutSecs(secs) } },
-            )
-        }
-        if (sources.isNotEmpty()) {
-            settingsGroup(key = "tune-timeout-sources") {
-                SettingRow(
-                    title = stringResource(R.string.settings_live_tune_timeout_per_playlist),
-                    subtitle = stringResource(R.string.settings_live_tune_timeout_per_playlist_description),
-                    value = overrideCountLabel(sources.count { it.liveTuneTimeoutSecs != null }),
-                    onClick = { sheet = PlaybackSheet.TUNE_TIMEOUT_SOURCES },
-                )
+            SettingsLeaf.VP_MULTIVIEW -> {
+                settingsGroup(key = "multiview") {
+                    // Multiview. The phone had neither of these: the feature defaults to off and there was
+                    // no way to turn it on, so the grid was unreachable however well it worked.
+                    SettingRow(
+                        title = stringResource(R.string.settings_multiview),
+                        subtitle = stringResource(R.string.settings_multiview_description),
+                        checked = multiviewEnabled,
+                        onCheckedChange = { on -> vm.edit { setMultiviewEnabled(on) } },
+                    )
+
+                    if (multiviewEnabled) {
+                        SettingRow(
+                            title = stringResource(R.string.settings_multiview_tiles_max),
+                            subtitle = stringResource(R.string.settings_multiview_description),
+                            // "Max 4", not "4": the number is a ceiling. The grid opens with two and grows
+                            // only when the user asks, so a bare number would read as "every grid is this big".
+                            value = stringResource(R.string.settings_multiview_tiles_max_value, multiviewTiles),
+                            onClick = { sheet = PlaybackSheet.MULTIVIEW_TILES },
+                        )
+                    }
+                }
             }
-        }
-        settingsGroup(key = "tune-timeout-more") {
+            SettingsLeaf.VP_SOUND -> {
+                settingsGroup(key = "sound") {
+                    SettingsSlider(
+                        title = stringResource(R.string.settings_default_volume),
+                        // Through the formatting overload: the string writes its "%" as "%%" (the i18n rule), and only
+                        // formatting turns it back into one — the plain overload showed "100%%".
+                        subtitle = stringResource(R.string.settings_default_volume_description, *emptyArray<Any>()),
+                        value = volume,
+                        range = 0..150,
+                        onValueChange = { pct -> vm.edit { setDefaultVolume(pct) } },
+                    )
 
-            QuickSwitchRow(
-                vm = vm,
-                toggle = quickToggle("vp_channel_numbers"),
-                subtitle = stringResource(R.string.settings_channel_numbers_description_mobile),
-            )
-        }
+                    SettingRow(
+                        title = stringResource(R.string.settings_reset_saved_volume),
+                        subtitle = stringResource(R.string.settings_reset_saved_volume_description),
+                        value = rememberedCountLabel(savedVolume),
+                        enabled = savedVolume > 0,
+                        onClick = { resetting = ResetTarget.VOLUME },
+                    )
 
-        settingsSection(R.string.settings_vp_section_sound)
-        settingsNote(R.string.settings_vp_section_sound_summary)
-        settingsGroup(key = "volume") {
-            SettingsSlider(
-                title = stringResource(R.string.settings_default_volume),
-                // Through the formatting overload: the string writes its "%" as "%%" (the i18n rule), and only
-                // formatting turns it back into one — the plain overload showed "100%%".
-                subtitle = stringResource(R.string.settings_default_volume_description, *emptyArray<Any>()),
-                value = volume,
-                range = 0..150,
-                onValueChange = { pct -> vm.edit { setDefaultVolume(pct) } },
-            )
+                    SettingRow(
+                        title = stringResource(R.string.settings_surround_sound),
+                        subtitle = stringResource(R.string.settings_surround_description_mobile),
+                        value = stringResource(surround.labelRes()),
+                        onClick = { sheet = PlaybackSheet.SURROUND },
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_reset_saved_volume),
-                subtitle = stringResource(R.string.settings_reset_saved_volume_description),
-                value = rememberedCountLabel(savedVolume),
-                enabled = savedVolume > 0,
-                onClick = { resetting = ResetTarget.VOLUME },
-            )
+                    // P14 — N8, N9, N10.
+                    SettingRow(
+                        title = stringResource(R.string.settings_audio_passthrough),
+                        subtitle = stringResource(R.string.settings_audio_passthrough_description_mobile),
+                        checked = audioPassthrough,
+                        onCheckedChange = { on -> vm.edit { setAudioPassthrough(on) } },
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_surround_sound),
-                subtitle = stringResource(R.string.settings_surround_description_mobile),
-                value = stringResource(surround.labelRes()),
-                onClick = { sheet = PlaybackSheet.SURROUND },
-            )
+                    SettingRow(
+                        title = stringResource(R.string.settings_night_mode),
+                        subtitle = stringResource(R.string.settings_night_mode_description),
+                        checked = nightMode,
+                        onCheckedChange = { on -> vm.edit { setNightMode(on) } },
+                    )
 
-            // P14 — N8, N9, N10.
-            SettingRow(
-                title = stringResource(R.string.settings_audio_passthrough),
-                subtitle = stringResource(R.string.settings_audio_passthrough_description_mobile),
-                checked = audioPassthrough,
-                onCheckedChange = { on -> vm.edit { setAudioPassthrough(on) } },
-            )
-            SettingRow(
-                title = stringResource(R.string.settings_night_mode),
-                subtitle = stringResource(R.string.settings_night_mode_description),
-                checked = nightMode,
-                onCheckedChange = { on -> vm.edit { setNightMode(on) } },
-            )
-            SettingRow(
-                title = stringResource(R.string.settings_volume_leveling),
-                subtitle = stringResource(R.string.settings_volume_leveling_description),
-                checked = volumeLevelling,
-                onCheckedChange = { on -> vm.edit { setVolumeLevelling(on) } },
-            )
+                    SettingRow(
+                        title = stringResource(R.string.settings_volume_leveling),
+                        subtitle = stringResource(R.string.settings_volume_leveling_description),
+                        checked = volumeLevelling,
+                        onCheckedChange = { on -> vm.edit { setVolumeLevelling(on) } },
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_preferred_audio_language),
-                subtitle = stringResource(R.string.settings_preferred_audio_language_description),
-                value = trackLanguageName(audioLang),
-                onClick = { sheet = PlaybackSheet.AUDIO_LANG },
-            )
+                    // 25 ms steps across ±5s: the offset being corrected is a device's picture-processing
+                    // delay, which lands in the tens of milliseconds — a coarser step could only bracket it.
+                    SettingsSlider(
+                        title = stringResource(R.string.settings_audio_sync),
+                        subtitle = stringResource(R.string.settings_audio_sync_description),
+                        value = audioDelay,
+                        range = -5000..5000,
+                        steps = 399,
+                        valueLabel = stringResource(R.string.settings_audio_delay_value, audioDelay),
+                        onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
+                    )
 
-            // 25 ms steps across ±5s: the offset being corrected is a device's picture-processing
-            // delay, which lands in the tens of milliseconds — a coarser step could only bracket it.
-            SettingsSlider(
-                title = stringResource(R.string.settings_audio_sync),
-                subtitle = stringResource(R.string.settings_audio_sync_description),
-                value = audioDelay,
-                range = -5000..5000,
-                steps = 399,
-                valueLabel = stringResource(R.string.settings_audio_delay_value, audioDelay),
-                onValueChange = { ms -> vm.edit { setAudioDelayMs(ms / 25 * 25) } },
-            )
+                    SettingRow(
+                        title = stringResource(R.string.settings_reset_saved_audio_delay),
+                        subtitle = stringResource(R.string.settings_reset_saved_audio_delay_description),
+                        value = rememberedCountLabel(savedAudioDelay),
+                        enabled = savedAudioDelay > 0,
+                        onClick = { resetting = ResetTarget.AUDIO_DELAY },
+                    )
+                }
+            }
+            SettingsLeaf.VP_LANGUAGES -> {
+                settingsGroup(key = "languages") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_preferred_audio_language),
+                        subtitle = stringResource(R.string.settings_preferred_audio_language_description),
+                        value = trackLanguageName(audioLang),
+                        onClick = { sheet = PlaybackSheet.AUDIO_LANG },
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_reset_saved_audio_delay),
-                subtitle = stringResource(R.string.settings_reset_saved_audio_delay_description),
-                value = rememberedCountLabel(savedAudioDelay),
-                enabled = savedAudioDelay > 0,
-                onClick = { resetting = ResetTarget.AUDIO_DELAY },
-            )
-        }
+                    SettingRow(
+                        title = stringResource(R.string.settings_preferred_subtitle_language),
+                        subtitle = stringResource(R.string.settings_preferred_language_description),
+                        value = trackLanguageName(subLang),
+                        onClick = { sheet = PlaybackSheet.SUB_LANG },
+                    )
 
-        settingsSection(R.string.settings_subtitles)
-        settingsNote(R.string.settings_vp_section_subtitles_summary)
-        settingsGroup(key = "sub-style") {
-            SettingRow(
-                title = stringResource(R.string.settings_subtitle_appearance),
-                subtitle = stringResource(R.string.settings_subtitle_appearance_description),
-                value = stringResource(if (subStyleOn) R.string.common_on else R.string.common_off),
-                onClick = { onOpenLeaf(SettingsLeaf.SUBTITLE_APPEARANCE) },
-            )
+                    SettingRow(
+                        title = stringResource(R.string.settings_subtitle_appearance),
+                        subtitle = stringResource(R.string.settings_subtitle_appearance_description),
+                        value = stringResource(if (subStyleOn) R.string.common_on else R.string.common_off),
+                        onClick = { onOpenLeaf(SettingsLeaf.SUBTITLE_APPEARANCE) },
+                    )
+                }
+            }
+            SettingsLeaf.VP_RESUME -> {
+                settingsGroup(key = "resume") {
+                    SettingRow(
+                        title = stringResource(R.string.settings_resume_playback),
+                        subtitle = stringResource(R.string.settings_resume_playback_description),
+                        value = stringResource(resume.labelRes()),
+                        onClick = { sheet = PlaybackSheet.RESUME },
+                    )
 
-            SettingRow(
-                title = stringResource(R.string.settings_preferred_subtitle_language),
-                subtitle = stringResource(R.string.settings_preferred_language_description),
-                value = trackLanguageName(subLang),
-                onClick = { sheet = PlaybackSheet.SUB_LANG },
-            )
-        }
+                    QuickSwitchRow(
+                        vm = vm,
+                        toggle = quickToggle("vp_autoplay"),
+                        subtitle = stringResource(R.string.settings_autoplay_next_description),
+                    )
+                }
+            }
+            SettingsLeaf.VP_DIAGNOSTICS -> {
+                settingsGroup(key = "measured-stats") {
+                    QuickSwitchRow(
+                        vm = vm,
+                        toggle = quickToggle("vp_measured_stats"),
+                        subtitle = stringResource(R.string.settings_measured_stats_description_mobile),
+                    )
 
-        settingsSection(R.string.settings_vp_section_episodes)
-        settingsNote(R.string.settings_vp_section_episodes_summary)
-        settingsGroup(key = "resume") {
-            SettingRow(
-                title = stringResource(R.string.settings_resume_playback),
-                subtitle = stringResource(R.string.settings_resume_playback_description),
-                value = stringResource(resume.labelRes()),
-                onClick = { sheet = PlaybackSheet.RESUME },
-            )
-
-            QuickSwitchRow(
-                vm = vm,
-                toggle = quickToggle("vp_autoplay"),
-                subtitle = stringResource(R.string.settings_autoplay_next_description),
-            )
-        }
-
-        settingsSection(R.string.settings_diagnostics)
-        settingsNote(R.string.settings_vp_section_diagnostics_summary)
-        settingsGroup(key = "measured-stats") {
-            QuickSwitchRow(
-                vm = vm,
-                toggle = quickToggle("vp_measured_stats"),
-                subtitle = stringResource(R.string.settings_measured_stats_description_mobile),
-            )
-
-            QuickSwitchRow(
-                vm = vm,
-                toggle = quickToggle("vp_logging"),
-                subtitle = stringResource(R.string.settings_detailed_playback_logging_description),
-            )
+                    QuickSwitchRow(
+                        vm = vm,
+                        toggle = quickToggle("vp_logging"),
+                        subtitle = stringResource(R.string.settings_detailed_playback_logging_description),
+                    )
+                }
+            }
+            else -> Unit
         }
     }
 

@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.epg.EpgSource
-import tv.own.owntv.core.settings.GuideRetention
 import tv.own.owntv.core.settings.EpgAutoRefresh
 import tv.own.owntv.core.settings.EpgRefresh
 import tv.own.owntv.core.settings.PlaylistRefresh
@@ -71,8 +70,6 @@ fun SettingsEpgSourcesPage(
     var addSource by remember { mutableStateOf(false) }
     var refreshFor by remember { mutableStateOf<EpgSource?>(null) }
     var manualDaysFor by remember { mutableStateOf<EpgSource?>(null) }
-    var editingGuideDays by remember { mutableStateOf(false) }
-    val guideDays by vm.guideDaysToKeep.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf<EpgSource?>(null) }
 
     SettingsPage(modifier) {
@@ -92,11 +89,6 @@ fun SettingsEpgSourcesPage(
                     onClick = { if (source.id !in deleting) menuSource = source },
                 )
             }
-            MobileListRow(
-                title = stringResource(R.string.settings_epg_guide_days),
-                subtitle = pluralStringResource(R.plurals.settings_epg_guide_days_value, guideDays, guideDays),
-                onClick = { editingGuideDays = true },
-            )
             MobileListRow(
                 title = stringResource(R.string.settings_epg_sources_add),
                 leading = { Icon(MobileIcons.Add, contentDescription = null) },
@@ -137,20 +129,6 @@ fun SettingsEpgSourcesPage(
                 onClick = { confirmDelete = source; menuSource = null },
             )
         }
-    }
-
-    if (editingGuideDays) {
-        // Preset days rather than a free number: a phone picks from a list far more comfortably than
-        // it steps a counter, and the presets cover the whole useful range.
-        SettingsChoiceSheet(
-            title = stringResource(R.string.settings_epg_guide_days),
-            choices = GuideRetention.PRESET_DAYS.map {
-                SettingsChoice(it, pluralStringResource(R.plurals.settings_epg_guide_days_value, it, it))
-            },
-            selected = guideDays,
-            onSelect = { vm.setGuideDaysToKeep(it) },
-            onDismiss = { editingGuideDays = false },
-        )
     }
 
     refreshFor?.let { source ->

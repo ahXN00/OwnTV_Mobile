@@ -209,8 +209,11 @@ fun GuideScreen(
         )
     }
     if (review.isNotEmpty()) {
+        val includeLogos by vm.includeGuideLogos.collectAsStateWithLifecycle()
         EpgReviewSheet(
             suggestions = review,
+            includeLogos = includeLogos,
+            onIncludeLogos = vm::setIncludeGuideLogos,
             onAccept = vm::acceptSuggestion,
             onSkip = vm::skipSuggestion,
             onAcceptAll = vm::acceptAllSuggestions,
