@@ -398,7 +398,7 @@ fun TrendingHero(
                     primary = true,
                     onClick = { onActivate(item) { unavailable = true } },
                 )
-                snapshot.trailerKey?.takeIf { it.isNotBlank() }?.let { key ->
+                tv.own.owntv.core.metadata.TrailerKeys.split(snapshot.trailerKey).firstOrNull()?.let { key ->
                     TrendingActionButton(
                         label = stringResource(R.string.home_trending_trailer),
                         icon = MobileIcons.OpenInNew,

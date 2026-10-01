@@ -198,7 +198,7 @@ fun VodMenu(
                         ),
                     )
                 }
-                meta?.trailerKey?.takeIf { it.isNotBlank() }?.let { key ->
+                tv.own.owntv.core.metadata.TrailerKeys.split(meta?.trailerKey).firstOrNull()?.let { key ->
                     add(
                         SheetAction(
                             key = "play_trailer",
