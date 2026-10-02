@@ -296,6 +296,11 @@ Which of the two starts a stream is yours to set, separately for Live TV and for
 [ZXing](https://github.com/zxing/zxing) — and the wider Kotlin / AndroidX open-source ecosystem.
 Thank you to all their maintainers. See each project for its own license.
 
+### 🎨 Brand
+
+The lowercase **owntv** wordmark was designed for OwnTV by [@m3th0d93](https://github.com/m3th0d93)
+in [issue #227](https://github.com/ahXN00/OwnTV/issues/227).
+
 ## ⚖️ Legal
 
 OwnTV is a media **player** only. It ships with no channels, playlists, subscriptions or content, and

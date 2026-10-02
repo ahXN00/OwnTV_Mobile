@@ -42,4 +42,9 @@
         <item name="windowSplashScreenAnimationDuration">800</item>
         <item name="android:windowSplashScreenBrandingImage">@drawable/owntv_splash_name_olive_cream</item>
     </style>
+    <style name="Theme.OwnTVMobile.Starting.Pixel">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/owntv_splash_pixel</item>
+        <item name="windowSplashScreenAnimationDuration">600</item>
+        <item name="android:windowSplashScreenBrandingImage">@drawable/owntv_splash_name_pixel</item>
+    </style>
 </resources>

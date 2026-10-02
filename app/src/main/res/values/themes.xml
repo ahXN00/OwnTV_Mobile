@@ -54,6 +54,9 @@
     <style name="Theme.OwnTVMobile.Starting.OliveCream">
         <item name="windowSplashScreenAnimatedIcon">@drawable/owntv_splash_static_olive_cream</item>
     </style>
+    <style name="Theme.OwnTVMobile.Starting.Pixel">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/owntv_splash_static_pixel</item>
+    </style>
 
     <!--
       The route button's own dressing, and nothing else: which way round the icon is tinted. It is

@@ -7,6 +7,11 @@
 > Issue numbers that are part of a title are fine; explanatory parentheticals are not. The detail —
 > what, why, files and verification — belongs in the commit message, never here.
 
+## Unreleased
+
+### New features
+- **🎨 Pixel app icon and Plus Jakarta Sans, the new default font**
+
 ## v1.0.3 — 2026-09-26
 
 ### New features
