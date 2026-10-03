@@ -35,6 +35,8 @@ import tv.own.owntv.core.live.EpgNowNext
 import tv.own.owntv.core.live.LiveArchiveUrls
 import tv.own.owntv.core.live.LiveEpgReader
 import tv.own.owntv.core.live.LiveTimeshift
+import tv.own.owntv.core.customize.railCategories
+import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.player.AudioOnlyStore
 import tv.own.owntv.core.player.enginePinKey
@@ -75,6 +77,7 @@ class LiveTuner(
     private val context: Context,
     private val channelDao: ChannelDao,
     private val categoryDao: CategoryDao,
+    private val customCategoryDao: tv.own.owntv.core.database.dao.CustomCategoryDao,
     private val historyDao: HistoryDao,
     private val profileDao: ProfileDao,
     private val favoriteDao: FavoriteDao,
@@ -712,33 +715,48 @@ class LiveTuner(
      * context — and a flat list of every channel is tens of thousands of rows on a real playlist.
      * Hidden categories are dropped and renames applied, so it matches what is seen everywhere else.
      */
-    suspend fun liveCategoriesForPicker(): List<Pair<Long, String>> {
+    suspend fun liveCategoriesForPicker(): List<Pair<LiveKey, String>> {
         val c = ctx.value
         if (c.profileId < 0) return emptyList()
         val cust = custom.value
-        return withContext(Dispatchers.IO) {
-            categoryDao.observe(c.liveSourceIds.ifEmpty { listOf(-1L) }, MediaType.LIVE).first()
-        }
-            .filter { CustomizeKeys.category(it) !in cust.hiddenItems }
-            .map { cat -> cat.id to (cust.itemNames[CustomizeKeys.category(cat)] ?: cat.name) }
-    }
-
-    /** One category's channels, with the same hide/rename treatment the rest of the app applies. */
-    suspend fun channelsInCategoryForPicker(categoryId: Long): List<ChannelEntity> {
-        val c = ctx.value
-        if (c.profileId < 0) return emptyList()
-        val category = withContext(Dispatchers.IO) { categoryDao.getById(categoryId) } ?: return emptyList()
-        val cust = custom.value
-        return withContext(Dispatchers.IO) {
-            channelDao.snapshotByCategoryManual(
-                categoryId = category.id,
-                profileId = c.profileId,
-                contextKey = CustomizeKeys.category(category),
-                limit = SIBLING_LIMIT,
+        val (cats, kids, alpha) = withContext(Dispatchers.IO) {
+            Triple(
+                categoryDao.observe(c.liveSourceIds.ifEmpty { listOf(-1L) }, MediaType.LIVE).first(),
+                profileDao.getById(c.profileId)?.isKids == true,
+                settings.sortLive.first() == SettingsRepository.SortMode.ALPHA,
             )
         }
-            .filter { CustomizeKeys.channel(it) !in cust.hiddenItems }
-            .map { ch -> cust.itemNames[CustomizeKeys.channel(ch)]?.let { ch.copy(name = it) } ?: ch }
+        // The Live screen's own folders: custom categories, hides, renames, kids filter and order.
+        return cats.railCategories(cust, kids = kids, alphaRest = alpha).map { e ->
+            (e.categoryId?.let { LiveKey.Folder(it) } ?: LiveKey.Custom(e.customId!!)) to e.displayName
+        }
+    }
+
+    /** One category's channels — a provider folder or a custom category — with the same hide/rename
+     *  treatment the Live list applies. */
+    suspend fun channelsInCategoryForPicker(key: LiveKey): List<ChannelEntity> {
+        val c = ctx.value
+        if (c.profileId < 0) return emptyList()
+        val cust = custom.value
+        val ids = c.liveSourceIds.ifEmpty { listOf(-1L) }
+        return withContext(Dispatchers.IO) {
+            val cats = categoryDao.observe(ids, MediaType.LIVE).first()
+            val hidden = AdultCategoryClassifier.hiddenCategoryIds(cats, cust.hiddenCategories, profileDao.getById(c.profileId)?.isKids == true)
+            val raw = when (key) {
+                is LiveKey.Folder -> {
+                    val category = categoryDao.getById(key.id) ?: return@withContext emptyList()
+                    channelDao.snapshotByCategoryManual(
+                        categoryId = category.id,
+                        profileId = c.profileId,
+                        contextKey = CustomizeKeys.category(category),
+                        limit = SIBLING_LIMIT,
+                    )
+                }
+                is LiveKey.Custom -> customCategoryDao.snapshotChannels(c.profileId, key.id, ids, SIBLING_LIMIT)
+                else -> emptyList()
+            }
+            raw.filter { tv.own.owntv.core.live.isChannelVisible(it, cust, hidden, key) }
+        }.map { ch -> cust.itemNames[CustomizeKeys.channel(ch)]?.let { ch.copy(name = it) } ?: ch }
     }
 
     private suspend fun loadSiblings(channel: ChannelEntity) {

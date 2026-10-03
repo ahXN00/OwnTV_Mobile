@@ -149,7 +149,7 @@ internal fun SpanHideDialog(
 
 /**
  * The long-press menu a folder or an item shares: rename, hide, the four moves, and the three span
- * starts. [onDelete], [onMoveTo] and [onRename] are left out where they do not apply.
+ * starts. [onDelete], [onMoveTo], [onRemoveFromCategory] and [onRename] are left out where they do not apply.
  */
 @Composable
 internal fun RowActionsSheet(
@@ -163,6 +163,7 @@ internal fun RowActionsSheet(
     onSpanRename: () -> Unit,
     onRename: (() -> Unit)? = null,
     onMoveTo: (() -> Unit)? = null,
+    onRemoveFromCategory: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
 ) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = title) {
@@ -182,6 +183,12 @@ internal fun RowActionsSheet(
             MobileListRow(
                 title = stringResource(R.string.settings_customize_move_to),
                 onClick = onMoveTo,
+            )
+        }
+        if (onRemoveFromCategory != null) {
+            MobileListRow(
+                title = stringResource(R.string.content_remove_from_category),
+                onClick = onRemoveFromCategory,
             )
         }
         MobileListRow(

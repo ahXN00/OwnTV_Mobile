@@ -70,7 +70,7 @@ Live TV, the Library and Settings open **two panes** side by side.
 | **Double-tap left / right** | Skip back / forward by your seek step — on a live channel with catch-up, by your **Live rewind step** |
 | **Drag sideways** | Scrub. The bar shows where you will land before you let go |
 | **Drag up/down, left third** | Brightness |
-| **Drag up/down, right third** | Volume |
+| **Drag up/down, right third** | The phone's volume (same as the volume keys); past the top, a boost up to 150% |
 | **Swipe down, middle** | Shrink into the mini player, still playing |
 | **Swipe up, middle** | The channel list (live only) |
 | **Pinch** | Zoom — fit or fill |
@@ -131,7 +131,7 @@ channel plays in the pane beside the list.
 ### ⭐ The long-press menu
 **Where:** long-press any channel
 Favourite · Rename · Hide · Match EPG · EPG offset · Move · Move to category · **Record** ·
-**Add to Multiview** · Catch-up · Play in another app.
+**Add to Multiview** · Catch-up · Play in another app. Inside a custom category: **Remove from this category**.
 
 ### 🏷️ Categories
 Chips above the list, with a search button for providers with hundreds of them.
@@ -214,6 +214,7 @@ dropped; playback jumps over it.
 - **The delete rules:**
   - Leave the channel and its copy is kept for **5 minutes**. Come back within them and OwnTV asks
     **Continue where you left off?** — **Resume** plays on from where you left, **Go live** jumps to now.
+    **Resume a saved channel**, just below, turns the question into **Always resume** or **Never resume**.
   - Watch another channel for **2 minutes** and the copy you left is deleted at once — you have moved on.
   - After 5 minutes it is deleted anyway, and every copy is deleted when OwnTV starts.
 - Catch-up channels still rewind into the provider's archive. Protected (DRM) and encrypted channels

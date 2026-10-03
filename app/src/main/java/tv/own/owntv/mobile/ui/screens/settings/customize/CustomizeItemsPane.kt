@@ -164,6 +164,7 @@ fun CustomizeItemsPane(
                 null
             },
             onMoveTo = { menuFor = null; movingTo = row },
+            onRemoveFromCategory = if (catInfo?.isCustom == true) ({ menuFor = null; vm.removeFromCategory(row) }) else null,
         )
     }
 

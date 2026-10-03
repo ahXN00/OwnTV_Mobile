@@ -11,6 +11,16 @@
 
 ### New features
 - **🎨 Pixel app icon and Plus Jakarta Sans, the new default font**
+- **🔊 Volume swipe controls the phone's volume**
+- **⏪ Resume a saved channel: ask, always or never**
+- **🗂️ Remove a channel from a custom category**
+
+### Fixes
+- **Custom categories in the player's channel list and the Multiview picker**
+- **Hidden and renamed categories respected in the player's channel list**
+- **Hiding a provider category no longer empties custom categories**
+- **Catch-up that shows no picture no longer reports a fast-start error**
+- **Faster channel switching on providers that mix HLS and TS channels**
 
 ## v1.0.3 — 2026-09-26
 

@@ -62,6 +62,7 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.cast.CastController
 import tv.own.owntv.mobile.playback.PipController
 import tv.own.owntv.core.epg.displayLogoUrl
+import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.subtitles.SubtitleController
@@ -176,13 +177,13 @@ fun PlayerScreen(
     }
     var multiviewPickFor by remember { mutableStateOf<Int?>(null) }
     // Which category the Multiview picker is inside, and what it holds. Null = showing categories.
-    var multiviewCategory by remember { mutableStateOf<Long?>(null) }
+    var multiviewCategory by remember { mutableStateOf<LiveKey?>(null) }
     var multiviewChannels by remember { mutableStateOf<List<ChannelEntity>>(emptyList()) }
-    var multiviewCategories by remember { mutableStateOf<List<Pair<Long, String>>>(emptyList()) }
+    var multiviewCategories by remember { mutableStateOf<List<Pair<LiveKey, String>>>(emptyList()) }
     // The same two steps for the player's own channel button. Null = showing categories.
-    var playerCategory by remember { mutableStateOf<Long?>(null) }
+    var playerCategory by remember { mutableStateOf<LiveKey?>(null) }
     var playerChannels by remember { mutableStateOf<List<ChannelEntity>>(emptyList()) }
-    var playerCategories by remember { mutableStateOf<List<Pair<Long, String>>>(emptyList()) }
+    var playerCategories by remember { mutableStateOf<List<Pair<LiveKey, String>>>(emptyList()) }
     var playerCategoriesLoaded by remember { mutableStateOf(false) }
     // Loaded when the picker opens, not when the player does: it is a database read nobody watching
     // a channel has asked for.
@@ -505,14 +506,30 @@ fun PlayerScreen(
                     showHud(GestureFeedback.Level(volume = false, percent = (brightness * 100).toInt()))
                 },
                 onVolume = { delta ->
-                    carry.volume += delta * 150f
-                    val whole = carry.volume.toInt()
-                    if (whole != 0) {
-                        carry.volume -= whole
-                        activeEngine.adjustVolumeByUser(whole)
-                        tick()
+                    val engine = activeEngine
+                    if (engine is tv.own.owntv.mobile.cast.CastPlaybackEngine) {
+                        // Casting: the swipe is the receiver's volume, as before.
+                        carry.volume += delta * 150f
+                        val whole = carry.volume.toInt()
+                        if (whole != 0) {
+                            carry.volume -= whole
+                            engine.adjustVolumeByUser(whole)
+                            tick()
+                        }
+                        showHud(GestureFeedback.Level(volume = true, percent = engine.volume.value))
+                    } else {
+                        // The phone's own media volume, like VLC: the same level the volume keys move.
+                        // Past the phone's maximum the swipe goes on into the player's boost (to 150 %).
+                        val swipe = SystemVolumeSwipe(context, engine)
+                        carry.volume += delta * swipe.steps
+                        val whole = carry.volume.toInt()
+                        if (whole != 0) {
+                            carry.volume -= whole
+                            repeat(kotlin.math.abs(whole)) { swipe.step(up = whole > 0) }
+                            tick()
+                        }
+                        showHud(GestureFeedback.Level(volume = true, percent = swipe.percent()))
                     }
-                    showHud(GestureFeedback.Level(volume = true, percent = activeEngine.volume.value))
                 },
                 onPinch = { zoomIn ->
                     val mode = if (zoomIn) ZoomMode.FILL else ZoomMode.FIT
@@ -828,7 +845,7 @@ fun PlayerScreen(
     ) {
         CategoryPickerSheet(
             labels = playerCategories.map { it.second },
-            selectedIndex = playerCategories.indexOfFirst { it.first == channel?.categoryId },
+            selectedIndex = playerCategories.indexOfFirst { it.first == channel?.categoryId?.let { id -> LiveKey.Folder(id) } },
             onSelect = { index ->
                 playerCategories.getOrNull(index)?.first?.let { catId ->
                     playerCategory = catId
@@ -954,6 +971,43 @@ private fun NextEpisodeCard(
 }
 
 /** The leftovers of a gesture that has not yet added up to a whole step. */
+/**
+ * The volume swipe on the phone's media stream ([AudioManager.STREAM_MUSIC]): one step of the swipe
+ * is one step of the system volume, and once that is at its maximum, [BOOST_STEPS] more steps raise
+ * the player's own volume from 100 % to its 150 % ceiling. Coming down, the boost goes first.
+ */
+private class SystemVolumeSwipe(context: android.content.Context, private val engine: tv.own.owntv.player.PlaybackEngine) {
+    private val audio = context.getSystemService(android.media.AudioManager::class.java)
+    private val stream = android.media.AudioManager.STREAM_MUSIC
+    private val max = audio.getStreamMaxVolume(stream).coerceAtLeast(1)
+    val steps: Float get() = (max + BOOST_STEPS).toFloat()
+
+    fun step(up: Boolean) {
+        val level = audio.getStreamVolume(stream)
+        val player = engine.volume.value
+        if (up) {
+            if (level < max) audio.setStreamVolume(stream, level + 1, 0)
+            else if (player < MAX_PERCENT) engine.adjustVolumeByUser(minOf(BOOST_STEP_PERCENT, MAX_PERCENT - player))
+        } else {
+            if (player > FULL_PERCENT) engine.adjustVolumeByUser(-minOf(BOOST_STEP_PERCENT, player - FULL_PERCENT))
+            else if (level > 0) audio.setStreamVolume(stream, level - 1, 0)
+        }
+    }
+
+    /** What the readout shows: the boost while there is one, otherwise the phone's level. */
+    fun percent(): Int {
+        val player = engine.volume.value
+        return if (player > FULL_PERCENT) player else audio.getStreamVolume(stream) * FULL_PERCENT / max
+    }
+
+    private companion object {
+        const val FULL_PERCENT = 100
+        const val MAX_PERCENT = 150
+        const val BOOST_STEP_PERCENT = 10
+        const val BOOST_STEPS = (MAX_PERCENT - FULL_PERCENT) / BOOST_STEP_PERCENT
+    }
+}
+
 private class Carry {
     var scrub = 0f
     var volume = 0f

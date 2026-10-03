@@ -214,6 +214,17 @@ fun ChannelMenu(
                     ),
                 )
             }
+            if (selected is LiveKey.Custom) {
+                add(
+                    SheetAction(
+                        key = "remove_from_category",
+                        label = stringResource(R.string.content_remove_from_category),
+                        icon = MobileIcons.Close,
+                        group = 2,
+                        onClick = { vm.removeFromCustomCategory(channel, selected) },
+                    ),
+                )
+            }
             add(
                 SheetAction(
                     key = "hide",

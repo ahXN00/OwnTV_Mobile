@@ -420,8 +420,7 @@ class GuideViewModel(
     ): PagingData<ChannelEntity> {
         if (cust.hiddenItems.isEmpty() && cust.itemNames.isEmpty() && hidden.isEmpty() && cust.movedFromOrigin.isEmpty()) return this
         return filter { ch ->
-            CustomizeKeys.channel(ch) !in cust.hiddenItems &&
-                (ch.categoryId == null || ch.categoryId !in hidden) &&
+            tv.own.owntv.core.live.isChannelVisible(ch, cust, hidden, key) &&
                 (cust.movedFromOrigin[CustomizeKeys.channel(ch)]?.let { origin ->
                     key !is LiveKey.Folder || origin != folderContextKeys.value[key.id]
                 } ?: true)

@@ -285,8 +285,7 @@ class LiveViewModel(
     ): PagingData<ChannelEntity> {
         if (cust.hiddenItems.isEmpty() && cust.itemNames.isEmpty() && hidden.isEmpty() && cust.movedFromOrigin.isEmpty()) return this
         return filter { ch ->
-            CustomizeKeys.channel(ch) !in cust.hiddenItems &&
-                (ch.categoryId == null || ch.categoryId !in hidden) &&
+            tv.own.owntv.core.live.isChannelVisible(ch, cust, hidden, key) &&
                 (cust.movedFromOrigin[CustomizeKeys.channel(ch)]?.let { origin ->
                     key !is LiveKey.Folder || origin != folderContextKeys.value[key.id]
                 } ?: true)
@@ -435,6 +434,19 @@ class LiveViewModel(
                 userAgent = source?.userAgent,
                 httpHeaders = SourceOverrides.headersWithReferer(channel.httpHeaders, source),
             )
+        }
+    }
+
+    /** Take [channel] out of the custom category [key] only. If it had been moved out of its provider
+     *  folder into here, it goes back there — the same as deleting the whole category does. */
+    fun removeFromCustomCategory(channel: ChannelEntity, key: LiveKey.Custom) {
+        viewModelScope.launch {
+            val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
+            userDataWriter.removeCustomCategoryMember(pid, MediaType.LIVE, key.id, channel.id)
+            val itemKey = CustomizeKeys.channel(channel)
+            custom.value.movedFromOrigin[itemKey]?.let { origin ->
+                customize.setItemMovedFromOrigin(pid, MediaType.LIVE, itemKey, origin, moved = false)
+            }
         }
     }
 

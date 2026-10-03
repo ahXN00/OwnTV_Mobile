@@ -45,7 +45,7 @@ import tv.own.owntv.mobile.ui.theme.glassDialogWindow
 private enum class PlaybackSheet {
     LIVE_ENGINE, VOD_ENGINE, ZOOM, SURROUND, AUDIO_LANG, SUB_LANG,
     RESUME, LATENCY, SEEK_STEP, REWIND_STEP, EXTERNAL_PLAYER, MULTIVIEW_TILES,
-    VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS, MAX_QUALITY, MOBILE_QUALITY, TIMESHIFT_WINDOW,
+    VOD_BUFFER, VOD_TIMEOUT, VOD_RECONNECTS, MAX_QUALITY, MOBILE_QUALITY, TIMESHIFT_WINDOW, TIMESHIFT_RESUME,
 
     /**
      * The per-playlist overrides, two levels each: pick the playlist, then pick its value. The second
@@ -149,6 +149,7 @@ fun SettingsVideoPlayerPage(
     val rewindStep = s.liveRewindStepSec.pref(SeekSteps.DEFAULT_LIVE_REWIND_STEP_SEC)
     val timeshiftEnabled = s.timeshiftEnabled.pref(false)
     val timeshiftWindow = s.timeshiftWindowMinutes.pref(TimeshiftRules.DEFAULT_WINDOW_MINUTES)
+    val timeshiftResume = s.timeshiftResumeMode.pref(SettingsRepository.ResumeMode.ASK)
     // ASK, because that is what core stores when nothing has been chosen. Showing AUTO here named a
     // setting the app was not actually using, in the one frame before the real value arrives.
     val resume = s.resumeMode.pref(SettingsRepository.ResumeMode.ASK)
@@ -365,6 +366,12 @@ fun SettingsVideoPlayerPage(
                         subtitle = stringResource(R.string.settings_timeshift_window_description),
                         value = stringResource(R.string.player_duration_minutes, timeshiftWindow),
                         onClick = { sheet = PlaybackSheet.TIMESHIFT_WINDOW },
+                    )
+                    if (timeshiftEnabled) SettingRow(
+                        title = stringResource(R.string.settings_timeshift_resume),
+                        subtitle = stringResource(R.string.settings_timeshift_resume_description),
+                        value = stringResource(timeshiftResume.labelRes()),
+                        onClick = { sheet = PlaybackSheet.TIMESHIFT_RESUME },
                     )
                 }
             }
@@ -732,6 +739,15 @@ fun SettingsVideoPlayerPage(
             },
             selected = timeshiftWindow,
             onSelect = { minutes -> vm.edit { setTimeshiftWindowMinutes(minutes) } },
+            onDismiss = dismiss,
+        )
+        PlaybackSheet.TIMESHIFT_RESUME -> SettingsChoiceSheet(
+            title = stringResource(R.string.settings_timeshift_resume),
+            choices = SettingsRepository.ResumeMode.entries.map {
+                SettingsChoice(it, stringResource(it.labelRes()))
+            },
+            selected = timeshiftResume,
+            onSelect = { picked -> vm.edit { setTimeshiftResumeMode(picked) } },
             onDismiss = dismiss,
         )
         PlaybackSheet.MAX_QUALITY -> SettingsChoiceSheet(

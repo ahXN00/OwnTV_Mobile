@@ -25,6 +25,7 @@ val liveModule = module {
             context = androidContext(),
             channelDao = get(),
             categoryDao = get(),
+            customCategoryDao = get(),
             historyDao = get(),
             profileDao = get(),
             favoriteDao = get(),
