@@ -14,6 +14,7 @@
 - **🔊 Volume swipe controls the phone's volume**
 - **⏪ Resume a saved channel: ask, always or never**
 - **🗂️ Remove a channel from a custom category**
+- **⏮️ Previous / next channel buttons in the player** (community PR #60 by @saltimbanco)
 
 ### Fixes
 - **Custom categories in the player's channel list and the Multiview picker**
