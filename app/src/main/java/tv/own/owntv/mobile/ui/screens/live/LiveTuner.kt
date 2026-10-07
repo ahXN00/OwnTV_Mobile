@@ -462,6 +462,20 @@ class LiveTuner(
 
     init {
         scope.launch { player.archiveEnded.collect { continueAfterCatchup() } }
+        scope.launch { player.archiveStalled.collect { liveAfterStall() } }
+    }
+
+    /**
+     * The archive on screen stopped arriving (`archiveStalled`). A replay of a programme still on air,
+     * or a rewind close to now, goes live instead of freezing — the television's rule, from core's
+     * [CatchupContinue.liveAfterStall]; anything else stays with the player's own recovery.
+     */
+    private fun liveAfterStall() {
+        val programmeStop = if (_replaying.value) lastCatchup?.stopMs else null
+        val rewound = timeshift.offsetSec.value != null
+        if (programmeStop == null && !rewound) return
+        val watching = if (rewound) timeshift.watchingWallMs.value else null
+        if (CatchupContinue.liveAfterStall(programmeStop, watching, System.currentTimeMillis())) goToLive()
     }
 
     /**

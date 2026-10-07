@@ -195,6 +195,8 @@ shows while it does, so the phone lets it finish instead of stopping it and star
 
 ### ▶️ Replay something
 **Where:** Guide → a past programme → **Watch from start**, or long-press a channel → **Catch-up**
+If you replay a programme that is still on air and the provider stops sending it partway, the
+channel switches to live by itself instead of freezing.
 
 ### 🕐 Rewind live
 **Where:** full-screen player, on a channel with an archive

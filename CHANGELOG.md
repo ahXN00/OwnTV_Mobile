@@ -18,6 +18,8 @@
 
 ### Fixes
 - **Custom categories in the player's channel list and the Multiview picker**
+- **🎞️ Catch-up plays on the hardware decoder and freezes on its first frame less often**
+- **📡 A catch-up of a programme still on air switches to live instead of freezing**
 - **Hidden and renamed categories respected in the player's channel list**
 - **Hiding a provider category no longer empties custom categories**
 - **Catch-up that shows no picture no longer reports a fast-start error**
