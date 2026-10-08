@@ -172,8 +172,9 @@ the current tab returns its list to the top. Predictive back is on.
   progress, provider name and catch-up and favourite markers. A channel opens its own screen on a
   phone; on a tablet it plays in the pane beside the list.
 - **Library** — Movies and Series as one screen with a segmented control, **pinch to resize** the
-  grid, and a detail page with backdrop, chips, resume, favourite, download, season chips and episode
-  progress.
+  grid, progress bars on part-watched films and shows, and a detail page with backdrop, chips, resume,
+  favourite, download, season chips and episode progress. The page's title drops a leading provider
+  tag such as "|MULTI|".
 - **Guide** — **three shapes the user picks between and the app remembers**: *On now* (the portrait
   default), *Grid* (the landscape and tablet default) and *Timeline*. A phone loads one day, one row
   at a time as the row appears; the television's whole-lineup window would be thousands of rows to

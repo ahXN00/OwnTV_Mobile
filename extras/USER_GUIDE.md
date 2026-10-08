@@ -262,7 +262,8 @@ Leaving the app stops the tiles.
 ### 🖼️ Browse
 **Where:** the **Library** tab
 Movies and Series as one screen with a segmented control (a tablet gets them as separate rail items).
-**Pinch to resize** the posters, or use the **Size** slider.
+**Pinch to resize** the posters, or use the **Size** slider. A part-watched film carries a progress
+bar, in the grid and the list alike; a show carries the bar of its latest part-watched episode.
 
 ### ▶️ A film or a show
 Tap for its page: backdrop, cast, chips, **Resume** or **Play**, favourite, download, season chips

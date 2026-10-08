@@ -15,6 +15,7 @@
 - **⏪ Resume a saved channel: ask, always or never**
 - **🗂️ Remove a channel from a custom category**
 - **⏮️ Previous / next channel buttons in the player** (community PR #60 by @saltimbanco)
+- **📊 Progress bars on series posters and in list view**
 
 ### Fixes
 - **Custom categories in the player's channel list and the Multiview picker**
@@ -28,6 +29,9 @@
 - **💾 A first-run backup restore opens the app only once everything is restored**
 - **🔄 Restored playlists download straight away after a restore**
 - **🔑 Password fields use the password keyboard**
+- **⏱️ The seek bar's time no longer cut off with glass depth effects on**
+- **📋 Long choice lists such as the playlist picker scroll to the last item**
+- **🏷️ Provider tags such as "|MULTI|" no longer lead a film's or show's page title**
 - **Faster channel switching on providers that mix HLS and TS channels**
 
 ## v1.0.3 — 2026-09-26
