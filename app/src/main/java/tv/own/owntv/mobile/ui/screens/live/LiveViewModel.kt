@@ -248,10 +248,14 @@ class LiveViewModel(
                 } else {
                     // Placeholders off — see the Guide's pager: a not-yet-loaded channel draws a row
                     // with no height, and a list of those composes the whole lineup.
+                    // maxSize drops distant pages, so a 50 000-channel lineup cannot pin the whole
+                    // catalogue in memory while flinging; initialLoadSize fills the viewport at once.
                     Pager(
                         PagingConfig(
                             pageSize = PAGE_SIZE,
                             prefetchDistance = PAGE_SIZE / 2,
+                            initialLoadSize = PAGE_SIZE * 2,
+                            maxSize = 400,
                             enablePlaceholders = false,
                         ),
                     ) {
@@ -354,7 +358,11 @@ class LiveViewModel(
         if (missing.isEmpty()) return
         viewModelScope.launch {
             val found = epgReader.nowPlayingFor(missing, custom.value, epgOffset.value)
-            if (found.isNotEmpty()) _nowPlaying.value = _nowPlaying.value + found
+            if (found.isEmpty()) return@launch
+            // Capped like the guide's rowCache: scrolled-past channels are forgotten, and a
+            // revisit simply re-reads them through the `missing` check above.
+            _nowPlaying.value = (_nowPlaying.value + found).toList()
+                .takeLast(MAX_NOW_PLAYING).toMap()
         }
     }
 
@@ -553,5 +561,7 @@ class LiveViewModel(
         const val PAGE_SIZE = 60
         const val MOVE_LIST_LIMIT = 5_000
         const val REFRESH_SPINNER_MS = 1_200L
+        // "What's on now", one short string per answered channel. Capped — see loadNowPlaying.
+        const val MAX_NOW_PLAYING = 500
     }
 }

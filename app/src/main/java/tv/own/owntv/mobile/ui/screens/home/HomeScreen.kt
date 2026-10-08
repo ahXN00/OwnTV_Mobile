@@ -123,7 +123,9 @@ fun HomeScreen(
         HomeSkeleton(modifier)
         return
     }
-    val rows = state.config.visibleOrder.filter { state.hasContent(it) }
+    // Computed once per feed, not once per recomposition: hasContent walks each row's loaded
+    // items, and every tick above (clock, sync pill, menu) recomposes through here.
+    val rows = remember(state) { state.config.visibleOrder.filter { state.hasContent(it) } }
 
     // The television's three states, in its order. **None of them offers "add a playlist"**: by the
     // time Home is on screen a playlist exists — the shell sends a user with none to setup instead —
@@ -292,7 +294,7 @@ private fun HeroRow(
             horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapMedium),
             contentPadding = PaddingValues(horizontal = MobileDimens.ScreenPaddingH),
         ) {
-            items(items.size, key = { items[it].rowKey() }) { index ->
+            items(items.size, key = { items[it].rowKey() }, contentType = { items[it]::class }) { index ->
                 val item = items[index]
                 HeroCard(
                     item = item,
@@ -462,7 +464,7 @@ private fun TrendingRow(
             horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
             contentPadding = PaddingValues(horizontal = MobileDimens.ScreenPaddingH),
         ) {
-            items(items.size, key = { items[it].stableKey }) { index ->
+            items(items.size, key = { items[it].stableKey }, contentType = { items[it]::class }) { index ->
                 when (val item = items[index]) {
                     is TrendingHomeItem.Movie -> PosterCard(
                         title = item.movie.name,
@@ -503,7 +505,7 @@ private fun ContinueRow(
             horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
             contentPadding = PaddingValues(horizontal = MobileDimens.ScreenPaddingH),
         ) {
-            items(items.size, key = { items[it].stableKey }) { index ->
+            items(items.size, key = { items[it].stableKey }, contentType = { "continue" }) { index ->
                 val item = items[index]
                 PosterCard(
                     title = item.title,
@@ -562,7 +564,7 @@ private fun LiveRow(
             horizontalArrangement = Arrangement.spacedBy(MobileDimens.GapSmall),
             contentPadding = PaddingValues(horizontal = MobileDimens.ScreenPaddingH),
         ) {
-            items(channels.size, key = { channels[it].id }) { index ->
+            items(channels.size, key = { channels[it].id }, contentType = { mode }) { index ->
                 val channel = channels[index]
                 val menu = { onMenu(ContentTarget(MediaType.LIVE, channel.id, channel.name)) }
                 if (mode == HomeLiveRowMode.ON_NOW) {
@@ -614,7 +616,14 @@ private fun OnNowCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val now = guide.programmes[channel.id]?.firstOrNull { guide.now in it.startMs until it.stopMs }
+    // The map scan runs once per guide tick, not once per card per recomposition: every OnNowCard
+    // in the row reads the same ticking map, and without this each card re-scans its own list on
+    // every recomposition the tick causes.
+    val programmes = guide.programmes[channel.id]
+    val nowMs = guide.now
+    val now = remember(programmes, channel.id, nowMs) {
+        programmes?.firstOrNull { nowMs in it.startMs until it.stopMs }
+    }
     Row(
         modifier = Modifier
             .width(OnNowCardWidth)

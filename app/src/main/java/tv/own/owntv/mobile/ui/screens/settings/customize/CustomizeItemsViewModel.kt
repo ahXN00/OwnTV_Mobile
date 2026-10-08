@@ -79,7 +79,7 @@ class CustomizeItemsViewModel(
     private val ctx: StateFlow<Ctx> = activeProfileSources(settings, sourceDao)
         .map { aps -> Ctx(aps.profileId, aps.sources) }
         .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, Ctx(-1L, emptyList()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Ctx(-1L, emptyList()))
 
     /** The category whose items are shown. Set via [open], cleared via [close]. [categoryId] is null
      *  for a user's custom combined category (issue #87) — its items live in the membership table. */
@@ -135,8 +135,10 @@ class CustomizeItemsViewModel(
         if (ci == null) flowOf(PagingData.empty())
         else {
             // Placeholders off — see the Guide's pager: a not-yet-loaded row draws nothing, and a
-            // list of rows with no height composes everything the category holds.
-            Pager(PagingConfig(pageSize = 60, enablePlaceholders = false)) {
+            // list of rows with no height composes everything the category holds. Bounded like the
+            // Library pager (60/30/90/300): without maxSize this is the one unbounded pager left,
+            // and a 100k-item category would pin every visited page for the screen's lifetime.
+            Pager(PagingConfig(pageSize = 60, prefetchDistance = 30, initialLoadSize = 90, maxSize = 300, enablePlaceholders = false)) {
                 pagingSource(ci.categoryId, ci, ordered)
             }
                 .flow
@@ -162,7 +164,7 @@ class CustomizeItemsViewModel(
     private val loadedRows: StateFlow<List<CustomizeItemRow>> = items
         .asItemSnapshotListFlow()
         .map { it.items }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // --- Span selection (shared machinery, see SpanSelector.kt) ---
 
