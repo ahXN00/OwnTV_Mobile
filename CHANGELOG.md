@@ -23,6 +23,11 @@
 - **Hidden and renamed categories respected in the player's channel list**
 - **Hiding a provider category no longer empties custom categories**
 - **Catch-up that shows no picture no longer reports a fast-start error**
+- **🔄 Auto refresh of playlists and guides now runs on the phone**
+- **🎬 An automatic playlist or guide refresh waits until playback stops**
+- **💾 A first-run backup restore opens the app only once everything is restored**
+- **🔄 Restored playlists download straight away after a restore**
+- **🔑 Password fields use the password keyboard**
 - **Faster channel switching on providers that mix HLS and TS channels**
 
 ## v1.0.3 — 2026-09-26

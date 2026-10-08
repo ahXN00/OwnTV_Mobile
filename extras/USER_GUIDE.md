@@ -44,7 +44,8 @@ code, you type the 6-digit PIN once, tick what to bring across, and see exactly 
 before it changes. A phone being set up only ever *receives* — nothing on the television is altered.
 A backup made on the TV also restores here, encrypted ones included — and **Restore a backup** asks
 what to bring back before it applies anything, so you can take the playlists and leave the old
-device's settings behind. Later on, the full two-way version lives at
+device's settings behind. The app opens once the restore is complete and starts downloading the
+restored playlists straight away. Later on, the full two-way version lives at
 ⋯ More → [Local sync](#-local-sync-with-your-tv).
 
 ---
@@ -176,7 +177,8 @@ as **Guide days to keep** is set to — and there's a search box.
 **The guide is opt-in, and the phone never offers it by itself** — if you have no programme names,
 this is why. Add XMLTV feeds here, **Fill from playlist** to take the URL your playlist already
 carries, set a User-Agent, pick a refresh interval — which can be **every N days** — and choose
-whether to use that feed's channel logos.
+whether to use that feed's channel logos. The refresh runs when the app opens or comes back, and
+waits while something is playing.
 
 **Guide days to keep** is under Settings → Sources & guide → EPG, beside EPG time offset: how many days of upcoming guide to store, 1–14, seven
 by default. The same number decides how much is downloaded, how much is kept, and how many days the
