@@ -16,6 +16,8 @@
 - **🗂️ Remove a channel from a custom category**
 - **⏮️ Previous / next channel buttons in the player** (community PR #60 by @saltimbanco)
 - **📊 Progress bars on series posters and in list view**
+- **⭐ Favourite movies and series rows on Home**
+- **🔎 Search finds TV programmes by title (On TV)**
 
 ### Fixes
 - **Custom categories in the player's channel list and the Multiview picker**

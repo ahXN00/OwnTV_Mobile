@@ -165,7 +165,7 @@ the current tab returns its list to the top. Predictive back is on.
 ### 3.2 Sections
 
 - **Home** — a snapping full-width hero rail, **Now Trending** as either the detailed hero or a plain
-  poster row, continue-watching rows, and favourite/recent channel rails in **Cards** or **On now**.
+  poster row, continue-watching rows, favourite movie and series rows, and favourite/recent channel rails in **Cards** or **On now**.
   Anything part-watched started from here obeys core's **Resume playback** mode — Always, Ask or
   Never — through one shared gate, so the six routes into a saved position cannot disagree.
 - **Live TV** — category chips with a search sheet, channel rows with number, logo, now/next,
@@ -181,7 +181,8 @@ the current tab returns its list to the top. Predictive back is on.
   draw twelve.
 - **Search** — one debounced field over channels, films and shows, grouped with counts, with recent
   terms and three curated chips. Results page as the list is scrolled rather than stopping at the
-  shared reader's first forty of each kind.
+  shared reader's first forty of each kind. An **On TV** group lists stored-guide programmes whose
+  title matches, on now or in the next 12 hours; a tap opens the channel.
 - **⋯ More** — Downloads, Recordings, Favourites, History, Backup, Local sync, Profiles, the error
   log, About and Settings.
 

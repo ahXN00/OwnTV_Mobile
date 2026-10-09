@@ -298,6 +298,8 @@ connection** so you can prove a key or a self-hosted server works.
 One field over channels, films and shows, grouped with a count for each. Recent searches are kept,
 and three chips offer **Continue watching**, **Unwatched favourites** and **Channels**.
 Long-press a result to favourite, download or hide it.
+**On TV** lists programmes from the stored guide whose title matches, on now or within the next 12
+hours, with the channel and time; tap one to open that channel.
 Scroll to the bottom and more results load by themselves, so a word your provider carries hundreds
 of — "CNN", say — doesn't need a narrower search to reach the rest.
 
@@ -447,7 +449,8 @@ cleanup, a review step and restore-originals), **custom categories**, span selec
 
 ### 🏠 Home & layout
 **Where:** Settings → Layout → **Home**
-Reorder or hide Home rows, switch channel rows between cards and *On now*, and choose whether Now
+Reorder or hide Home rows — including **Favourite movies** and **Favourite series**, which open the
+film or show — switch channel rows between cards and *On now*, and choose whether Now
 Trending is the detailed hero or a plain poster row.
 
 ---

@@ -224,6 +224,7 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchScreen.kt	c${it.channel.id}
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchScreen.kt	hdr_$label
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchScreen.kt	m${it.id}
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchScreen.kt	p${it.programme.id}-${it.channel.id}
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchScreen.kt	s${it.id}
 2	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/search/SearchViewModel.kt	\0
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/BackupViewModel.kt	backup target unavailable
