@@ -206,7 +206,8 @@ Mobile-specific shapes:
 - A **programme sheet** whose synopsis is fetched when it opens, carrying watch, watch-from-start,
   record, record-every-showing and favourite.
 - **Recording** from the guide, the channel list or the player, with the status pill appearing over
-  the player in recordings-only mode so a running recording is visible during playback.
+  the player in recordings-only mode so a running recording is visible during playback. A channel's
+  menu also schedules one by day, start and end (no guide needed) and stops a running one.
 - **Multiview** — up to four tiles, drawn through a **TextureView** rather than a SurfaceView,
   because a device has very few hardware video planes and a second SurfaceView gets audio and no
   picture. Landscape puts two per row; portrait stacks them.

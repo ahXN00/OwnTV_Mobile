@@ -227,7 +227,9 @@ dropped; playback jumps over it.
 ### ⏺️ Record
 **Where:** long-press a programme in the Guide, or a channel in the list, or the **Record** button in
 the player
-**Record every showing** sets a standing rule. Recordings land in **Downloads → Live TV**, and the
+**Record every showing** sets a standing rule. **Schedule recording…** in a channel's menu records it
+between a day and times you pick, guide or not; an overlap with another recording is shown first. While
+a channel records, its menu offers **Stop recording**. Recordings land in **Downloads → Live TV**, and the
 status pill shows one running even over the player.
 
 > A recording costs one of your provider's connections and says so before it starts.

@@ -18,6 +18,8 @@
 - **📊 Progress bars on series posters and in list view**
 - **⭐ Favourite movies and series rows on Home**
 - **🔎 Search finds TV programmes by title (On TV)**
+- **⏰ Schedule recording… on a channel: pick the day, start and end**
+- **⏹️ Stop recording from the channel's menu**
 
 ### Fixes
 - **Custom categories in the player's channel list and the Multiview picker**
@@ -35,6 +37,7 @@
 - **📋 Long choice lists such as the playlist picker scroll to the last item**
 - **🏷️ Provider tags such as "|MULTI|" no longer lead a film's or show's page title**
 - **Faster channel switching on providers that mix HLS and TS channels**
+- **⏺️ Recordings of some HLS channels were a few kB and would not play**
 
 ## v1.0.3 — 2026-09-26
 
