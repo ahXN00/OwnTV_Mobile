@@ -38,6 +38,7 @@
 - **🏷️ Provider tags such as "|MULTI|" no longer lead a film's or show's page title**
 - **Faster channel switching on providers that mix HLS and TS channels**
 - **⏺️ Recordings of some HLS channels were a few kB and would not play**
+- **🔎 Search finds "Spider-Man" from "Spider-M" and lists every match, not the first 40**
 
 ## v1.0.3 — 2026-09-26
 

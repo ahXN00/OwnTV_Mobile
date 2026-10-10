@@ -25,7 +25,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -106,18 +105,6 @@ fun SearchScreen(
         runCatching { keyboard?.show() }
     }
     LaunchedEffect(query, intent) { listState.scrollToItem(0) }
-
-    // Reaching the bottom asks for the next page. Without it a search stops at the first 40 of each
-    // kind, and a provider with hundreds of CNN feeds looks like it only has forty.
-    LaunchedEffect(listState, searching) {
-        if (!searching) return@LaunchedEffect
-        snapshotFlow {
-            val info = listState.layoutInfo
-            (info.visibleItemsInfo.lastOrNull()?.index ?: 0) to info.totalItemsCount
-        }.collect { (last, total) ->
-            if (total > 0 && last >= total - LOAD_MORE_MARGIN) vm.loadMore()
-        }
-    }
 
     Column(modifier.fillMaxSize().imePadding()) {
         MobileTextField(
@@ -383,6 +370,3 @@ private fun SearchIntent?.label(): String = when (this) {
 }
 
 private const val MIN_QUERY = 2
-
-/** How many rows from the end the next page is fetched, so the list does not visibly stall. */
-private const val LOAD_MORE_MARGIN = 5
