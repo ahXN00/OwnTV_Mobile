@@ -80,12 +80,15 @@ import androidx.compose.ui.graphics.Color
 fun SettingsLocalSyncPage(
     modifier: Modifier = Modifier,
     vm: LocalSyncViewModel = koinViewModel(),
+    autoSyncVm: LocalAutoSyncViewModel = koinViewModel(),
 ) {
     val paired by vm.paired.collectAsStateWithLifecycle()
     val hosting by vm.hosting.collectAsStateWithLifecycle()
+    val autoSync by autoSyncVm.config.collectAsStateWithLifecycle()
     val palette = LocalStagePalette.current
     // The paired device a tap picked: its row takes the `.fx` look and shows Sync now · Unpair.
     var picked by remember { mutableStateOf<String?>(null) }
+    var editingAutoSync by remember { mutableStateOf(false) }
 
     // The listener runs only while this page is on screen. That, and the PIN, is the whole of the
     // security model — so leaving the page has to close it, not merely stop looking at it.
@@ -114,6 +117,17 @@ fun SettingsLocalSyncPage(
             title = stringResource(R.string.local_sync_connect),
             subtitle = stringResource(R.string.local_sync_connect_description),
             onClick = { if (!vm.busy) vm.beginPairing() },
+            trailing = { StageIcon(MobileIcons.KeyboardArrowRight, 16.dp, palette.text) },
+        )
+        Spacer(Modifier.height(8.dp))
+        // The third answer to "keep this phone and the television together", and the only one that
+        // needs nobody holding the phone: what travels and how often, done by itself. Off is a
+        // timing, so the card always says what the phone is currently doing.
+        SyncCard(
+            icon = MobileIcons.Schedule,
+            title = stringResource(R.string.local_auto_sync_title),
+            subtitle = stringResource(autoSync.timing.labelRes()),
+            onClick = { editingAutoSync = true },
             trailing = { StageIcon(MobileIcons.KeyboardArrowRight, 16.dp, palette.text) },
         )
 
@@ -170,6 +184,8 @@ fun SettingsLocalSyncPage(
     }
 
     vm.error?.let { ErrorSheet(it, vm::dismissError) }
+
+    if (editingAutoSync) LocalAutoSyncSheet(autoSyncVm, onDismiss = { editingAutoSync = false })
 }
 
 /**
@@ -654,19 +670,19 @@ private val QR_SIZE = 110.dp
 
 /** A sheet's muted line (11.5 / 500), on the sheet's 12 dp side. */
 @Composable
-private fun SyncNote(text: String) {
+internal fun SyncNote(text: String) {
     Text(text, style = stageText(11.5f, 500, lineHeight = 1.4f), color = LocalStagePalette.current.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
 }
 
 /** A sheet's switch row (48 dp): label, what it covers, the switch; the whole row toggles. */
 @Composable
-private fun SyncCheckRow(label: String, description: String?, checked: Boolean, onToggle: (Boolean) -> Unit) {
+internal fun SyncCheckRow(label: String, description: String?, checked: Boolean, onToggle: (Boolean) -> Unit) {
     StageSettingRow(title = label, subtitle = description, minHeight = 48.dp, onClick = { onToggle(!checked) }) { StageSwitch(checked) }
 }
 
 /** How these sheets end: the confirm (filled when it can be pressed), then Cancel. */
 @Composable
-private fun SyncButtons(confirm: String, confirmEnabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun SyncButtons(confirm: String, confirmEnabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     StageMenuItem(confirm, onClick = onConfirm, icon = MobileIcons.Check, filled = confirmEnabled, enabled = confirmEnabled, modifier = Modifier.padding(top = 6.dp))
     StageMenuItem(stringResource(R.string.common_cancel), onClick = onDismiss, icon = MobileIcons.Close)
 }
