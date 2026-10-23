@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.backup.BackupManager
 import tv.own.owntv.core.companion.CompanionServerState
+import tv.own.owntv.core.sync.local.PairedDevice
 import tv.own.owntv.core.sync.local.SyncDirection
 import tv.own.owntv.core.sync.local.SyncFailure
 import tv.own.owntv.core.sync.local.shortCodes
@@ -84,11 +85,14 @@ fun SettingsLocalSyncPage(
 ) {
     val paired by vm.paired.collectAsStateWithLifecycle()
     val hosting by vm.hosting.collectAsStateWithLifecycle()
-    val autoSync by autoSyncVm.config.collectAsStateWithLifecycle()
+    val autoSync by autoSyncVm.settings.collectAsStateWithLifecycle()
     val palette = LocalStagePalette.current
-    // The paired device a tap picked: its row takes the `.fx` look and shows Sync now · Unpair.
+    // The paired device a tap picked: its row takes the `.fx` look and shows Sync now · Auto-sync ·
+    // Unpair.
     var picked by remember { mutableStateOf<String?>(null) }
-    var editingAutoSync by remember { mutableStateOf(false) }
+    // Which device's auto-sync sheet is open, if any. The sheet edits one device — the row that
+    // opened it — because each device has its own schedule.
+    var autoSyncFor by remember { mutableStateOf<PairedDevice?>(null) }
 
     // The listener runs only while this page is on screen. That, and the PIN, is the whole of the
     // security model — so leaving the page has to close it, not merely stop looking at it.
@@ -119,27 +123,23 @@ fun SettingsLocalSyncPage(
             onClick = { if (!vm.busy) vm.beginPairing() },
             trailing = { StageIcon(MobileIcons.KeyboardArrowRight, 16.dp, palette.text) },
         )
-        Spacer(Modifier.height(8.dp))
-        // The third answer to "keep this phone and the television together", and the only one that
-        // needs nobody holding the phone: what travels and how often, done by itself. Off is a
-        // timing, so the card always says what the phone is currently doing.
-        SyncCard(
-            icon = MobileIcons.Schedule,
-            title = stringResource(R.string.local_auto_sync_title),
-            subtitle = stringResource(autoSync.timing.labelRes()),
-            onClick = { editingAutoSync = true },
-            trailing = { StageIcon(MobileIcons.KeyboardArrowRight, 16.dp, palette.text) },
-        )
-
         if (paired.isNotEmpty()) {
             // Only the devices whose names collide get a code, so a normal household never sees one.
             val codes = shortCodes(paired)
             StageLabel(stringResource(R.string.local_sync_paired_devices), Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp))
             paired.forEach { device ->
                 val selected = picked == device.id
+                val timing = autoSync[device.id]
                 StageSettingRow(
                     title = codes[device.id]?.let { stringResource(R.string.local_sync_device_with_code, device.name, it) } ?: device.name,
-                    subtitle = device.address + stringResource(R.string.content_epg_bits_separator) + lastSyncedText(device.lastSyncAt),
+                    // The schedule is part of what the row says about the device: "last synced an
+                    // hour ago" and "daily by itself" are both true, and the user should not have
+                    // to open the sheet to find the second one.
+                    subtitle = listOfNotNull(
+                        device.address,
+                        lastSyncedText(device.lastSyncAt),
+                        timing.takeIf { it.enabled }?.let { stringResource(it.timing.labelRes()) },
+                    ).joinToString(stringResource(R.string.content_epg_bits_separator)),
                     // A paired device records no kind (television or phone), so one neutral glyph for all.
                     icon = MobileIcons.Sync,
                     current = selected,
@@ -148,6 +148,7 @@ fun SettingsLocalSyncPage(
                 if (selected) {
                     Row(Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StageButton(onClick = { vm.chooseDevice(device) }, text = stringResource(R.string.settings_sync_now), icon = MobileIcons.Refresh, small = true, enabled = !vm.busy)
+                        StageButton(onClick = { autoSyncFor = device }, text = stringResource(R.string.local_auto_sync_title), icon = MobileIcons.Schedule, small = true, enabled = !vm.busy)
                         StageButton(onClick = { picked = null; vm.unpair(device) }, text = stringResource(R.string.more_sync_unpair), icon = MobileIcons.Close, small = true, enabled = !vm.busy)
                     }
                 }
@@ -185,7 +186,7 @@ fun SettingsLocalSyncPage(
 
     vm.error?.let { ErrorSheet(it, vm::dismissError) }
 
-    if (editingAutoSync) LocalAutoSyncSheet(autoSyncVm, onDismiss = { editingAutoSync = false })
+    autoSyncFor?.let { device -> LocalAutoSyncSheet(autoSyncVm, device, onDismiss = { autoSyncFor = null }) }
 }
 
 /**
