@@ -31,6 +31,9 @@ val shellModule = module {
     }
     viewModel { BackupViewModel(get(), get(), androidContext(), get(), get(), get()) }
     viewModel { tv.own.owntv.mobile.ui.screens.settings.LocalSyncViewModel(get()) }
+    // The store, the scheduler, the sync manager and the profiles it may share. The device is not a
+    // dependency: the sheet is handed the one it edits.
+    viewModel { tv.own.owntv.mobile.ui.screens.settings.LocalAutoSyncViewModel(get(), get(), get(), get()) }
     // An import has to outlive the wizard screen that started it — "Run in background" is exactly
     // that promise — so it runs here rather than in a ViewModel that dies with its navigation entry.
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }

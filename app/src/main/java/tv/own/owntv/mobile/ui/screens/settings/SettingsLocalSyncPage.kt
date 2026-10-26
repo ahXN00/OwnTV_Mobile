@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.asImageBitmap
@@ -33,7 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.backup.BackupManager
+import tv.own.owntv.core.companion.CompanionController
 import tv.own.owntv.core.companion.CompanionServerState
+import tv.own.owntv.core.sync.local.PairedDevice
 import tv.own.owntv.core.sync.local.SyncDirection
 import tv.own.owntv.core.sync.local.SyncFailure
 import tv.own.owntv.core.sync.local.shortCodes
@@ -80,12 +83,20 @@ import androidx.compose.ui.graphics.Color
 fun SettingsLocalSyncPage(
     modifier: Modifier = Modifier,
     vm: LocalSyncViewModel = koinViewModel(),
+    autoSyncVm: LocalAutoSyncViewModel = koinViewModel(),
 ) {
     val paired by vm.paired.collectAsStateWithLifecycle()
     val hosting by vm.hosting.collectAsStateWithLifecycle()
+    val autoSync by autoSyncVm.settings.collectAsStateWithLifecycle()
+    // Someone at the other end may be waiting for an answer while this page is hosting.
+    val autoSyncRequests by vm.autoSyncRequests.collectAsStateWithLifecycle()
     val palette = LocalStagePalette.current
-    // The paired device a tap picked: its row takes the `.fx` look and shows Sync now · Unpair.
+    // The paired device a tap picked: its row takes the `.fx` look and shows Sync now · Auto-sync ·
+    // Unpair.
     var picked by remember { mutableStateOf<String?>(null) }
+    // Which device's auto-sync sheet is open, if any. The sheet edits one device — the row that
+    // opened it — because each device has its own schedule.
+    var autoSyncFor by remember { mutableStateOf<PairedDevice?>(null) }
 
     // The listener runs only while this page is on screen. That, and the PIN, is the whole of the
     // security model — so leaving the page has to close it, not merely stop looking at it.
@@ -116,16 +127,23 @@ fun SettingsLocalSyncPage(
             onClick = { if (!vm.busy) vm.beginPairing() },
             trailing = { StageIcon(MobileIcons.KeyboardArrowRight, 16.dp, palette.text) },
         )
-
         if (paired.isNotEmpty()) {
             // Only the devices whose names collide get a code, so a normal household never sees one.
             val codes = shortCodes(paired)
             StageLabel(stringResource(R.string.local_sync_paired_devices), Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp))
             paired.forEach { device ->
                 val selected = picked == device.id
+                val timing = autoSync[device.id]
                 StageSettingRow(
                     title = codes[device.id]?.let { stringResource(R.string.local_sync_device_with_code, device.name, it) } ?: device.name,
-                    subtitle = device.address + stringResource(R.string.content_epg_bits_separator) + lastSyncedText(device.lastSyncAt),
+                    // The schedule is part of what the row says about the device: "last synced an
+                    // hour ago" and "daily by itself" are both true, and the user should not have
+                    // to open the sheet to find the second one.
+                    subtitle = listOfNotNull(
+                        device.address,
+                        lastSyncedText(device.lastSyncAt),
+                        timing.takeIf { it.enabled }?.let { stringResource(it.timing.labelRes()) },
+                    ).joinToString(stringResource(R.string.content_epg_bits_separator)),
                     // A paired device records no kind (television or phone), so one neutral glyph for all.
                     icon = MobileIcons.Sync,
                     current = selected,
@@ -134,6 +152,7 @@ fun SettingsLocalSyncPage(
                 if (selected) {
                     Row(Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StageButton(onClick = { vm.chooseDevice(device) }, text = stringResource(R.string.settings_sync_now), icon = MobileIcons.Refresh, small = true, enabled = !vm.busy)
+                        StageButton(onClick = { autoSyncFor = device }, text = stringResource(R.string.local_auto_sync_title), icon = MobileIcons.Schedule, small = true, enabled = !vm.busy)
                         StageButton(onClick = { picked = null; vm.unpair(device) }, text = stringResource(R.string.more_sync_unpair), icon = MobileIcons.Close, small = true, enabled = !vm.busy)
                     }
                 }
@@ -170,6 +189,45 @@ fun SettingsLocalSyncPage(
     }
 
     vm.error?.let { ErrorSheet(it, vm::dismissError) }
+
+    autoSyncFor?.let { device -> LocalAutoSyncSheet(autoSyncVm, device, onDismiss = { autoSyncFor = null }) }
+
+    // The question the far side is holding its own screen for. No is the default: swiping it away
+    // grants nothing.
+    autoSyncRequests.firstOrNull()?.let { request ->
+        AutoSyncAcceptSheet(request, onAnswer = vm::answerAutoSync)
+    }
+}
+
+/**
+ * The question shown when a paired device asks to sync here automatically.
+ *
+ * A plain sheet with two answers and no third way out: dismissing it declines, because the caller is
+ * waiting on this screen and "closed" must not mean "still deciding".
+ */
+@Composable
+private fun AutoSyncAcceptSheet(
+    request: CompanionController.AutoSyncRequest,
+    onAnswer: (requestId: String, accepted: Boolean) -> Unit,
+) {
+    val title = stringResource(R.string.local_auto_sync_accept_title)
+    MobileBottomSheet(onDismissRequest = { onAnswer(request.id, false) }, title = title) {
+        StageSheetHeader(
+            title = title,
+            subtitle = stringResource(R.string.local_auto_sync_accept_body, request.deviceName),
+        )
+        StageMenuItem(
+            stringResource(R.string.local_auto_sync_accept),
+            onClick = { onAnswer(request.id, true) },
+            icon = MobileIcons.Check,
+            filled = true,
+        )
+        StageMenuItem(
+            stringResource(R.string.local_auto_sync_decline),
+            onClick = { onAnswer(request.id, false) },
+            icon = MobileIcons.Close,
+        )
+    }
 }
 
 /**
@@ -624,16 +682,7 @@ private fun ErrorSheet(failure: SyncFailure, onDismiss: () -> Unit) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.local_sync_failed)) {
         StageSheetHeader(title = stringResource(R.string.local_sync_failed))
         Column(Modifier) {
-            SyncNote(
-                stringResource(
-                    when (failure) {
-                        SyncFailure.Unreachable -> R.string.local_sync_error_unreachable
-                        SyncFailure.NotAuthorized -> R.string.local_sync_error_unauthorized
-                        SyncFailure.BadPayload -> R.string.local_sync_error_bad_payload
-                        SyncFailure.Unknown -> R.string.local_sync_error_unknown
-                    },
-                ),
-            )
+            SyncNote(stringResource(failure.messageRes()))
         }
         SyncButtons(
             confirm = stringResource(R.string.settings_close),
@@ -654,19 +703,50 @@ private val QR_SIZE = 110.dp
 
 /** A sheet's muted line (11.5 / 500), on the sheet's 12 dp side. */
 @Composable
-private fun SyncNote(text: String) {
+internal fun SyncNote(text: String) {
     Text(text, style = stageText(11.5f, 500, lineHeight = 1.4f), color = LocalStagePalette.current.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
 }
 
-/** A sheet's switch row (48 dp): label, what it covers, the switch; the whole row toggles. */
+/** A note that reports something that did not work, in the danger colour. */
 @Composable
-private fun SyncCheckRow(label: String, description: String?, checked: Boolean, onToggle: (Boolean) -> Unit) {
-    StageSettingRow(title = label, subtitle = description, minHeight = 48.dp, onClick = { onToggle(!checked) }) { StageSwitch(checked) }
+internal fun SyncDangerNote(text: String) {
+    Text(text, style = stageText(11.5f, 500, lineHeight = 1.4f), color = LocalStagePalette.current.danger, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+}
+
+/** The words a failed sync is reported in, wherever the failure came from. */
+internal fun SyncFailure.messageRes(): Int = when (this) {
+    SyncFailure.Unreachable -> R.string.local_sync_error_unreachable
+    SyncFailure.NotAuthorized -> R.string.local_sync_error_unauthorized
+    SyncFailure.BadPayload -> R.string.local_sync_error_bad_payload
+    SyncFailure.Unknown -> R.string.local_sync_error_unknown
+}
+
+/**
+ * A sheet's switch row (48 dp): label, what it covers, the switch; the whole row toggles.
+ *
+ * [enabled] false keeps the switch visible but dims the row and makes it inert: an answer the user
+ * cannot change yet is still worth reading.
+ */
+@Composable
+internal fun SyncCheckRow(
+    label: String,
+    description: String?,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    enabled: Boolean = true,
+) {
+    StageSettingRow(
+        title = label,
+        subtitle = description,
+        minHeight = 48.dp,
+        onClick = if (enabled) ({ onToggle(!checked) }) else null,
+        modifier = Modifier.alpha(if (enabled) 1f else 0.45f),
+    ) { StageSwitch(checked) }
 }
 
 /** How these sheets end: the confirm (filled when it can be pressed), then Cancel. */
 @Composable
-private fun SyncButtons(confirm: String, confirmEnabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun SyncButtons(confirm: String, confirmEnabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     StageMenuItem(confirm, onClick = onConfirm, icon = MobileIcons.Check, filled = confirmEnabled, enabled = confirmEnabled, modifier = Modifier.padding(top = 6.dp))
     StageMenuItem(stringResource(R.string.common_cancel), onClick = onDismiss, icon = MobileIcons.Close)
 }
