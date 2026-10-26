@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.asImageBitmap
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.backup.BackupManager
+import tv.own.owntv.core.companion.CompanionController
 import tv.own.owntv.core.companion.CompanionServerState
 import tv.own.owntv.core.sync.local.PairedDevice
 import tv.own.owntv.core.sync.local.SyncDirection
@@ -86,6 +88,8 @@ fun SettingsLocalSyncPage(
     val paired by vm.paired.collectAsStateWithLifecycle()
     val hosting by vm.hosting.collectAsStateWithLifecycle()
     val autoSync by autoSyncVm.settings.collectAsStateWithLifecycle()
+    // Someone at the other end may be waiting for an answer while this page is hosting.
+    val autoSyncRequests by vm.autoSyncRequests.collectAsStateWithLifecycle()
     val palette = LocalStagePalette.current
     // The paired device a tap picked: its row takes the `.fx` look and shows Sync now · Auto-sync ·
     // Unpair.
@@ -187,6 +191,43 @@ fun SettingsLocalSyncPage(
     vm.error?.let { ErrorSheet(it, vm::dismissError) }
 
     autoSyncFor?.let { device -> LocalAutoSyncSheet(autoSyncVm, device, onDismiss = { autoSyncFor = null }) }
+
+    // The question the far side is holding its own screen for. No is the default: swiping it away
+    // grants nothing.
+    autoSyncRequests.firstOrNull()?.let { request ->
+        AutoSyncAcceptSheet(request, onAnswer = vm::answerAutoSync)
+    }
+}
+
+/**
+ * The question shown when a paired device asks to sync here automatically.
+ *
+ * A plain sheet with two answers and no third way out: dismissing it declines, because the caller is
+ * waiting on this screen and "closed" must not mean "still deciding".
+ */
+@Composable
+private fun AutoSyncAcceptSheet(
+    request: CompanionController.AutoSyncRequest,
+    onAnswer: (requestId: String, accepted: Boolean) -> Unit,
+) {
+    val title = stringResource(R.string.local_auto_sync_accept_title)
+    MobileBottomSheet(onDismissRequest = { onAnswer(request.id, false) }, title = title) {
+        StageSheetHeader(
+            title = title,
+            subtitle = stringResource(R.string.local_auto_sync_accept_body, request.deviceName),
+        )
+        StageMenuItem(
+            stringResource(R.string.local_auto_sync_accept),
+            onClick = { onAnswer(request.id, true) },
+            icon = MobileIcons.Check,
+            filled = true,
+        )
+        StageMenuItem(
+            stringResource(R.string.local_auto_sync_decline),
+            onClick = { onAnswer(request.id, false) },
+            icon = MobileIcons.Close,
+        )
+    }
 }
 
 /**
@@ -641,16 +682,7 @@ private fun ErrorSheet(failure: SyncFailure, onDismiss: () -> Unit) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.local_sync_failed)) {
         StageSheetHeader(title = stringResource(R.string.local_sync_failed))
         Column(Modifier) {
-            SyncNote(
-                stringResource(
-                    when (failure) {
-                        SyncFailure.Unreachable -> R.string.local_sync_error_unreachable
-                        SyncFailure.NotAuthorized -> R.string.local_sync_error_unauthorized
-                        SyncFailure.BadPayload -> R.string.local_sync_error_bad_payload
-                        SyncFailure.Unknown -> R.string.local_sync_error_unknown
-                    },
-                ),
-            )
+            SyncNote(stringResource(failure.messageRes()))
         }
         SyncButtons(
             confirm = stringResource(R.string.settings_close),
@@ -675,10 +707,41 @@ internal fun SyncNote(text: String) {
     Text(text, style = stageText(11.5f, 500, lineHeight = 1.4f), color = LocalStagePalette.current.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
 }
 
-/** A sheet's switch row (48 dp): label, what it covers, the switch; the whole row toggles. */
+/** A note that reports something that did not work, in the danger colour. */
 @Composable
-internal fun SyncCheckRow(label: String, description: String?, checked: Boolean, onToggle: (Boolean) -> Unit) {
-    StageSettingRow(title = label, subtitle = description, minHeight = 48.dp, onClick = { onToggle(!checked) }) { StageSwitch(checked) }
+internal fun SyncDangerNote(text: String) {
+    Text(text, style = stageText(11.5f, 500, lineHeight = 1.4f), color = LocalStagePalette.current.danger, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+}
+
+/** The words a failed sync is reported in, wherever the failure came from. */
+internal fun SyncFailure.messageRes(): Int = when (this) {
+    SyncFailure.Unreachable -> R.string.local_sync_error_unreachable
+    SyncFailure.NotAuthorized -> R.string.local_sync_error_unauthorized
+    SyncFailure.BadPayload -> R.string.local_sync_error_bad_payload
+    SyncFailure.Unknown -> R.string.local_sync_error_unknown
+}
+
+/**
+ * A sheet's switch row (48 dp): label, what it covers, the switch; the whole row toggles.
+ *
+ * [enabled] false keeps the switch visible but dims the row and makes it inert: an answer the user
+ * cannot change yet is still worth reading.
+ */
+@Composable
+internal fun SyncCheckRow(
+    label: String,
+    description: String?,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    enabled: Boolean = true,
+) {
+    StageSettingRow(
+        title = label,
+        subtitle = description,
+        minHeight = 48.dp,
+        onClick = if (enabled) ({ onToggle(!checked) }) else null,
+        modifier = Modifier.alpha(if (enabled) 1f else 0.45f),
+    ) { StageSwitch(checked) }
 }
 
 /** How these sheets end: the confirm (filled when it can be pressed), then Cancel. */
