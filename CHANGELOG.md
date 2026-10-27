@@ -7,6 +7,11 @@
 > Issue numbers that are part of a title are fine; explanatory parentheticals are not. The detail —
 > what, why, files and verification — belongs in the commit message, never here.
 
+## Unreleased
+
+### New features
+- **✨ Clean channel names: a Names option on each playlist**
+
 ## v1.1.1 — 2026-10-21
 
 ### New features

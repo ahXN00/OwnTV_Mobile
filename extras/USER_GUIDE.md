@@ -143,6 +143,15 @@ anything playing and takes a few minutes.
 Choose per section whether Live, Movies and Series are fetched. A big import offers **Run in
 background** so you can start using the app immediately; a status pill shows progress.
 
+### ✨ Clean channel names
+**Where:** Settings → Sources & guide → Playlists → tap a playlist → **Names**
+Turn on **Clean channel names** and that playlist's channels lose a country prefix (`UK|`, `[US]`,
+`DE:`) and a quality tag at the end (`HD`, `FHD`, `4K`, `HEVC`) everywhere they appear: "UK| News
+One HD" shows as "News One". **Also remove** takes your own words, separated by `;`, removed from
+the start or end of every name. Saving refreshes the playlist. Guide matching still uses the
+provider's names, channels you renamed in Customize keep your name, and favourites and history stay
+put. Switch it off and the next refresh brings the original names back.
+
 ### 🗂️ Several playlists
 **Where:** the playlist button at the top right
 Show them all merged, or narrow the whole app to one. Rows carry the provider's name when more than
