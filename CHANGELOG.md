@@ -11,6 +11,7 @@
 
 ### New features
 - **✨ Clean channel names: a Names option on each playlist**
+- **📋 EPG sources: Move up / Move down set the guide priority**
 
 ## v1.1.1 — 2026-10-21
 
