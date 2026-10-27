@@ -59,6 +59,7 @@ val settingsModule = module {
             epgDao = get(),
             channelDao = get(),
             sourceRepository = get(),
+            liveEpgReader = get(),
         )
     }
     viewModel {
