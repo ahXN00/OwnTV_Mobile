@@ -12,6 +12,10 @@
 ### New features
 - **✨ Clean channel names: a Names option on each playlist**
 - **📋 EPG sources: Move up / Move down set the guide priority**
+- **🚀 Start on the last channel in the TV Guide or Live TV**
+
+### Fixes
+- **Clean channel names can be found in Settings search**
 
 ## v1.1.1 — 2026-10-21
 

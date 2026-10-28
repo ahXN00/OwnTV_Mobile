@@ -476,8 +476,9 @@ Each has its own favourites, history, resume points and layout. Add a **PIN**, o
 profile** to hide adult content everywhere. Pick one of ten drawn avatars — or **a photo of your
 own**, already while creating the profile.
 
-**Where a profile opens:** Settings → App → **App startup** — Home, the last channel, Favourites, or one
-chosen channel.
+**Where a profile opens:** Settings → App → **App startup** — Home, the last channel (full screen),
+**Last channel · TV Guide** or **Last channel · Live TV** (that tab opens on the channel's category with
+the channel in the preview), Favourites, or one chosen channel.
 
 ---
 
