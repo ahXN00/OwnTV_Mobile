@@ -509,7 +509,16 @@ Six font families for the interface and for popups, and interface zoom.
 Hide, rename, reorder and regroup categories and items, with **bulk rename** (rules, automatic
 cleanup, a review step and restore-originals — for category names too, from the categories page),
 **custom categories**, span selection, and an optional
-**PIN lock**.
+**PIN lock**. With a PIN set, **⋯ → Ask for PIN to open Settings** makes Settings, Backup & Restore and
+Local sync ask for the same PIN, on this profile. Removing the PIN turns it off.
+
+**Lock a category with a PIN** — in the categories sheet of Live TV, the TV Guide, Movies or Series,
+hold a playlist category → **Lock with PIN**. It uses the Customize PIN (the first lock asks you to set
+one). The category stays in the list with a lock; its channels, films and shows stay out of everything
+else (search, Guide, Home, favourites, history, Downloads, recordings) until you open it with
+**Enter PIN**. It stays open until you leave the app or switch profile — leaving also stops anything
+playing from it, the floating window included. **Remove lock** in the same menu asks the PIN, and
+removing the Customize PIN unlocks every category. 5 wrong PINs → a 30 s wait.
 
 ### 🏠 Home & layout
 **Where:** Settings → Layout → **Home screen**

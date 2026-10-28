@@ -13,6 +13,8 @@
 - **✨ Clean channel names: a Names option on each playlist**
 - **📋 EPG sources: Move up / Move down set the guide priority**
 - **🚀 Start on the last channel in the TV Guide or Live TV**
+- **🔒 Lock a category with the Customize PIN**
+- **🔐 Ask for the PIN to open Settings**
 
 ### Fixes
 - **Clean channel names can be found in Settings search**
