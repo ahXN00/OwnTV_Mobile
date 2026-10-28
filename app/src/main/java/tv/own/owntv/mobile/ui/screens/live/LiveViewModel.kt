@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -422,11 +424,23 @@ class LiveViewModel(
         viewModelScope.launch {
             if (settings.rememberCategoryLive.first()) {
                 parseLiveKey(settings.lastLiveCategory.first())?.let {
-                    if (!startupApplied) _selected.value = it
+                    val ids = ctx.first { c -> c.profileId >= 0L }.liveSourceIds
+                    if (!startupApplied && !folderGone(it, ids)) _selected.value = it
                 }
             }
         }
+        // Another playlist or profile can leave the selection on a folder the new playlists do not have:
+        // its channels stayed listed under a wrong name. Such a folder falls back to All channels.
+        viewModelScope.launch {
+            ctx.filter { it.profileId >= 0L }.map { it.liveSourceIds }.distinctUntilChanged().drop(1).collect { ids ->
+                if (folderGone(_selected.value, ids)) _selected.value = LiveKey.All
+            }
+        }
     }
+
+    /** Whether [key] is a provider folder that none of [sourceIds] has (another playlist's, or deleted). */
+    private suspend fun folderGone(key: LiveKey, sourceIds: List<Long>): Boolean =
+        key is LiveKey.Folder && categoryDao.getById(key.id)?.sourceId !in sourceIds
 
     private var startupApplied = false
 
