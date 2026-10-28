@@ -198,7 +198,9 @@ fun LibraryScreen(
 
     // The header's crumb: "‹ Disney+ Kids Movies · 136 titles", a tap opens the categories.
     val categoryLabel = categories.firstOrNull { it.key == selected }?.label(tab).orEmpty()
-    val countText = groupedCountText(if (movies) R.plurals.content_vod_title_count else R.plurals.content_vod_series_count, count)
+    // A category the PIN has not opened names no count: how much it holds is the lock's business.
+    val countText = if (categories.firstOrNull { it.key == selected }?.sealed == true) null
+    else groupedCountText(if (movies) R.plurals.content_vod_title_count else R.plurals.content_vod_series_count, count)
     ProvidePageCrumb { owner -> PageCrumb(categoryLabel, countText, owner = owner) { categoriesOpen = true } }
 
     // A show's list row says how many seasons it has — read for the rows on screen only.

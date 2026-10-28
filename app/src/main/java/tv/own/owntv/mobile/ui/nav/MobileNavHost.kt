@@ -80,6 +80,13 @@ fun MobileNavHost(
     // A goal alert, reminder or live score card was tapped: open that match (MainActivity reads the extra).
     val sportsPlayback: SportsPlayback = koinInject()
     // The Settings PIN asks once per visit: a route outside the guarded pages ends the visit.
+    // A relock stopped what the player showed: its page closes rather than staying up empty.
+    val sealedHost: tv.own.owntv.mobile.ui.categorylock.SealedPlaybackHost = koinInject()
+    androidx.compose.runtime.LaunchedEffect(navController, sealedHost) {
+        sealedHost.stopped.collect {
+            if (navController.currentDestination?.route == PLAYER_ROUTE) navController.popBackStack()
+        }
+    }
     val pinSession: tv.own.owntv.mobile.ui.categorylock.SettingsPinSession = koinInject()
     androidx.compose.runtime.LaunchedEffect(navController, pinSession) {
         navController.currentBackStackEntryFlow.collect { entry ->

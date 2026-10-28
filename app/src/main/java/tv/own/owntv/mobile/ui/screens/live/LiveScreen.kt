@@ -176,8 +176,12 @@ fun LiveScreen(
     val liveView by vm.liveView.collectAsStateWithLifecycle()
     // "Live TV opens in: Guide" draws the guide grid in place of the list.
     val guideView = liveView == SettingsRepository.LiveView.GUIDE
-    val countText = if (guideView) stringResource(R.string.content_live_guide_view)
-    else groupedCountText(R.plurals.content_live_channel_count, count)
+    // A category the PIN has not opened names no count: how many channels it holds is the lock's business.
+    val countText = when {
+        guideView -> stringResource(R.string.content_live_guide_view)
+        categories.firstOrNull { it.key == selected }?.sealed == true -> null
+        else -> groupedCountText(R.plurals.content_live_channel_count, count)
+    }
     ProvidePageCrumb { owner -> PageCrumb(categoryLabel, countText, owner = owner) { categoryPicker = true } }
 
     // The guide is read for what is actually on screen. Watching the visible range rather than each

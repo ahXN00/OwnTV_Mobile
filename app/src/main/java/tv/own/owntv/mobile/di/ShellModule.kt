@@ -33,7 +33,7 @@ val shellModule = module {
     // One Settings PIN visit for the whole app: the guarded pages are routes of their own.
     single { tv.own.owntv.mobile.ui.categorylock.SettingsPinSession() }
     single { CategoryRelock(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate), get(), get(), get()) }
-    single { tv.own.owntv.mobile.ui.categorylock.OpenMultiview() }
+    single { tv.own.owntv.mobile.ui.categorylock.SealedPlaybackHost() }
     viewModel { ProfilesViewModel(get(), get(), get(), androidContext()) }
     viewModelOf(::ProfileGateSession)
     // The counts the More rows and the Favourites / History chips carry.

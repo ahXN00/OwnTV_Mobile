@@ -61,7 +61,7 @@ open class MainActivity : FragmentActivity() {
     private val autoRefresh: tv.own.owntv.core.sync.AutoRefresh by inject()
     private val vodTuner: tv.own.owntv.mobile.ui.screens.library.VodTuner by inject()
     private val relock: tv.own.owntv.core.categorylock.CategoryRelock by inject()
-    private val openMultiview: tv.own.owntv.mobile.ui.categorylock.OpenMultiview by inject()
+    private val sealedHost: tv.own.owntv.mobile.ui.categorylock.SealedPlaybackHost by inject()
 
     /**
      * The engine actually holding the stream — mpv for a film, a download or a recording, ExoPlayer
@@ -148,7 +148,7 @@ open class MainActivity : FragmentActivity() {
         keepScreenOnWhileThereIsAPicture()
         // Category locks: leaving the app or changing profile closes what the PIN opened, and stops
         // what plays from a category that is now sealed. The tuners outlive this activity, so does this.
-        relock.guard = tv.own.owntv.mobile.ui.categorylock.sealedPlaybackGuard(tuner, vodTuner, openMultiview)
+        relock.guard = tv.own.owntv.mobile.ui.categorylock.sealedPlaybackGuard(tuner, vodTuner, sealedHost)
         lifecycleScope.launch { settings.activeProfileId.collect(relock::profileChanged) }
         // "Refresh on startup" and the interval modes of the Auto refresh settings, once a profile is
         // active (straight away, or as soon as first-run setup has made one).

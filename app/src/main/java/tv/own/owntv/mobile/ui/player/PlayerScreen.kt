@@ -192,14 +192,14 @@ fun PlayerScreen(
         mutableStateOf<tv.own.owntv.mobile.ui.screens.multiview.MobileMultiviewState?>(null)
     }
     // The relock reads the grid's tiles and empties those on a channel of a category it has just closed.
-    val openMultiview = koinInject<tv.own.owntv.mobile.ui.categorylock.OpenMultiview>()
-    androidx.compose.runtime.DisposableEffect(multiview, openMultiview) {
+    val sealedHost = koinInject<tv.own.owntv.mobile.ui.categorylock.SealedPlaybackHost>()
+    androidx.compose.runtime.DisposableEffect(multiview, sealedHost) {
         val grid = multiview
-        openMultiview.tiles = grid?.let { g -> { g.tiles.map { it.channel?.categoryId } } }
-        openMultiview.clear = grid?.let { g -> g::clear }
+        sealedHost.tiles = grid?.let { g -> { g.tiles.map { it.channel?.categoryId } } }
+        sealedHost.clear = grid?.let { g -> g::clear }
         onDispose {
-            openMultiview.tiles = null
-            openMultiview.clear = null
+            sealedHost.tiles = null
+            sealedHost.clear = null
         }
     }
     var multiviewPickFor by remember { mutableStateOf<Int?>(null) }
