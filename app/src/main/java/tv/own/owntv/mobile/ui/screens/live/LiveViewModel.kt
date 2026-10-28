@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import tv.own.owntv.core.content.AdultCategoryClassifier
 import tv.own.owntv.core.customize.CustomizationStore
 import tv.own.owntv.core.customize.restoreCategoryToDefault
@@ -430,15 +431,28 @@ class LiveViewModel(
     private var startupApplied = false
 
     /**
-     * "Start on: Favorites" outranks the remembered folder — it is what the user asked this launch to
-     * open on, and it applies to this launch only. Called by the Live TV tab itself: the TV Guide borrowing
-     * this list of categories must not eat it.
+     * "Start on: Favorites" and "Start on: Last channel · Live TV" outrank the remembered folder — they
+     * are what the user asked this launch to open on, and apply to this launch only. Called by the Live
+     * TV tab itself: the TV Guide borrowing this list of categories must not eat it. Returns the channel
+     * to preview, already on its category.
      */
-    fun applyStartupSelection() {
+    suspend fun applyStartupSelection(): ChannelEntity? {
         if (startupSelection.consumeFavorites()) {
             startupApplied = true
             _selected.value = LiveKey.Favorites
+            return null
         }
+        val channel = startupSelection.consumeChannel(guide = false) ?: return null
+        startupApplied = true
+        _selected.value = categoryKeyOf(channel)
+        return channel
+    }
+
+    /** The category [channel] lives in, or All channels when that category is not in the list (hidden, say). */
+    suspend fun categoryKeyOf(channel: ChannelEntity): LiveKey {
+        val folder = channel.categoryId?.let { LiveKey.Folder(it) } ?: return LiveKey.All
+        val listed = withTimeoutOrNull(CATEGORIES_WAIT_MS) { categories.first { list -> list.any { it.key == folder } } } != null
+        return if (listed) folder else LiveKey.All
     }
 
     fun select(key: LiveKey) {
@@ -667,5 +681,7 @@ class LiveViewModel(
         const val SEARCH_DEBOUNCE_MS = 250L
         // "What's on now", one short string per answered channel. Capped — see loadNowPlaying.
         const val MAX_NOW_PLAYING = 500
+        // How long a start-up selection waits for the category list on a cold start.
+        const val CATEGORIES_WAIT_MS = 2_000L
     }
 }

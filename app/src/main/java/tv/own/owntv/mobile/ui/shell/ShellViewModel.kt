@@ -82,15 +82,15 @@ class ShellViewModel(
      */
     suspend fun resolveStartup(): StartupTarget {
         val ctx = activeProfileSources(settings, sourceDao).first { it.profileId >= 0L }
-        return when (settings.startupMode(ctx.profileId).first()) {
+        return when (val mode = settings.startupMode(ctx.profileId).first()) {
             StartupMode.HOME -> StartupTarget.Home
             StartupMode.FAVORITES -> StartupTarget.Favorites
-            StartupMode.LAST_CHANNEL -> {
+            StartupMode.LAST_CHANNEL, StartupMode.LAST_CHANNEL_GUIDE, StartupMode.LAST_CHANNEL_LIVE -> {
                 val channel = channelDao.recentlyWatched(ctx.profileId, 1).first().firstOrNull()
-                if (channel != null && isVisible(channel, ctx.profileId, ctx.sources.map { it.id }.toSet())) {
-                    StartupTarget.Channel(channel.id)
-                } else {
-                    StartupTarget.Home
+                when {
+                    channel == null || !isVisible(channel, ctx.profileId, ctx.sources.map { it.id }.toSet()) -> StartupTarget.Home
+                    mode == StartupMode.LAST_CHANNEL -> StartupTarget.Channel(channel.id)
+                    else -> StartupTarget.ChannelIn(channel, guide = mode == StartupMode.LAST_CHANNEL_GUIDE)
                 }
             }
             StartupMode.SPECIFIC_CHANNEL -> {
@@ -121,21 +121,31 @@ sealed interface StartupTarget {
     data object Favorites : StartupTarget
     data class Channel(val id: Long) : StartupTarget
 
+    /** The TV Guide ([guide]) or Live TV, on [channel]'s category with the channel in the preview. */
+    data class ChannelIn(val channel: ChannelEntity, val guide: Boolean) : StartupTarget
+
     /** The chosen channel is gone — the playlist dropped it, or a re-sync renamed it. */
     data object ChannelUnavailable : StartupTarget
 }
 
 /**
- * "Start on: Favorites", handed to Live TV.
+ * "Start on: Favorites" or "Start on: Last channel · Live TV / TV Guide", handed to that screen.
  *
- * The shell decides it and the Live TV screen acts on it, and the two are built at different moments
- * on different screens, so it is a one-shot the shell sets and Live TV takes exactly once — a second
- * visit to Live TV in the same session is an ordinary visit.
+ * The shell decides it and the screen acts on it, and the two are built at different moments on
+ * different screens, so it is a one-shot the shell sets and the screen takes exactly once — a second
+ * visit in the same session is an ordinary visit.
  */
 class StartupLiveSelection {
     private var pendingFavorites = false
+    private var pendingChannel: StartupTarget.ChannelIn? = null
 
     fun requestFavorites() { pendingFavorites = true }
 
     fun consumeFavorites(): Boolean = pendingFavorites.also { pendingFavorites = false }
+
+    fun requestChannel(target: StartupTarget.ChannelIn) { pendingChannel = target }
+
+    /** The channel to open on, if the request was for this screen — Live TV ([guide] false) or the TV Guide. */
+    fun consumeChannel(guide: Boolean): ChannelEntity? =
+        pendingChannel?.takeIf { it.guide == guide }?.channel?.also { pendingChannel = null }
 }

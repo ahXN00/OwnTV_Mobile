@@ -61,6 +61,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -89,12 +91,14 @@ import tv.own.owntv.mobile.ui.screens.live.LiveCategory
 import tv.own.owntv.mobile.ui.screens.live.LiveCategoryMenu
 import tv.own.owntv.mobile.ui.screens.live.LiveTuner
 import tv.own.owntv.mobile.ui.screens.live.LiveViewModel
+import tv.own.owntv.mobile.ui.screens.live.STARTUP_ROW_WAIT_MS
 import tv.own.owntv.mobile.ui.screens.live.epgShiftLabel
 import tv.own.owntv.mobile.ui.screens.live.label
 import tv.own.owntv.mobile.ui.shell.LocalMiniRequested
 import tv.own.owntv.mobile.ui.shell.ProvidePageCrumb
 import tv.own.owntv.mobile.ui.shell.LocalStreamOnScreen
 import tv.own.owntv.mobile.ui.shell.PageCrumb
+import tv.own.owntv.mobile.ui.shell.StartupLiveSelection
 import tv.own.owntv.mobile.ui.stage.LocalStagePalette
 import tv.own.owntv.mobile.ui.stage.StageButton
 import tv.own.owntv.mobile.ui.stage.StageButtonStyle
@@ -236,6 +240,23 @@ fun GuideScreen(
         value = p?.let { ch to it }
     }
     val top = picked ?: fallback
+
+    // "Start on: Last channel · TV Guide": its category, its row scrolled to, and what is on it now picked
+    // and previewing, as a tap on the channel does. Only the grid has the preview; other views just show it.
+    val startupSelection: StartupLiveSelection = koinInject()
+    val settings: SettingsRepository = koinInject()
+    LaunchedEffect(Unit) {
+        val channel = startupSelection.consumeChannel(guide = true) ?: return@LaunchedEffect
+        vm.select(live.categoryKeyOf(channel))
+        withTimeoutOrNull(STARTUP_ROW_WAIT_MS) {
+            snapshotFlow { channels.itemSnapshotList.items.indexOfFirst { it.id == channel.id } }.first { it >= 0 }
+        }?.let { listState.scrollToItem(it) }
+        val now = System.currentTimeMillis()
+        val onNow = vm.row(channel).firstOrNull { it.startMs <= now && now < it.stopMs } ?: return@LaunchedEffect
+        picked = channel to onNow
+        val grid = (settings.guideView.first() ?: SettingsRepository.GuideView.GRID) == SettingsRepository.GuideView.GRID
+        if (grid && settings.guidePreview.first()) preview(channel)
+    }
 
     // Now: back to today, the grid centred on the now-line (it opens so too).
     fun jumpToNow() = vm.requestNow()

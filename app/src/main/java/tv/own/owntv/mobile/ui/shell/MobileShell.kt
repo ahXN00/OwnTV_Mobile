@@ -295,6 +295,10 @@ fun MobileShell(
                 tuner.tune(target.id)
                 navController.navigate(PLAYER_ROUTE)
             }
+            is StartupTarget.ChannelIn -> {
+                startupLive.requestChannel(target)
+                navController.navigateToTab(if (target.guide) MobileDestination.GUIDE else MobileDestination.LIVE)
+            }
             StartupTarget.ChannelUnavailable ->
                 Toast.makeText(context, startupUnavailable, Toast.LENGTH_LONG).show()
         }
