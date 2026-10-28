@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import tv.own.owntv.core.categorylock.lockAwareCatchupCount
+import tv.own.owntv.core.categorylock.visibleOnceRead
 import tv.own.owntv.core.content.AdultCategoryClassifier
 import tv.own.owntv.core.customize.CustomizationStore
 import tv.own.owntv.core.customize.restoreCategoryToDefault
@@ -35,6 +38,7 @@ import tv.own.owntv.core.customize.SectionCustomizations
 import tv.own.owntv.core.customize.CategoryRailEditor
 import tv.own.owntv.core.customize.MoveKind
 import tv.own.owntv.core.customize.railCategories
+import tv.own.owntv.core.customize.seals
 import tv.own.owntv.core.database.dao.CategoryDao
 import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.ContentOrderDao
@@ -77,6 +81,9 @@ data class LiveCategory(
     val builtIn: BuiltIn? = null,
     /** The playlist a provider folder comes from, for its mark in the categories sheet. */
     val sourceId: Long? = null,
+    /** Locked with the Customize PIN; [sealed] while the PIN has not opened it this session. */
+    val locked: Boolean = false,
+    val sealed: Boolean = false,
 ) {
     enum class BuiltIn { ALL, FAVORITES, HISTORY, CATCHUP }
 }
@@ -120,12 +127,20 @@ class LiveViewModel(
     private val ctx: StateFlow<ActiveProfileSources> = activeProfileSources(settings, sourceDao)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActiveProfileSources(-1L, emptyList()))
 
-    private val custom: StateFlow<SectionCustomizations> = ctx
-        .flatMapLatest { c ->
-            if (c.profileId < 0) flowOf(SectionCustomizations())
-            else customize.observe(c.profileId, MediaType.LIVE)
-        }
+    /**
+     * This profile's customizations for Live TV, with the categories a lock keeps shut counted as hidden;
+     * null until read. The channel list waits for them: one built from the empty default would show a
+     * locked category's channels for a moment.
+     */
+    private val customOnceRead: StateFlow<SectionCustomizations?> = ctx
+        .flatMapLatest { c -> customize.visibleOnceRead(c.profileId, MediaType.LIVE) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val custom: StateFlow<SectionCustomizations> = customOnceRead.filterNotNull()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SectionCustomizations())
+
+    /** The locked provider folders not open this session: their channels leave every count. */
+    private val sealedCategoryIds: Flow<Set<Long>> = custom.map { it.sealedCategoryIds }.distinctUntilChanged()
 
     private val epgOffset: StateFlow<Int> = settings.epgOffsetMinutes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
@@ -173,7 +188,7 @@ class LiveViewModel(
         liveCategories,
         custom,
         sortMode,
-        ctx.flatMapLatest { channelDao.observeCatchupCount(it.liveSourceIds.ifEmpty { listOf(-1L) }) }.distinctUntilChanged(),
+        ctx.flatMapLatest { channelDao.lockAwareCatchupCount(it.liveSourceIds.ifEmpty { listOf(-1L) }, sealedCategoryIds) }.distinctUntilChanged(),
         ctx.flatMapLatest { profileDao.observeById(it.profileId) },
     ) { cats, cust, sort, catchupCount, profile ->
         val folders = cats.railCategories(
@@ -193,6 +208,8 @@ class LiveViewModel(
                         key = e.categoryId?.let { LiveKey.Folder(it) } ?: LiveKey.Custom(e.customId!!),
                         title = e.displayName,
                         sourceId = e.categoryId?.let(sources::get),
+                        locked = e.locked,
+                        sealed = e.sealed,
                     ),
                 )
             }
@@ -204,16 +221,17 @@ class LiveViewModel(
      * custom category by the crumb's own query, every provider folder from one grouped query. Only
      * collected while the sheet is open.
      */
-    val categoryCounts: StateFlow<Map<LiveKey, Int>> = combine(ctx, hiddenCategoryIds, categories) { c, hidden, items -> Triple(c, hidden, items) }
-        .flatMapLatest { (c, hidden, items) ->
-            if (c.profileId < 0) return@flatMapLatest flowOf(emptyMap())
+    val categoryCounts: StateFlow<Map<LiveKey, Int>> = combine(ctx, hiddenCategoryIds, categories, sealedCategoryIds) { c, hidden, items, sealed ->
+            if (c.profileId < 0) return@combine flowOf(emptyMap())
             val single = items.filter { it.key !is LiveKey.Folder }.map { item ->
-                liveCountFlow(item.key, c.profileId, c.liveSourceIds, hidden, channelDao, customCategoryDao).map { mapOf(item.key to it) }
+                liveCountFlow(item.key, c.profileId, c.liveSourceIds, hidden, channelDao, customCategoryDao, sealed).map { mapOf(item.key to it) }
             }
+            // A sealed folder shows no count: how many channels it holds is the lock's business.
             val folders = channelDao.observeCountsByCategory(c.liveSourceIds.ifEmpty { listOf(-1L) })
-                .map { rows -> rows.associate { LiveKey.Folder(it.categoryId) as LiveKey to it.itemCount } }
+                .map { rows -> rows.filter { it.categoryId !in sealed }.associate { LiveKey.Folder(it.categoryId) as LiveKey to it.itemCount } }
             combine(single + folders) { parts -> parts.fold(emptyMap<LiveKey, Int>()) { acc, m -> acc + m } }.throttleLatest()
         }
+        .flatMapLatest { it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     /** Settings › Layout › Navigation › Show counts. */
@@ -340,11 +358,11 @@ class LiveViewModel(
     }
 
     /** The open category's channel count, for the crumb ("· 9 channels"). */
-    val count: StateFlow<Int> = combine(_selected, ctx, hiddenCategoryIds) { key, c, hidden -> Triple(key, c, hidden) }
-        .flatMapLatest { (key, c, hidden) ->
+    val count: StateFlow<Int> = combine(_selected, ctx, hiddenCategoryIds, sealedCategoryIds) { key, c, hidden, sealed ->
             if (c.profileId < 0) flowOf(0)
-            else liveCountFlow(key, c.profileId, c.liveSourceIds, hidden, channelDao, customCategoryDao).throttleLatest()
+            else liveCountFlow(key, c.profileId, c.liveSourceIds, hidden, channelDao, customCategoryDao, sealed)
         }
+        .flatMapLatest { it.throttleLatest() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private val _nowPlaying = MutableStateFlow<Map<Long, XtEpgEntry>>(emptyMap())
@@ -358,7 +376,7 @@ class LiveViewModel(
     private data class Args(val key: LiveKey, val ctx: ActiveProfileSources, val cust: SectionCustomizations, val hidden: Set<Long>)
 
     val channels: Flow<PagingData<ChannelEntity>> =
-        combine(_selected, ctx, custom, hiddenCategoryIds, ::Args)
+        combine(_selected, ctx, customOnceRead.filterNotNull(), hiddenCategoryIds, ::Args)
             // A folder gaining or losing a manual order changes which query is correct, and the
             // cheap one does not observe content_order — so the pager has to be rebuilt. So does the
             // order tool, and the search field (settled for a moment, so each letter is not a query).
@@ -411,7 +429,7 @@ class LiveViewModel(
         cust: SectionCustomizations,
         hidden: Set<Long>,
     ): PagingData<ChannelEntity> {
-        if (cust.hiddenItems.isEmpty() && cust.itemNames.isEmpty() && hidden.isEmpty() && cust.movedFromOrigin.isEmpty()) return this
+        if (cust.hiddenItems.isEmpty() && cust.itemNames.isEmpty() && hidden.isEmpty() && cust.movedFromOrigin.isEmpty() && cust.sealedCategories.isEmpty()) return this
         return filter { ch ->
             tv.own.owntv.core.live.isChannelVisible(ch, cust, hidden, key) &&
                 (cust.movedFromOrigin[CustomizeKeys.channel(ch)]?.let { origin ->
@@ -560,7 +578,7 @@ class LiveViewModel(
     fun playExternal(channel: ChannelEntity) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
-            if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao)) return@launch
+            if (!AdultCategoryClassifier.allows(pid, channel.categoryId, profileDao, categoryDao) || customize.sealsCategory(pid, channel.categoryId)) return@launch
             val source = sourceDao.getById(channel.sourceId)
             val url = if (streamUrlResolver.needsResolve(source)) {
                 runCatching { streamUrlResolver.resolve(source!!, channel.streamUrl) }.getOrNull() ?: return@launch
@@ -608,7 +626,7 @@ class LiveViewModel(
     /** The channels of [key] in their current order — what the Move sheet shuffles. */
     suspend fun moveList(key: LiveKey): List<ReorderItem> {
         val c = ctx.value
-        if (c.profileId < 0) return emptyList()
+        if (c.profileId < 0 || custom.value.seals(key)) return emptyList()
         val contextKey = contextKeyOf(key) ?: return emptyList()
         val ids = c.liveSourceIds.ifEmpty { listOf(-1L) }
         val items = when (key) {
@@ -640,9 +658,10 @@ class LiveViewModel(
         }
     }
 
-    /** The user's own combined categories — the Move-to-category sheet's targets. */
+    /** The user's own combined categories — the Move-to-category sheet's targets. A locked one the PIN
+     *  has not opened is left out: moving a channel into it would file it where it cannot be seen. */
     val customCategories: StateFlow<List<Pair<String, String>>> = custom
-        .map { c -> c.customCategories.map { it.id to it.name } }
+        .map { c -> c.customCategories.filter { it.id !in c.sealedCategories }.map { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun createCustomCategory(name: String) {

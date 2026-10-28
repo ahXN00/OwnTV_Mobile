@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -36,6 +38,9 @@ import tv.own.owntv.core.customize.SectionCustomizations
 import tv.own.owntv.core.customize.CategoryRailEditor
 import tv.own.owntv.core.customize.MoveKind
 import tv.own.owntv.core.customize.railCategories
+import tv.own.owntv.core.customize.seals
+import tv.own.owntv.core.customize.sealsItemIn
+import tv.own.owntv.core.categorylock.visibleOnceRead
 import tv.own.owntv.core.database.dao.CategoryDao
 import tv.own.owntv.core.database.dao.ContentOrderDao
 import tv.own.owntv.core.database.dao.CustomCategoryDao
@@ -75,8 +80,16 @@ import tv.own.owntv.mobile.ui.components.ReorderItem
 enum class LibraryTab { MOVIES, SERIES }
 
 /** One entry of the categories sheet. [builtIn] labels are translated; the rest are provider or user names.
- *  [sourceId] is the playlist a provider folder belongs to (its mark in the sheet). */
-data class VodCategory(val key: LiveKey, val title: String? = null, val builtIn: BuiltIn? = null, val sourceId: Long? = null) {
+ *  [sourceId] is the playlist a provider folder belongs to (its mark in the sheet). [locked]: behind the
+ *  Customize PIN; [sealed] while the PIN has not opened it this session. */
+data class VodCategory(
+    val key: LiveKey,
+    val title: String? = null,
+    val builtIn: BuiltIn? = null,
+    val sourceId: Long? = null,
+    val locked: Boolean = false,
+    val sealed: Boolean = false,
+) {
     enum class BuiltIn { ALL, FAVORITES, HISTORY }
 }
 
@@ -146,11 +159,20 @@ class LibraryViewModel(
         .map { if (it == LibraryTab.MOVIES) MediaType.MOVIE else MediaType.SERIES }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MediaType.MOVIE)
 
-    private val custom: StateFlow<SectionCustomizations> = combine(ctx, mediaType) { c, type -> c to type }
-        .flatMapLatest { (c, type) ->
-            if (c.profileId < 0) flowOf(SectionCustomizations()) else customize.observe(c.profileId, type)
-        }
+    /**
+     * This profile's customizations for the open tab, with the categories a lock keeps shut counted as
+     * hidden; null until read. The grids wait for them: one built from the empty default would show a
+     * locked category's titles for a moment.
+     */
+    private val customOnceRead: StateFlow<SectionCustomizations?> = combine(ctx, mediaType) { c, type -> c to type }
+        .flatMapLatest { (c, type) -> customize.visibleOnceRead(c.profileId, type) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val custom: StateFlow<SectionCustomizations> = customOnceRead.filterNotNull()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SectionCustomizations())
+
+    /** The locked provider folders not open this session: what they hold leaves every count. */
+    private val sealedCategoryIds: Flow<Set<Long>> = custom.map { it.sealedCategoryIds }.distinctUntilChanged()
 
     val sortMode: StateFlow<SettingsRepository.SortMode> = _tab
         .flatMapLatest { if (it == LibraryTab.MOVIES) settings.sortMovies else settings.sortSeries }
@@ -217,6 +239,8 @@ class LibraryViewModel(
                         key = e.categoryId?.let { LiveKey.Folder(it) } ?: LiveKey.Custom(e.customId!!),
                         title = e.displayName,
                         sourceId = e.categoryId?.let(sourceOf::get),
+                        locked = e.locked,
+                        sealed = e.sealed,
                     ),
                 )
             }
@@ -225,17 +249,20 @@ class LibraryViewModel(
 
     /** Every entry's count for the categories sheet — read only while the sheet is open. */
     val categoryCounts: StateFlow<Map<LiveKey, Int>> = combine(ctx, mediaType, hiddenCategoryIds, categories, ::CountArgs)
-        .flatMapLatest { (c, type, hidden, items) ->
+        .combine(sealedCategoryIds) { args, sealed -> args to sealed }
+        .flatMapLatest { (args, sealed) ->
+            val (c, type, hidden, items) = args
             if (c.profileId < 0) return@flatMapLatest flowOf(emptyMap())
             val ids = c.sourceIdsFor(type)
             val movie = type == MediaType.MOVIE
             val single = items.filter { it.key !is LiveKey.Folder }.map { item ->
-                (if (movie) movieCountFlow(item.key, c.profileId, ids, hidden, movieDao, customCategoryDao)
-                else seriesCountFlow(item.key, c.profileId, ids, hidden, seriesDao, customCategoryDao))
+                (if (movie) movieCountFlow(item.key, c.profileId, ids, hidden, movieDao, customCategoryDao, sealed)
+                else seriesCountFlow(item.key, c.profileId, ids, hidden, seriesDao, customCategoryDao, sealed))
                     .map { mapOf(item.key to it) }
             }
+            // A sealed folder shows no count: how many titles it holds is the lock's business.
             val folders = (if (movie) movieDao.observeCountsByCategory(ids.ifEmpty { listOf(-1L) }) else seriesDao.observeCountsByCategory(ids.ifEmpty { listOf(-1L) }))
-                .map { rows -> rows.associate { LiveKey.Folder(it.categoryId) as LiveKey to it.itemCount } }
+                .map { rows -> rows.filter { it.categoryId !in sealed }.associate { LiveKey.Folder(it.categoryId) as LiveKey to it.itemCount } }
             combine(single + folders) { parts -> parts.fold(emptyMap<LiveKey, Int>()) { acc, m -> acc + m } }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
@@ -290,13 +317,15 @@ class LibraryViewModel(
 
     /** How many items the current selection holds — the one whole-list question the screen asks. */
     val count: StateFlow<Int> = combine(mediaType, selected, ctx, hiddenCategoryIds, ::Counted)
-        .flatMapLatest { (type, key, c, hidden) ->
+        .combine(sealedCategoryIds) { counted, sealed -> counted to sealed }
+        .flatMapLatest { (counted, sealed) ->
+            val (type, key, c, hidden) = counted
             when {
                 c.profileId < 0 -> flowOf(0)
                 type == MediaType.MOVIE ->
-                    movieCountFlow(key, c.profileId, c.sourceIdsFor(type), hidden, movieDao, customCategoryDao)
+                    movieCountFlow(key, c.profileId, c.sourceIdsFor(type), hidden, movieDao, customCategoryDao, sealed)
                 else ->
-                    seriesCountFlow(key, c.profileId, c.sourceIdsFor(type), hidden, seriesDao, customCategoryDao)
+                    seriesCountFlow(key, c.profileId, c.sourceIdsFor(type), hidden, seriesDao, customCategoryDao, sealed)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
@@ -332,7 +361,7 @@ class LibraryViewModel(
      * nothing until something else happened to rebuild the list.
      */
     private fun args(selected: Flow<LiveKey>, sort: Flow<SettingsRepository.SortMode>): Flow<Args> =
-        combine(selected, ctx, custom, hiddenCategoryIds, ::Args)
+        combine(selected, ctx, customOnceRead.filterNotNull(), hiddenCategoryIds, ::Args)
             .combine(orderedContexts) { args, _ -> args }
             .combine(_query.debounce(SEARCH_DEBOUNCE_MS)) { args, q -> args.copy(query = q.trim()) }
             .combine(sort) { args, s -> args.copy(sort = s) }
@@ -392,8 +421,8 @@ class LibraryViewModel(
             .cachedIn(viewModelScope)
 
     /**
-     * Hidden items and hidden categories drop out, and an item moved into a custom category leaves
-     * the folder it came from while staying in All.
+     * Hidden items and hidden categories drop out, and so does everything in a category a lock keeps
+     * shut; an item moved into a custom category leaves the folder it came from while staying in All.
      *
      * Applied on each fresh `PagingData` inside the pager chain: Paging forbids transforming one the
      * UI has already collected, so a customization change re-creates the pager instead.
@@ -405,9 +434,9 @@ class LibraryViewModel(
         itemKey: (T) -> String,
         categoryOf: (T) -> Long?,
     ): PagingData<T> {
-        if (cust.hiddenItems.isEmpty() && hidden.isEmpty() && cust.movedFromOrigin.isEmpty()) return this
+        if (cust.hiddenItems.isEmpty() && hidden.isEmpty() && cust.movedFromOrigin.isEmpty() && cust.sealedCategories.isEmpty()) return this
         return filter { item ->
-            itemKey(item) !in cust.hiddenItems &&
+            itemKey(item) !in cust.hiddenItems && !cust.seals(key) && !cust.sealsItemIn(categoryOf(item)) &&
                 (categoryOf(item) == null || categoryOf(item) !in hidden) &&
                 (cust.movedFromOrigin[itemKey(item)]?.let { origin ->
                     key !is LiveKey.Folder || origin != folderContextKeys.value[key.id]
@@ -761,7 +790,7 @@ class LibraryViewModel(
     /** The items of [key] in their current order — what the Move sheet shuffles. */
     suspend fun moveList(key: LiveKey): List<ReorderItem> {
         val c = ctx.value
-        if (c.profileId < 0) return emptyList()
+        if (c.profileId < 0 || custom.value.seals(key)) return emptyList()
         val contextKey = contextKeyOf(key) ?: return emptyList()
         val type = mediaType.value
         val ids = c.sourceIdsFor(type).ifEmpty { listOf(-1L) }
@@ -806,7 +835,8 @@ class LibraryViewModel(
 
     /** The user's own combined categories — the Move-to-category sheet's targets. */
     val customCategories: StateFlow<List<Pair<String, String>>> = custom
-        .map { c -> c.customCategories.map { it.id to it.name } }
+        // A locked one the PIN has not opened is left out: moving a title into it would file it out of sight.
+        .map { c -> c.customCategories.filter { it.id !in c.sealedCategories }.map { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun createCustomCategory(name: String) {

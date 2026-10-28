@@ -74,6 +74,7 @@ import tv.own.owntv.mobile.ui.screens.guide.LiveGuideGrid
 import tv.own.owntv.mobile.ui.screens.guide.LiveGuideTools
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.epg.displayLogoUrl
+import tv.own.owntv.core.categorylock.SealedCategoryAction
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.screens.home.groupedCountText
@@ -126,6 +127,7 @@ fun LiveScreen(
     listState.ObeyScrollToTop(route = "live", scrollToTop = scrollToTop)
 
     var menuFor by remember { mutableStateOf<ChannelEntity?>(null) }
+    val lock = tv.own.owntv.mobile.ui.categorylock.rememberCategoryLock(tv.own.owntv.core.model.MediaType.LIVE)
     var categoryPicker by remember { mutableStateOf(false) }
     var categoryMenuFor by remember { mutableStateOf<LiveCategory?>(null) }
     var restoreFor by remember { mutableStateOf<LiveCategory?>(null) }
@@ -275,7 +277,9 @@ fun LiveScreen(
             onRefresh = vm::refresh,
             modifier = Modifier.fillMaxSize(),
         ) {
-            if (guideView) {
+            if (categories.firstOrNull { it.key == selected }?.sealed == true) {
+                tv.own.owntv.mobile.ui.categorylock.LockedCategoryState(onEnterPin = { lock.enterPin(selected) })
+            } else if (guideView) {
                 LiveGuideGrid(
                     guide = guideVm,
                     category = selected,
@@ -384,10 +388,15 @@ fun LiveScreen(
         LiveCategoryMenu(
             title = name,
             custom = category.key is LiveKey.Custom,
-            onMove = { kind -> vm.moveCategory(category.key, kind) },
-            onHide = { vm.hideCategory(category.key) },
-            onRestore = { categoryMenuFor = null; restoreFor = category },
+            onMove = { kind -> lock.guarded(category.key, category.sealed, SealedCategoryAction.MOVE) { vm.moveCategory(category.key, kind) } },
+            onHide = { lock.guarded(category.key, category.sealed, SealedCategoryAction.HIDE) { vm.hideCategory(category.key) } },
+            onRestore = {
+                categoryMenuFor = null
+                lock.guarded(category.key, category.sealed, SealedCategoryAction.RESTORE) { restoreFor = category }
+            },
             onDismiss = { categoryMenuFor = null },
+            locked = tv.own.owntv.mobile.ui.categorylock.lockMenuState(category.key, category.locked),
+            onToggleLock = { lock.toggleLock(category.key) },
         )
     }
     catchupFor?.let { channel ->

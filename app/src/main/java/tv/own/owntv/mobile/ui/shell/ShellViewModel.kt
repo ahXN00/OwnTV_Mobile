@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import tv.own.owntv.core.content.AdultCategoryClassifier
+import tv.own.owntv.core.customize.CustomizationStore
 import tv.own.owntv.core.database.dao.CategoryDao
 import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.ProfileDao
@@ -36,6 +37,7 @@ class ShellViewModel(
     private val categoryDao: CategoryDao,
     private val profileDao: ProfileDao,
     private val settings: SettingsRepository,
+    private val customize: CustomizationStore,
 ) : ViewModel() {
 
     /** Core's rule, unchanged — the same set the TV app's rail is built from. */
@@ -109,10 +111,12 @@ class ShellViewModel(
         }
     }
 
-    /** A channel the profile cannot reach must not be opened by a setting the profile did not set. */
+    /** A channel the profile cannot reach must not be opened by a setting the profile did not set, nor one
+     *  in a locked category: a launch starts with every lock shut. */
     private suspend fun isVisible(channel: ChannelEntity, profileId: Long, sourceIds: Set<Long>): Boolean =
         channel.sourceId in sourceIds &&
-            AdultCategoryClassifier.allows(profileId, channel.categoryId, profileDao, categoryDao)
+            AdultCategoryClassifier.allows(profileId, channel.categoryId, profileDao, categoryDao) &&
+            !customize.sealsCategory(profileId, channel.categoryId)
 }
 
 /** Where a launch lands. */

@@ -69,6 +69,7 @@ import org.koin.compose.koinInject
 import tv.own.owntv.core.database.entity.ChannelEntity
 import tv.own.owntv.core.database.entity.EpgProgrammeEntity
 import tv.own.owntv.core.epg.displayLogoUrl
+import tv.own.owntv.core.categorylock.SealedCategoryAction
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.live.ProviderTags
 import tv.own.owntv.core.model.RecordingStatus
@@ -174,6 +175,7 @@ fun GuideScreen(
     var channelMenuFor by remember { mutableStateOf<ChannelEntity?>(null) }
     var categoriesOpen by remember { mutableStateOf(false) }
     var categoryMenuFor by remember { mutableStateOf<LiveCategory?>(null) }
+    val lock = tv.own.owntv.mobile.ui.categorylock.rememberCategoryLock(tv.own.owntv.core.model.MediaType.LIVE)
     var restoreFor by remember { mutableStateOf<LiveCategory?>(null) }
     var dayOpen by remember { mutableStateOf(false) }
     var orderOpen by remember { mutableStateOf(false) }
@@ -327,7 +329,9 @@ fun GuideScreen(
         if (stats?.mismatchedIds == true) GuideNotice(stringResource(R.string.content_epg_mismatched_ids))
 
         Box(Modifier.weight(1f)) {
-            if (channels.itemCount == 0) {
+            if (categories.firstOrNull { it.key == selected }?.sealed == true) {
+                tv.own.owntv.mobile.ui.categorylock.LockedCategoryState(onEnterPin = { lock.enterPin(selected) })
+            } else if (channels.itemCount == 0) {
                 EmptyGuide(
                     query = query,
                     stats = stats,
@@ -405,13 +409,20 @@ fun GuideScreen(
         LiveCategoryMenu(
             title = remember(category) { ProviderTags.parse(category.title.orEmpty()).name },
             custom = category.key is LiveKey.Custom,
-            onMove = { kind -> live.moveCategory(category.key, kind) },
+            onMove = { kind -> lock.guarded(category.key, category.sealed, SealedCategoryAction.MOVE) { live.moveCategory(category.key, kind) } },
             onHide = {
-                live.hideCategory(category.key)
-                if (selected == category.key) vm.select(LiveKey.All)
+                lock.guarded(category.key, category.sealed, SealedCategoryAction.HIDE) {
+                    live.hideCategory(category.key)
+                    if (selected == category.key) vm.select(LiveKey.All)
+                }
             },
-            onRestore = { categoryMenuFor = null; restoreFor = category },
+            onRestore = {
+                categoryMenuFor = null
+                lock.guarded(category.key, category.sealed, SealedCategoryAction.RESTORE) { restoreFor = category }
+            },
             onDismiss = { categoryMenuFor = null },
+            locked = tv.own.owntv.mobile.ui.categorylock.lockMenuState(category.key, category.locked),
+            onToggleLock = { lock.toggleLock(category.key) },
         )
     }
     restoreFor?.let { category ->
