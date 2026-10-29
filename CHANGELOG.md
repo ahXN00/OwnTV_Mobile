@@ -19,6 +19,12 @@
 ### Fixes
 - **Clean channel names can be found in Settings search**
 - **Live TV no longer keeps showing a category from the playlist you just switched away from**
+- **An Xtream playlist with a refused password says so instead of loading empty**
+- **A changed password, server, username or MAC re-syncs the playlist on save**
+- **Restoring a backup without passwords names the playlists that need one**
+- **A new playlist with a name already in use is numbered: "My IPTV 2"**
+- **Renamed channels, films and series keep their name on Home and in Continue**
+- **Stalker portals behind a redirect stay signed in; their posters load**
 
 ## v1.1.1 — 2026-10-21
 

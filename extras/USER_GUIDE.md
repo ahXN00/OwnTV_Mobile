@@ -44,7 +44,9 @@ before it changes. A phone being set up only ever *receives* — nothing on the 
 A backup made on the TV also restores here, encrypted ones included — and **Restore a backup** asks
 what to bring back before it applies anything, so you can take the playlists and leave the old
 device's settings behind. The app opens once the restore is complete and starts downloading the
-restored playlists straight away. Later on, the full two-way version lives at
+restored playlists straight away. An Xtream playlist whose password was not in the backup waits
+instead: the last screen names it, and typing the password in that playlist's **Edit** form loads it.
+Later on, the full two-way version lives at
 More → [Local sync](#-local-sync-with-your-tv).
 
 ---
@@ -122,6 +124,8 @@ moves per centimetre of finger, without changing how far you must travel to star
 or **Stalker/Ministra** (portal URL + MAC, with optional Serial Number, Device IDs and Signature).
 An M3U link of the form `…/get.php?username=…&password=…` is really an Xtream account: when the
 provider's server confirms it, it is added as **Xtream**, with movies and series in their own tabs.
+A name another playlist already has gets a number, so two unnamed playlists are **My IPTV** and
+**My IPTV 2**.
 Under **User-Agent** there is an optional **Referer** — leave it empty unless your provider asks
 for one; it is then sent with every stream of that playlist.
 

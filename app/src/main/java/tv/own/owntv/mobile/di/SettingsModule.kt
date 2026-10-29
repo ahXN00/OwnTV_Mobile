@@ -48,6 +48,7 @@ val settingsModule = module {
             player = get(),
             livePreview = get(),
             enginePool = get(),
+            sourceEditor = get(),
         )
     }
     viewModel {

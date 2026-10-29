@@ -722,7 +722,6 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsSubtitleAppearancePage.kt	sub-style
 5	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsViewModel.kt	\0
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsViewModel.kt	manual
-1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsViewModel.kt	scope_edit
 4	empty	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	\0
 2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	##
 2	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/UpdateSheet.kt	###

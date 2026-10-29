@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import tv.own.owntv.core.categorylock.sealedCategoryKeys
 import tv.own.owntv.core.content.AdultCategoryClassifier
 import tv.own.owntv.core.customize.CustomizationStore
+import tv.own.owntv.core.customize.SectionCustomizations
 import tv.own.owntv.core.database.dao.CategoryDao
 import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.dao.HistoryDao
@@ -178,25 +179,30 @@ class HomeViewModel(
     val resume: StateFlow<ResumeTarget?> = profileId
         .flatMapLatest { pid ->
             if (pid < 0) flowOf(null)
+            // The section's customizations ride along so a rename in Customize retitles the pill at once.
             else combine(historyDao.observeMostRecent(pid), customize.sealedCategoryKeys(flowOf(pid))) { h, _ -> h }
-                .map { h -> h?.let { resolveResume(pid, it) } }
+                .flatMapLatest { h ->
+                    if (h == null) return@flatMapLatest flowOf(null)
+                    val section = if (h.mediaType == MediaType.EPISODE) MediaType.SERIES else h.mediaType
+                    customize.observe(pid, section).map { cust -> resolveResume(pid, h, cust) }
+                }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The TV's `resolveContinue`: the item behind the history row, unless the profile may not see it. */
-    private suspend fun resolveResume(pid: Long, h: WatchHistoryEntity): ResumeTarget? = withContext(Dispatchers.IO) {
+    private suspend fun resolveResume(pid: Long, h: WatchHistoryEntity, cust: SectionCustomizations): ResumeTarget? = withContext(Dispatchers.IO) {
         when (h.mediaType) {
             MediaType.MOVIE -> movieDao.getById(h.itemId)
                 ?.takeIf { allows(pid, it.categoryId) }
-                ?.let { m -> ResumeTarget(m.name, MediaType.MOVIE, m.id, progressDao.get(pid, MediaType.MOVIE, m.id)?.positionMs ?: 0L) }
+                ?.let { m -> ResumeTarget(cust.displayName(m), MediaType.MOVIE, m.id, progressDao.get(pid, MediaType.MOVIE, m.id)?.positionMs ?: 0L) }
             MediaType.EPISODE -> seriesDao.getEpisodeById(h.itemId)?.let { ep ->
                 seriesDao.getSeriesById(ep.seriesId)
                     ?.takeIf { allows(pid, it.categoryId) }
-                    ?.let { s -> ResumeTarget(s.name, MediaType.EPISODE, ep.id, progressDao.get(pid, MediaType.EPISODE, ep.id)?.positionMs ?: 0L) }
+                    ?.let { s -> ResumeTarget(cust.displayName(s), MediaType.EPISODE, ep.id, progressDao.get(pid, MediaType.EPISODE, ep.id)?.positionMs ?: 0L) }
             }
             MediaType.LIVE -> channelDao.getById(h.itemId)
                 ?.takeIf { allows(pid, it.categoryId) }
-                ?.let { c -> ResumeTarget(c.name, MediaType.LIVE, c.id, 0L) }
+                ?.let { c -> ResumeTarget(cust.displayName(c), MediaType.LIVE, c.id, 0L) }
             else -> null
         }
     }
