@@ -864,7 +864,7 @@ class LiveTuner(
         }
         // The Live screen's own folders: custom categories, hides, renames, kids filter and order.
         // A locked category the PIN has not opened is left out: it would list nothing.
-        return cats.railCategories(cust, kids = kids, alphaRest = alpha).filterNot { it.sealed }.map { e ->
+        return cats.railCategories(cust, kids = kids, alphabetical = alpha).filterNot { it.sealed }.map { e ->
             (e.categoryId?.let { LiveKey.Folder(it) } ?: LiveKey.Custom(e.customId!!)) to e.displayName
         }
     }
@@ -886,10 +886,11 @@ class LiveTuner(
                         categoryId = category.id,
                         profileId = c.profileId,
                         contextKey = CustomizeKeys.category(category),
+                        alpha = settings.sortLive.first() == SettingsRepository.SortMode.ALPHA,
                         limit = SIBLING_LIMIT,
                     )
                 }
-                is LiveKey.Custom -> customCategoryDao.snapshotChannels(c.profileId, key.id, ids, SIBLING_LIMIT)
+                is LiveKey.Custom -> customCategoryDao.snapshotChannels(c.profileId, key.id, ids, settings.sortLive.first() == SettingsRepository.SortMode.ALPHA, SIBLING_LIMIT)
                 else -> emptyList()
             }
             raw.filter { tv.own.owntv.core.live.isChannelVisible(it, cust, hidden, key) }
@@ -906,6 +907,7 @@ class LiveTuner(
                     categoryId = category.id,
                     profileId = c.profileId,
                     contextKey = CustomizeKeys.category(category),
+                    alpha = settings.sortLive.first() == SettingsRepository.SortMode.ALPHA,
                     limit = SIBLING_LIMIT,
                 )
             } else {

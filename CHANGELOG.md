@@ -17,6 +17,9 @@
 - **🔐 Ask for the PIN to open Settings**
 
 ### Fixes
+- **Deleting a download or recording asks first**
+- **Moved categories, channels, films and series keep their place in A–Z and Provider; the rest follow the sort**
+- **"Mark as watched" no longer shows "0 min"**
 - **Clean channel names can be found in Settings search**
 - **Live TV no longer keeps showing a category from the playlist you just switched away from**
 - **An Xtream playlist with a refused password says so instead of loading empty**

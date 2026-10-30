@@ -226,7 +226,7 @@ class LibraryViewModel(
         val folders = cats.railCategories(
             cust,
             kids = profile?.isKids == true,
-            alphaRest = sort == SettingsRepository.SortMode.ALPHA,
+            alphabetical = sort == SettingsRepository.SortMode.ALPHA,
         )
         val sourceOf = cats.associateBy({ it.id }, { it.sourceId })
         buildList {
@@ -308,7 +308,7 @@ class LibraryViewModel(
                 profileId = c.profileId,
                 sourceIds = c.sourceIdsFor(mediaType.value),
                 type = mediaType.value,
-                alphaRest = sortMode.value == SettingsRepository.SortMode.ALPHA,
+                alphabetical = sortMode.value == SettingsRepository.SortMode.ALPHA,
                 key = key,
                 kind = kind,
             )
@@ -530,9 +530,9 @@ class LibraryViewModel(
         return planCategoryRestore(customize, contentOrderDao, pid, type, contextKey, customCategoryDao) {
             when (key) {
                 is LiveKey.Folder -> if (type == MediaType.MOVIE) {
-                    movieDao.snapshotByCategoryManual(key.id, pid, contextKey, Int.MAX_VALUE).mapTo(HashSet()) { CustomizeKeys.movie(it) }
+                    movieDao.snapshotByCategoryManual(key.id, pid, contextKey, false, Int.MAX_VALUE).mapTo(HashSet()) { CustomizeKeys.movie(it) }
                 } else {
-                    seriesDao.snapshotByCategoryManual(key.id, pid, contextKey, Int.MAX_VALUE).mapTo(HashSet()) { CustomizeKeys.series(it) }
+                    seriesDao.snapshotByCategoryManual(key.id, pid, contextKey, false, Int.MAX_VALUE).mapTo(HashSet()) { CustomizeKeys.series(it) }
                 }
                 else -> customCategoryDao.stableItemKeys(pid, contextKey).toSet()
             }
@@ -796,15 +796,15 @@ class LibraryViewModel(
         val ids = c.sourceIdsFor(type).ifEmpty { listOf(-1L) }
         val items = if (type == MediaType.MOVIE) {
             when (key) {
-                is LiveKey.Folder -> movieDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, MOVE_LIST_LIMIT)
-                is LiveKey.Custom -> customCategoryDao.snapshotMovies(c.profileId, key.id, ids, MOVE_LIST_LIMIT)
+                is LiveKey.Folder -> movieDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, sortMode.value == SettingsRepository.SortMode.ALPHA, MOVE_LIST_LIMIT)
+                is LiveKey.Custom -> customCategoryDao.snapshotMovies(c.profileId, key.id, ids, sortMode.value == SettingsRepository.SortMode.ALPHA, MOVE_LIST_LIMIT)
                 LiveKey.Favorites -> movieDao.snapshotFavoritesManual(c.profileId, contextKey, ids, MOVE_LIST_LIMIT)
                 else -> return emptyList()
             }.map { ReorderItem(it.id, it.name) }
         } else {
             when (key) {
-                is LiveKey.Folder -> seriesDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, MOVE_LIST_LIMIT)
-                is LiveKey.Custom -> customCategoryDao.snapshotSeries(c.profileId, key.id, ids, MOVE_LIST_LIMIT)
+                is LiveKey.Folder -> seriesDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, sortMode.value == SettingsRepository.SortMode.ALPHA, MOVE_LIST_LIMIT)
+                is LiveKey.Custom -> customCategoryDao.snapshotSeries(c.profileId, key.id, ids, sortMode.value == SettingsRepository.SortMode.ALPHA, MOVE_LIST_LIMIT)
                 LiveKey.Favorites -> seriesDao.snapshotFavoritesManual(c.profileId, contextKey, ids, MOVE_LIST_LIMIT)
                 else -> return emptyList()
             }.map { ReorderItem(it.id, it.name) }
@@ -812,24 +812,11 @@ class LibraryViewModel(
         return items
     }
 
-    fun commitMove(contextKey: String, itemIds: List<Long>) {
+    /** Saves a Move: [itemIds] in their new order, [moved] the ones the user moved (only those keep a place). */
+    fun commitMove(contextKey: String, itemIds: List<Long>, moved: Set<Long>) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
-            val type = mediaType.value
-            contentOrderDao.replaceContext(
-                profileId = pid,
-                type = type,
-                contextKey = contextKey,
-                rows = itemIds.mapIndexed { i, id ->
-                    ContentOrderEntity(
-                        profileId = pid,
-                        mediaType = type,
-                        contextKey = contextKey,
-                        itemId = id,
-                        position = i,
-                    )
-                },
-            )
+            contentOrderDao.saveMove(pid, mediaType.value, contextKey, itemIds, moved)
         }
     }
 

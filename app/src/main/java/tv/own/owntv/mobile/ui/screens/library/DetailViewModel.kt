@@ -141,7 +141,7 @@ class DetailViewModel(
             emptyList()
         } else {
             val cust = customize.observeVisible(pid, MediaType.MOVIE).first()
-            movieDao.snapshotByCategoryManual(category.id, pid, CustomizeKeys.category(category), MORE_IN_CATEGORY * 3)
+            movieDao.snapshotByCategoryManual(category.id, pid, CustomizeKeys.category(category), false, MORE_IN_CATEGORY * 3)
                 .filter { it.id != film.id && CustomizeKeys.movie(it) !in cust.hiddenItems && !cust.sealsItemIn(it.categoryId) }
                 .take(MORE_IN_CATEGORY)
         }

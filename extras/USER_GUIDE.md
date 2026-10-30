@@ -181,6 +181,8 @@ in **Search** opens Live TV with it in the preview.
 **Where:** long-press any channel
 Favourite · Rename · Hide · Match EPG · EPG offset · Move · Move to category · **Record** ·
 **Add to Multiview** · Catch-up · Play in another app. Inside a custom category: **Remove from this category**.
+What you **Move** keeps its place in **A–Z** and **Provider** alike; everything you never moved follows the
+sort around it. Deleting a download or a recording asks first.
 
 ### 🏷️ Categories
 **Tap the line under the title** for the categories sheet: Favourites, Recently watched, Catch-up,

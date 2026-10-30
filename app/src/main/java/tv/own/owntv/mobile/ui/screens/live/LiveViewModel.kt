@@ -194,7 +194,7 @@ class LiveViewModel(
         val folders = cats.railCategories(
             cust,
             kids = profile?.isKids == true,
-            alphaRest = sort == SettingsRepository.SortMode.ALPHA,
+            alphabetical = sort == SettingsRepository.SortMode.ALPHA,
         )
         buildList {
             add(LiveCategory(LiveKey.All, builtIn = LiveCategory.BuiltIn.ALL))
@@ -253,7 +253,7 @@ class LiveViewModel(
         val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return CategoryRestorePlan()
         return planCategoryRestore(customize, contentOrderDao, pid, MediaType.LIVE, contextKey, customCategoryDao) {
             when (key) {
-                is LiveKey.Folder -> channelDao.snapshotByCategoryManual(key.id, pid, contextKey, Int.MAX_VALUE)
+                is LiveKey.Folder -> channelDao.snapshotByCategoryManual(key.id, pid, contextKey, false, Int.MAX_VALUE)
                     .mapTo(HashSet()) { CustomizeKeys.channel(it) }
                 else -> customCategoryDao.stableItemKeys(pid, contextKey).toSet()
             }
@@ -300,7 +300,7 @@ class LiveViewModel(
                 profileId = c.profileId,
                 sourceIds = c.liveSourceIds,
                 type = MediaType.LIVE,
-                alphaRest = sortMode.value == SettingsRepository.SortMode.ALPHA,
+                alphabetical = sortMode.value == SettingsRepository.SortMode.ALPHA,
                 key = key,
                 kind = kind,
             )
@@ -630,31 +630,19 @@ class LiveViewModel(
         val contextKey = contextKeyOf(key) ?: return emptyList()
         val ids = c.liveSourceIds.ifEmpty { listOf(-1L) }
         val items = when (key) {
-            is LiveKey.Folder -> channelDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, MOVE_LIST_LIMIT)
-            is LiveKey.Custom -> customCategoryDao.snapshotChannels(c.profileId, key.id, ids, MOVE_LIST_LIMIT)
+            is LiveKey.Folder -> channelDao.snapshotByCategoryManual(key.id, c.profileId, contextKey, sortMode.value == SettingsRepository.SortMode.ALPHA, MOVE_LIST_LIMIT)
+            is LiveKey.Custom -> customCategoryDao.snapshotChannels(c.profileId, key.id, ids, sortMode.value == SettingsRepository.SortMode.ALPHA, MOVE_LIST_LIMIT)
             LiveKey.Favorites -> channelDao.snapshotFavoritesManual(c.profileId, contextKey, ids, MOVE_LIST_LIMIT)
             else -> return emptyList()
         }
         return items.map { ReorderItem(it.id, it.name) }
     }
 
-    fun commitMove(contextKey: String, itemIds: List<Long>) {
+    /** Saves a Move: [itemIds] in their new order, [moved] the ones the user moved (only those keep a place). */
+    fun commitMove(contextKey: String, itemIds: List<Long>, moved: Set<Long>) {
         viewModelScope.launch {
             val pid = ctx.value.profileId.takeIf { it >= 0 } ?: return@launch
-            contentOrderDao.replaceContext(
-                profileId = pid,
-                type = MediaType.LIVE,
-                contextKey = contextKey,
-                rows = itemIds.mapIndexed { i, id ->
-                    ContentOrderEntity(
-                        profileId = pid,
-                        mediaType = MediaType.LIVE,
-                        contextKey = contextKey,
-                        itemId = id,
-                        position = i,
-                    )
-                },
-            )
+            contentOrderDao.saveMove(pid, MediaType.LIVE, contextKey, itemIds, moved)
         }
     }
 
