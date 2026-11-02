@@ -46,6 +46,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -188,8 +189,19 @@ fun HomeScreen(
         HomeMessage(stringResource(R.string.home_no_rows), stringResource(R.string.home_enable_rows), modifier)
         return
     }
+    // While a large playlist keeps loading after setup, a short or empty Home says so rather than
+    // reading as broken. Trending is promised only while its row is switched on.
+    val loadingTitles by vm.libraryLoadingTitles.collectAsStateWithLifecycle()
+    val loadingNote: (@Composable () -> Unit)? = if (loadingTitles > 0 && state.trendingItems.size < TrendingDao.MIN_ELIGIBLE_ITEMS) {
+        { LibraryLoadingNote(loadingTitles, trendingOn = HomeRow.TRENDING in state.config.visibleOrder) }
+    } else {
+        null
+    }
     if (rows.isEmpty()) {
-        HomeMessage(stringResource(R.string.home_start_watching), stringResource(R.string.home_continue_empty), modifier)
+        Column(modifier.fillMaxSize()) {
+            loadingNote?.invoke()
+            HomeMessage(stringResource(R.string.home_start_watching), stringResource(R.string.home_continue_empty), Modifier.weight(1f))
+        }
         return
     }
 
@@ -259,6 +271,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(top = if (trendingFirst) 0.dp else 8.dp, bottom = 22.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
+        loadingNote?.let { note -> item("library-loading") { note() } }
         rows.forEach { row ->
             item(row.name) {
                 when (row) {
@@ -699,6 +712,21 @@ private fun HomeMessage(title: String, body: String, modifier: Modifier = Modifi
         Text(title, style = stageText(20f, 800), color = palette.text, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(body, style = stageText(13.5f, 500), color = palette.muted, textAlign = TextAlign.Center)
+    }
+}
+
+/** "Loading your library · N titles so far", and — [trendingOn] — when Now Trending will show. */
+@Composable
+private fun LibraryLoadingNote(titles: Int, trendingOn: Boolean) {
+    val palette = LocalStagePalette.current
+    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
+        Text(
+            pluralStringResource(R.plurals.home_library_loading, titles, formatCount(titles)),
+            style = stageText(13.5f, 700), color = palette.text,
+        )
+        if (trendingOn) {
+            Text(stringResource(R.string.home_library_loading_trending), style = stageText(12f, 500), color = palette.muted)
+        }
     }
 }
 

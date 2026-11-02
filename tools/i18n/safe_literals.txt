@@ -57,6 +57,7 @@
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/categorylock/CategoryLockPrompts.kt	\0
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/components/AirDateLabel.kt	yMMMd
 1	empty	app/src/main/java/tv/own/owntv/mobile/ui/components/CategoryPickerSheet.kt	\0
+1	protocol	app/src/main/java/tv/own/owntv/mobile/ui/components/ChannelLogoImage.kt	connect
 2	technical	app/src/main/java/tv/own/owntv/mobile/ui/components/ColorPickerSheet.kt	#
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/components/ColorPickerSheet.kt	#%06X
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/components/ColorPickerSheet.kt	#52DBC8
@@ -185,6 +186,7 @@
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/guide/GuideViewModel.kt	sources=${ids.size} cachedRows=${synchronized(rowCache) { rowCache.size }}
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/screens/guide/GuideViewModel.kt	totalMs=${android.os.SystemClock.elapsedRealtime() - startedAt}
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/home/HomeScreen.kt	home
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/home/HomeScreen.kt	library-loading
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/home/HomeText.kt	%1$d
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/home/HomeText.kt	·
 3	url	app/src/main/java/tv/own/owntv/mobile/ui/screens/home/HomeViewModel.kt	w1280

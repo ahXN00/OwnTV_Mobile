@@ -49,6 +49,7 @@ import tv.own.owntv.core.model.HomeRow
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.repository.activeSourceIds
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.sync.LibraryLoading
 import tv.own.owntv.mobile.ui.components.jsonList
 import tv.own.owntv.mobile.ui.screens.ContentActions
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
@@ -77,7 +78,12 @@ class HomeViewModel(
     private val channelDao: ChannelDao,
     private val categoryDao: CategoryDao,
     private val customize: CustomizationStore,
+    libraryLoading: LibraryLoading,
 ) : ViewModel() {
+
+    /** Titles stored so far while one of this profile's playlists still loads after setup; 0 once none does. */
+    val libraryLoadingTitles: StateFlow<Int> = libraryLoading.titles
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private val profileId: StateFlow<Long> = settings.activeProfileId
         .map { stored -> if (stored >= 0) profileDao.resolveExistingProfileId(stored) ?: -1L else -1L }
