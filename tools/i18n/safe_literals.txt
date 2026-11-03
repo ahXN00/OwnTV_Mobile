@@ -114,6 +114,7 @@
 1	locale	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerCatchupSheet.kt	EEEMMMd
 1	locale	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerCatchupSheet.kt	Hm
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerCatchupSheet.kt	exact
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerCatchupSheet.kt	programme-start
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerControls.kt	EXO
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerGestureHud.kt	chevronPhase
 1	log	app/src/main/java/tv/own/owntv/mobile/ui/player/PlayerGestureHud.kt	chevrons

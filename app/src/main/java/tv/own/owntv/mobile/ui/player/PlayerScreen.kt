@@ -309,7 +309,7 @@ fun PlayerScreen(
     val hasLocalCopy by tuner.hasLocalCopy.collectAsStateWithLifecycle()
     val catchup = remember(channel?.id, hasLocalCopy) {
         tuner.jumpOptions().takeIf { it.isNotEmpty() }?.let { offsets ->
-            CatchupOptions(offsets, tuner.archiveWindowSec(), tuner::jumpBackTo)
+            CatchupOptions(offsets, tuner.archiveWindowSec(), tuner::jumpBackTo, tuner::currentProgrammeStart)
         }
     }
 

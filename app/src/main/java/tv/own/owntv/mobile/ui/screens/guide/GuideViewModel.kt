@@ -124,6 +124,7 @@ class GuideViewModel(
     private val recordings: tv.own.owntv.core.recording.RecordingManager,
     private val xtream: tv.own.owntv.core.parser.XtreamClient,
     private val reminders: tv.own.owntv.core.reminder.ReminderManager,
+    private val archiveGuide: tv.own.owntv.core.epg.ArchiveGuideFiller,
 ) : ViewModel() {
 
     /** The one candidate set the picker and auto-match read — filtered by no source. */
@@ -467,6 +468,19 @@ class GuideViewModel(
     /** Read straight from the cache, so a row scrolled back into view draws without a blank frame. */
     fun cachedRow(channelId: Long): List<EpgProgrammeEntity>? = synchronized(rowCache) { rowCache[channelId] }
 
+    /**
+     * Ask for the past days a catch-up [channel]'s guide feed lacks, from its provider's archive. Called
+     * for a row that stays on screen; the queue, its pacing and the "once every few hours per channel"
+     * rule are core's ([tv.own.owntv.core.epg.ArchiveGuideFiller]).
+     */
+    fun requestArchiveGuide(channel: ChannelEntity) = archiveGuide.request(channel, custom.value)
+
+    override fun onCleared() {
+        // Rows of a guide nobody is looking at any more are not asked for.
+        archiveGuide.forgetPending()
+        super.onCleared()
+    }
+
     /** This channel's programmes for the selected day, read as the row comes into view. */
     suspend fun row(channel: ChannelEntity): List<EpgProgrammeEntity> {
         cachedRow(channel.id)?.let { return it }
@@ -709,6 +723,15 @@ class GuideViewModel(
                 .debounce(GUIDE_DATA_SETTLE_MS)
                 .drop(1) // The first is the guide as it already stands on screen.
                 .collect { refreshRows() }
+        }
+        // A catch-up channel's past days arrived from its provider's archive (see requestArchiveGuide).
+        // They are stored apart from every feed, so the count above does not move: that one row is
+        // dropped and read again, and the other rows answer from the cache.
+        viewModelScope.launch {
+            archiveGuide.added.collect { channelId ->
+                synchronized(rowCache) { rowCache.remove(channelId) }
+                _revision.value++
+            }
         }
     }
 
