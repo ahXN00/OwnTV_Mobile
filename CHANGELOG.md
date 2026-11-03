@@ -22,12 +22,19 @@
 - **👕 Team pages: fixtures, results, next match, last five and table place**
 - **🆕 54 more leagues, with Volleyball and Lacrosse**
 - **🔄 Calendar refresh setting**
+- **📚 Home says the library is still loading, with the titles so far**
 
 ### Fixes
 - **Deleting a download or recording asks first**
 - **Moved categories, channels, films and series keep their place in A–Z and Provider; the rest follow the sort**
 - **"Mark as watched" no longer shows "0 min"**
 - **Clean channel names can be found in Settings search**
+- **Channel logos no longer all disappear when one fails to load (#73)**
+- **Backup to "File on this phone" no longer crashes when no app can save it (#74)**
+- **Home, Library and the TV Guide follow the playlist you switch to**
+- **Large playlists keep loading in the background after a pause, and a minute after playback stops**
+- **Films tagged " - CAM" find their poster**
+- **Stalker series filed under films get their episodes**
 - **Live TV no longer keeps showing a category from the playlist you just switched away from**
 - **An Xtream playlist with a refused password says so instead of loading empty**
 - **A changed password, server, username or MAC re-syncs the playlist on save**
