@@ -360,6 +360,11 @@ class SettingsViewModel(
      *
      * Stops playback first, and deliberately not gently — the user agreed to a warning that says so.
      */
+    /** Per-playlist "Ignore connection limit": Multiview and recordings stop counting the provider's limit. */
+    fun setIgnoreConnectionLimit(source: SourceEntity, ignore: Boolean) {
+        viewModelScope.launch { sourceDao.updateIgnoreConnectionLimit(source.id, ignore) }
+    }
+
     fun retestSource(source: SourceEntity) {
         measureJob?.cancel()
         measureJob = viewModelScope.launch {
