@@ -478,7 +478,6 @@ class GuideViewModel(
     override fun onCleared() {
         // Rows of a guide nobody is looking at any more are not asked for.
         archiveGuide.forgetPending()
-        super.onCleared()
     }
 
     /** This channel's programmes for the selected day, read as the row comes into view. */
