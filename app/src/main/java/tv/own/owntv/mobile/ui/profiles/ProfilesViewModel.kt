@@ -15,10 +15,17 @@ import tv.own.owntv.core.settings.SettingsRepository
 /** Who is watching: the list, the one in use, and the four things that can be done to a profile. */
 class ProfilesViewModel(
     private val profileDao: ProfileDao,
-    settings: SettingsRepository,
+    private val settings: SettingsRepository,
     private val manager: ProfileManager,
     private val context: android.content.Context,
 ) : ViewModel() {
+
+    /** Whether [profileId] may download (the profile editor's Allow downloads). */
+    fun downloadsAllowed(profileId: Long): kotlinx.coroutines.flow.Flow<Boolean> = settings.downloadsAllowed(profileId)
+
+    fun setDownloadsAllowed(profileId: Long, allowed: Boolean) {
+        viewModelScope.launch { settings.setDownloadsAllowed(profileId, allowed) }
+    }
 
     /**
      * Null until Room has answered, never an empty list standing in for "not loaded yet". The gate

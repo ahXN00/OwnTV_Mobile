@@ -71,6 +71,7 @@ internal fun profileSections(
         )
     }
     editing?.let { profile ->
+        val allowDownloads by remember(profile.id) { vm.downloadsAllowed(profile.id) }.collectAsStateWithLifecycle(null)
         ProfileEditorSheet(
             initial = profile,
             takenNames = list.filter { it.id != profile.id }.map { it.name.lowercase() }.toSet(),
@@ -80,6 +81,8 @@ internal fun profileSections(
             onPickPicture = { uri -> vm.setPicture(profile, uri) },
             onClearPicture = { vm.clearPicture(profile) },
             extraAction = if (list.size > 1) ({ deleting = profile }) else null,
+            allowDownloads = allowDownloads,
+            onAllowDownloads = { vm.setDownloadsAllowed(profile.id, it) },
         )
     }
     deleting?.let { profile ->

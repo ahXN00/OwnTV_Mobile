@@ -147,6 +147,13 @@ fun GuideScreen(
     val tuner: LiveTuner = koinInject()
     val categories by live.categories.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
+    // All channels or Catch-up the user hid is not left on screen: the guide moves to where Live TV
+    // lands. An empty list is the one not loaded yet.
+    LaunchedEffect(categories, selected) {
+        if ((selected == LiveKey.All || selected == LiveKey.Catchup) && categories.isNotEmpty() && categories.none { it.key == selected }) {
+            vm.select(tv.own.owntv.core.live.liveLandingKey(categories, { it.key }, { it.sealed }))
+        }
+    }
     val channels = vm.channels.collectAsLazyPagingItems()
     val favorites by vm.favoriteIds.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
@@ -413,7 +420,7 @@ fun GuideScreen(
             onHide = {
                 lock.guarded(category.key, category.sealed, SealedCategoryAction.HIDE) {
                     live.hideCategory(category.key)
-                    if (selected == category.key) vm.select(LiveKey.All)
+                    if (selected == category.key) vm.select(tv.own.owntv.core.live.liveLandingKey(categories.filter { it.key != category.key }, { it.key }, { it.sealed }))
                 }
             },
             onRestore = {
