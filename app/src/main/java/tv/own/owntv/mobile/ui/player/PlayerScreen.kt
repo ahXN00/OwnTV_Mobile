@@ -118,6 +118,7 @@ fun PlayerScreen(
     vodTuner: VodTuner = koinInject(),
     pip: PipController = koinInject(),
     settings: SettingsRepository = koinInject(),
+    channelVersions: tv.own.owntv.core.live.ChannelVersions = koinInject(),
     actions: ContentActions = koinInject(),
     subtitles: SubtitleController = koinInject(),
     cast: CastController = koinInject(),
@@ -392,6 +393,7 @@ fun PlayerScreen(
         .collectAsStateWithLifecycle(tv.own.owntv.core.sports.SportsConfig())
     val matchSession = sportsSession?.takeIf { s -> isLive && s.options.any { it.channel.id == channel?.id } }
     var otherChannels by remember { mutableStateOf(false) }
+    var showSources by remember { mutableStateOf(false) }
     // Closing the sheet forgets which category was open, so the next press starts at the categories.
     LaunchedEffect(sheet) { if (sheet != PlayerSheet.CHANNELS) playerCategory = null }
     val recordWatchingEnabled by settings.recordWhatImWatching.collectAsStateWithLifecycle(initialValue = false)
@@ -831,7 +833,16 @@ fun PlayerScreen(
                 { tv.own.owntv.mobile.ui.screens.sports.MatchScoreLine(sportsPlayback, session.match, sportsConfig.spoilerFree) }
             },
             onOtherChannels = matchSession?.takeIf { it.options.size > 1 }?.let { { otherChannels = true } },
+            onSources = channel?.takeIf { isLive }?.let { { showSources = true } },
         )
+        channel?.takeIf { showSources }?.let { playing ->
+            SourcesSheet(
+                load = { channelVersions.of(playing) },
+                playingId = playing.id,
+                onPick = { tuner.switchTo(it) },
+                onDismiss = { showSources = false },
+            )
+        }
         if (otherChannels) {
             val session = matchSession
             if (session == null) otherChannels = false

@@ -156,6 +156,8 @@ fun PlayerControls(
     matchLine: (@Composable () -> Unit)? = null,
     /** Sports Hub: the other channels showing that match; null hides the button. */
     onOtherChannels: (() -> Unit)? = null,
+    /** Live only: the channel's other versions (Sources); null hides the button. */
+    onSources: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     // Derived, so the ticking archive state above moves only its readers: the edge is crossed
@@ -255,6 +257,7 @@ fun PlayerControls(
                         liveOnExo = liveOnExo,
                         onToggleLiveEngine = onToggleLiveEngine,
                         onOtherChannels = onOtherChannels,
+                        onSources = onSources,
                     )
                 }
             }
@@ -518,6 +521,7 @@ private fun ToolBar(
     liveOnExo: Boolean = false,
     onToggleLiveEngine: (() -> Unit)? = null,
     onOtherChannels: (() -> Unit)? = null,
+    onSources: (() -> Unit)? = null,
     sleepTimer: SleepTimer = koinInject(),
 ) {
     val speed by engine.speed.collectAsStateWithLifecycle()
@@ -602,6 +606,10 @@ private fun ToolBar(
                 CtrlButton(MobileIcons.Sports, stringResource(R.string.sports_other_channels), onOtherChannels)
             }
             PlayerControl.MATCH -> Unit
+            // The same channel in another quality, category or playlist; the list is read when it opens.
+            PlayerControl.SOURCES -> if (onSources != null) {
+                CtrlButton(MobileIcons.SwapHoriz, stringResource(R.string.player_tool_sources), onSources)
+            }
             // Live has two engines now, so the button is real there too. It is NOT the VOD
             // toggle: on live it is the television's "compatibility mode", pinned per channel, so a
             // channel only mpv can play opens on mpv next time without being asked again. Null means
