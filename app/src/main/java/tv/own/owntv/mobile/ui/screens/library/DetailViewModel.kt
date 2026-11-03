@@ -416,6 +416,14 @@ class DetailViewModel(
         }
     }
 
+    /** How many episodes [season] holds, handed to [then] when there are any. */
+    fun countSeasonEpisodes(season: Int, then: (Int) -> Unit) {
+        viewModelScope.launch {
+            val current = show.value ?: return@launch
+            seriesDao.episodesBySeriesOnce(current.id).count { it.seasonNumber == season }.takeIf { it > 0 }?.let(then)
+        }
+    }
+
     /** The series page's ⬇: every episode of [season], as the TV's "Download season". */
     fun downloadSeason(season: Int) {
         viewModelScope.launch {

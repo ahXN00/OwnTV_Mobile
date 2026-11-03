@@ -386,4 +386,9 @@ class HomeViewModel(
     fun download(type: MediaType, itemId: Long) {
         viewModelScope.launch { actions.download(type, itemId) }
     }
+
+    /** How many episodes downloading [seriesId] would queue, handed to [then] when there are any. */
+    fun countEpisodes(seriesId: Long, then: (Int) -> Unit) {
+        viewModelScope.launch { seriesDao.episodesBySeriesOnce(seriesId).size.takeIf { it > 0 }?.let(then) }
+    }
 }

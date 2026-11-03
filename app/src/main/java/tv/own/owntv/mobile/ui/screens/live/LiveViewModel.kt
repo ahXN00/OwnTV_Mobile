@@ -54,6 +54,7 @@ import tv.own.owntv.core.database.entity.FavoriteEntity
 import tv.own.owntv.core.epg.EpgShift
 import tv.own.owntv.core.live.LiveEpgReader
 import tv.own.owntv.core.live.LiveKey
+import tv.own.owntv.core.live.liveLandingKey
 import tv.own.owntv.core.live.liveCountFlow
 import tv.own.owntv.core.live.livePagingSource
 import tv.own.owntv.core.live.parseLiveKey
@@ -183,24 +184,25 @@ class LiveViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
     /** The chip strip: the built-in lists, then the profile's categories in its own arranged order.
-     *  Catch-up only appears when the provider actually advertises an archive. */
+     *  Catch-up only appears when the provider actually advertises an archive. All channels and
+     *  Catch-up are left out when the user hid them (Settings › Layout › Browsing & lists). */
     val categories: StateFlow<List<LiveCategory>> = combine(
         liveCategories,
         custom,
-        sortMode,
+        combine(sortMode, settings.liveBuiltIns) { sort, builtIns -> sort to builtIns },
         ctx.flatMapLatest { channelDao.lockAwareCatchupCount(it.liveSourceIds.ifEmpty { listOf(-1L) }, sealedCategoryIds) }.distinctUntilChanged(),
         ctx.flatMapLatest { profileDao.observeById(it.profileId) },
-    ) { cats, cust, sort, catchupCount, profile ->
+    ) { cats, cust, (sort, builtIns), catchupCount, profile ->
         val folders = cats.railCategories(
             cust,
             kids = profile?.isKids == true,
             alphabetical = sort == SettingsRepository.SortMode.ALPHA,
         )
         buildList {
-            add(LiveCategory(LiveKey.All, builtIn = LiveCategory.BuiltIn.ALL))
+            if (builtIns.showAll) add(LiveCategory(LiveKey.All, builtIn = LiveCategory.BuiltIn.ALL))
             add(LiveCategory(LiveKey.Favorites, builtIn = LiveCategory.BuiltIn.FAVORITES))
             add(LiveCategory(LiveKey.History, builtIn = LiveCategory.BuiltIn.HISTORY))
-            if (catchupCount > 0) add(LiveCategory(LiveKey.Catchup, builtIn = LiveCategory.BuiltIn.CATCHUP))
+            if (catchupCount > 0 && builtIns.showCatchup) add(LiveCategory(LiveKey.Catchup, builtIn = LiveCategory.BuiltIn.CATCHUP))
             val sources = cats.associate { it.id to it.sourceId }
             folders.forEach { e ->
                 add(
@@ -287,7 +289,7 @@ class LiveViewModel(
             categoryEditor.hide(c.profileId, MediaType.LIVE, key)
             // The strip is about to lose this chip; leaving it selected would show a folder that is
             // no longer there.
-            if (selected.value == key) select(LiveKey.All)
+            if (selected.value == key) select(landingKey(categories.value.filter { it.key != key }))
         }
     }
 
@@ -448,13 +450,32 @@ class LiveViewModel(
             }
         }
         // Another playlist or profile can leave the selection on a folder the new playlists do not have:
-        // its channels stayed listed under a wrong name. Such a folder falls back to All channels.
+        // its channels stayed listed under a wrong name. Such a folder falls back to All channels — or,
+        // with All hidden, to the new list's first category, once that list has arrived.
         viewModelScope.launch {
             ctx.filter { it.profileId >= 0L }.map { it.liveSourceIds }.distinctUntilChanged().drop(1).collect { ids ->
-                if (folderGone(_selected.value, ids)) _selected.value = LiveKey.All
+                val stale = _selected.value
+                if (folderGone(stale, ids)) {
+                    val next = withTimeoutOrNull(CATEGORIES_WAIT_MS) {
+                        categories.first { list -> list.isNotEmpty() && list.none { it.key == stale } }
+                    }?.let(::landingKey) ?: LiveKey.All
+                    // A pick made while the new list was loading stands.
+                    if (_selected.value == stale) _selected.value = next
+                }
             }
         }
+        // A hidden All or Catch-up — at start, from the remembered category, or switched off in Settings —
+        // is never left selected. An empty list is the one not loaded yet, which must not pick Favorites
+        // over the first category.
+        viewModelScope.launch {
+            combine(categories.filter { it.isNotEmpty() }, settings.liveBuiltIns, _selected) { list, builtIns, current ->
+                if (builtIns.shows(current)) null else landingKey(list)
+            }.collect { next -> if (next != null) _selected.value = next }
+        }
     }
+
+    /** Where Live TV lands when nothing else is chosen — core's rule, shared with the television. */
+    private fun landingKey(list: List<LiveCategory>): LiveKey = liveLandingKey(list, { it.key }, { it.sealed })
 
     /** Whether [key] is a provider folder that none of [sourceIds] has (another playlist's, or deleted). */
     private suspend fun folderGone(key: LiveKey, sourceIds: List<Long>): Boolean =
@@ -480,11 +501,12 @@ class LiveViewModel(
         return channel
     }
 
-    /** The category [channel] lives in, or All channels when that category is not in the list (hidden, say). */
+    /** The category [channel] lives in, or the landing list (All channels while it is shown) when that
+     *  category is not in the list (hidden, say) — never a hidden All. */
     suspend fun categoryKeyOf(channel: ChannelEntity): LiveKey {
-        val folder = channel.categoryId?.let { LiveKey.Folder(it) } ?: return LiveKey.All
+        val folder = channel.categoryId?.let { LiveKey.Folder(it) } ?: return landingKey(categories.value)
         val listed = withTimeoutOrNull(CATEGORIES_WAIT_MS) { categories.first { list -> list.any { it.key == folder } } } != null
-        return if (listed) folder else LiveKey.All
+        return if (listed) folder else landingKey(categories.value)
     }
 
     fun select(key: LiveKey) {

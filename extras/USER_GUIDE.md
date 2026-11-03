@@ -205,11 +205,13 @@ in **Search** opens Live TV with it in the preview.
 Favourite · Rename · Hide · Match EPG · EPG offset · Move · Move to category · **Record** ·
 **Add to Multiview** · Catch-up · Play in another app. Inside a custom category: **Remove from this category**.
 What you **Move** keeps its place in **A–Z** and **Provider** alike; everything you never moved follows the
-sort around it. Deleting a download or a recording asks first.
+sort around it. Deleting a download or a recording asks first. **Settings → Layout → Long-press menus**
+rearranges each menu with ↑ ↓, hides an action with the eye, and **Reset** brings it back as shipped.
 
 ### 🏷️ Categories
 **Tap the line under the title** for the categories sheet: Favourites, Recently watched, Catch-up,
-All channels, then your provider's groups with counts and a search field.
+All channels, then your provider's groups with counts and a search field. **Settings → Layout → Browsing &
+lists** can leave out **Catch-up** or **All channels**; Live TV then opens on your first category.
 **Long-press a category** to hide or move it, or **Restore to playlist default** — hidden channels
 come back, moved ones return and the order resets; it tells you what will change first.
 
@@ -503,7 +505,8 @@ Both devices open Local sync  →  pair (scan the QR, or pick from the list)
 **Where:** More → **Profiles**
 Each has its own favourites, history, resume points and layout. Add a **PIN**, or make it a **kids
 profile** to hide adult content everywhere. Pick one of ten drawn avatars — or **a photo of your
-own**, already while creating the profile.
+own**, already while creating the profile. Editing a profile also has **Allow downloads**: off removes
+every Download button for it. Downloading a whole show or season first asks "Download N episodes?".
 
 **Where a profile opens:** Settings → App → **App startup** — Home, the last channel (full screen),
 **Last channel · TV Guide** or **Last channel · Live TV** (that tab opens on the channel's category with

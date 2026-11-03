@@ -23,6 +23,9 @@
 - **🆕 54 more leagues, with Volleyball and Lacrosse**
 - **🔄 Calendar refresh setting**
 - **📚 Home says the library is still loading, with the titles so far**
+- **👁️ Long-press menus: hide actions, and the default order matches the menus**
+- **📺 Hide All channels or Catch-up from the Live TV categories**
+- **⬇️ Allow downloads per profile; a whole show or season asks first with the episode count**
 
 ### Fixes
 - **Deleting a download or recording asks first**

@@ -124,6 +124,14 @@ fun HomeScreen(
 
     var menuFor by remember { mutableStateOf<ContentTarget?>(null) }
     var trendingMenu by remember { mutableStateOf<TrendingHomeItem?>(null) }
+    var bulkDownload by remember { mutableStateOf<tv.own.owntv.mobile.ui.components.BulkDownloadAsk?>(null) }
+    val downloadsAllowed by org.koin.compose.koinInject<tv.own.owntv.core.settings.SettingsRepository>().activeDownloadsAllowed
+        .collectAsStateWithLifecycle(true)
+    // A show downloads every episode, so it asks first with the count; a film starts at once.
+    fun download(type: MediaType, id: Long) {
+        if (type == MediaType.SERIES) vm.countEpisodes(id) { n -> bulkDownload = tv.own.owntv.mobile.ui.components.BulkDownloadAsk(n) { vm.download(type, id) } }
+        else vm.download(type, id)
+    }
     var infoFor by remember { mutableStateOf<TrendingHomeItem?>(null) }
     var unavailable by remember { mutableStateOf(false) }
 
@@ -396,7 +404,7 @@ fun HomeScreen(
             onPlay = { activate(item) },
             onVersions = { onOpenSearch(item.snapshot.canonicalTitle) },
             onFavourite = { vm.toggleFavorite(type, id) },
-            onDownload = { vm.download(type, id) },
+            onDownload = if (downloadsAllowed) ({ download(type, id) }) else null,
             onInfo = { infoFor = item },
             onDismiss = { trendingMenu = null },
         )
@@ -421,11 +429,12 @@ fun HomeScreen(
                 else -> favoriteSeries
             },
             onToggleFavorite = { vm.toggleFavorite(target.type, target.id) },
-            onDownload = { vm.download(target.type, target.id) },
+            onDownload = { download(target.type, target.id) },
             onHide = { vm.hide(target.type, target.id) },
             onDismiss = { menuFor = null },
         )
     }
+    bulkDownload?.let { tv.own.owntv.mobile.ui.components.BulkDownloadConfirm(it) { bulkDownload = null } }
 }
 
 /** A row with nothing in it is not drawn at all — an empty heading is worse than one row fewer. */
