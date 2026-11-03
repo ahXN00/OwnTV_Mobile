@@ -635,6 +635,7 @@
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlayerRows.kt	rec_reserve
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlayerRows.kt	rec_watching
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlayerRows.kt	vp_afr
+1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlayerRows.kt	vp_afr_live
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlayerRows.kt	vp_audio_lang
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlayerRows.kt	vp_audio_sync
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsPlayerRows.kt	vp_autoplay

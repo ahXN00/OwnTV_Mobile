@@ -141,7 +141,8 @@ fun PlayerScreen(
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val channel by tuner.channel.collectAsStateWithLifecycle()
-    val autoFrameRate by settings.autoFrameRate.collectAsStateWithLifecycle(initialValue = false)
+    val autoFrameRateFilms by settings.autoFrameRateFilms.collectAsStateWithLifecycle(initialValue = false)
+    val autoFrameRateLive by settings.autoFrameRateLive.collectAsStateWithLifecycle(initialValue = false)
     val previousChannel by tuner.previousChannel.collectAsStateWithLifecycle()
     val film by vodTuner.playing.collectAsStateWithLifecycle()
     val nowNext by tuner.nowNext.collectAsStateWithLifecycle()
@@ -643,7 +644,8 @@ fun PlayerScreen(
     ) {
         VideoStage(
             player = player,
-            autoFrameRate = autoFrameRate,
+            // Settings › Picture › Frame rate has one switch for Live TV and one for films and series.
+            autoFrameRate = if (isLive) autoFrameRateLive else autoFrameRateFilms,
             // Where the picture actually is, so entering the little window is the picture shrinking
             // into the corner rather than the whole screen fading into it. Cleared on the way out,
             // or the system would be handed a rectangle from a screen that is no longer there.
