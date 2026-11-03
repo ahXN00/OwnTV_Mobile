@@ -608,7 +608,7 @@ private fun ToolBar(
             PlayerControl.MATCH -> Unit
             // The same channel in another quality, category or playlist; the list is read when it opens.
             PlayerControl.SOURCES -> if (onSources != null) {
-                CtrlButton(MobileIcons.SwapHoriz, stringResource(R.string.player_tool_sources), onSources)
+                CtrlButton(MobileIcons.PlaylistPlay, stringResource(R.string.player_tool_sources), onSources)
             }
             // Live has two engines now, so the button is real there too. It is NOT the VOD
             // toggle: on live it is the television's "compatibility mode", pinned per channel, so a
