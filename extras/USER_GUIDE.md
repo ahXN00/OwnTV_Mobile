@@ -162,7 +162,9 @@ it works from any phone on the same Wi-Fi, this app installed or not.
 **Where:** Settings → Sources & guide → Playlists → tap a playlist → **Info**
 Whether the account is alive, when it expires, and **how many streams your provider allows** —
 measured once at the first sync. **Re-test** re-measures it; it warns first, because it stops
-anything playing and takes a few minutes.
+anything playing and takes a few minutes, and what it measures is kept even when the provider's own
+number says less. **Ignore connection limit**, under Re-test, lets Multiview and recordings try more
+streams than the playlist reports; a stream the provider refuses still says so.
 
 ### ⚡ What to sync, and running it in the background
 **Where:** while adding, and Settings → Sources & guide → Playlists → Edit
@@ -264,7 +266,8 @@ leaves empty.
 **Guide days to keep** is under Settings → Sources & guide → Guide & catch-up, beside EPG time offset: how many days of upcoming guide to store, 1–14, seven
 by default. The same number decides how much is downloaded, how much is kept, and how many days the
 strip above the guide offers. Old programmes are kept only on channels with catch-up, since those are
-the only ones that can play them back.
+the only ones that can play them back. With catch-up channels the day list also goes back up to a
+week, and the past days of their guide come from the provider's archive as their rows come on screen.
 
 A large guide takes a while, and it **keeps downloading when the screen goes off** — a notification
 shows while it does, so the phone lets it finish instead of stopping it and starting it over.
@@ -283,8 +286,9 @@ channel switches to live by itself instead of freezing.
 
 ### 🕐 Rewind live
 **Where:** full-screen player, on a channel with an archive
-Drag the live bar back, tap the rewind button, or use **Go back to…** for a list of times. **Go live**
-returns.
+Drag the live bar back, tap the rewind button, or use **Go back to…** for a list of times — its first
+row, when the guide knows what is on, is **Start of “…”**, back to the beginning of the programme on
+air. **Go live** returns.
 
 ### ⏸️ Pause and rewind channels without catch-up
 **Where:** **Settings → Live TV → Pause and rewind live TV**
@@ -437,6 +441,7 @@ Every gesture above also has a button on the control bar:
 | **Quality** | Only when the stream offers several picture sizes. Auto, or one size for what is playing now |
 | **Favourite** | Adds what is playing |
 | **Catch-up** | *Go back to…* on archive channels |
+| **Sources** | Live: the same channel in another quality, category or playlist, the one playing ticked; tap one to switch. Locked and hidden channels are left out |
 | **Previous channel** | Back to the channel you watched before; tap again to flip back. Headphone "previous" does the same on live |
 | **⇄** | Swap the player engine |
 | **Channels** | The channel list, categories first |
@@ -576,7 +581,7 @@ finds any setting by its name, and **Quick** holds the rows you pin yourself by 
 | **Pre-buffer** (+ per playlist) | Live TV | Collect a few seconds first on a flaky provider |
 | **Multiview** | Watching & recording | Off by default; also sets the tile ceiling |
 | **Record what I'm watching** | Watching & recording | Adds the Record button to the player |
-| **Auto frame rate** | Picture | Off by default; full screen, seamless switches only; warns where the display can't be asked |
+| **Auto frame rate for films and series** · **for Live TV** | Picture | Two switches; an earlier single setting carries into both. Off by default; full screen, seamless switches only; warns where the display can't be asked |
 | **Film buffer** · **Network timeout** · **Reconnect attempts** | Player | Films, episodes and catch-up on a bad line. Auto / 1 = as before |
 | **Reset saved live TV player choices** | Player | Undo per-channel player choices |
 | **Delay for this output** | Sound & subtitles | An audio delay for the output playing now — Bluetooth, the phone's speakers, headphones, HDMI — each kept on its own |

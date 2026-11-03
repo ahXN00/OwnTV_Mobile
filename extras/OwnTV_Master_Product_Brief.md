@@ -231,7 +231,11 @@ Mobile-specific shapes:
   because a device has very few hardware video planes and a second SurfaceView gets audio and no
   picture. Landscape puts two per row; portrait stacks them.
 - **Connection limits** — measured once at a playlist's first sync and used to refuse a tile or a
-  recording with a sentence rather than a failure.
+  recording with a sentence rather than a failure. Re-test's measurement outranks the panel's number;
+  **Ignore connection limit** (per playlist) lets Multiview and recordings try more streams.
+- **Past days in the guide** — up to a week back when there is catch-up, filled from the provider's
+  archive as rows come on screen; **Go back to…** offers **Start of “…”** first, and the player's
+  **Sources** sheet lists the other versions of the channel playing.
 
 ---
 

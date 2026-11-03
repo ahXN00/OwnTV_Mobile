@@ -26,9 +26,16 @@
 - **👁️ Long-press menus: hide actions, and the default order matches the menus**
 - **📺 Hide All channels or Catch-up from the Live TV categories**
 - **⬇️ Allow downloads per profile; a whole show or season asks first with the episode count**
+- **📅 TV Guide: catch-up channels show their past days, up to a week back**
+- **⏮️ "Start of the programme" first in "Go back to…"**
+- **🎞️ Auto frame rate: separate switches for films and series, and Live TV**
+- **🔓 Ignore connection limit, per playlist**
+- **🔀 Sources: switch to another version of the channel playing**
 
 ### Fixes
 - **Deleting a download or recording asks first**
+- **Re-test measures the connection limit on Xtream, and the next sync keeps it**
+- **"Live now" shows the programme's start and end**
 - **Moved categories, channels, films and series keep their place in A–Z and Provider; the rest follow the sort**
 - **"Mark as watched" no longer shows "0 min"**
 - **Clean channel names can be found in Settings search**
