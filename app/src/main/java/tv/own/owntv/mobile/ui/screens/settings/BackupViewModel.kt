@@ -128,6 +128,19 @@ class BackupViewModel(
 
     fun verifyPin(profile: ProfileEntity, pin: String): Boolean = profileManager.verifyPin(profile, pin)
 
+    /**
+     * What to write once the save picker returns: the user has already said what to export, and the
+     * picker only decides where it goes. Held here rather than in the page, so an activity recreated
+     * while the picker is in front still writes the file. In memory only — it carries the password.
+     */
+    internal var pendingFileExport: ExportRequest? = null
+
+    /** No app on this phone can answer the save picker. */
+    fun reportNoFileApp() {
+        pendingFileExport = null
+        outcome = Outcome.Failed(R.string.settings_backup_no_file_app)
+    }
+
     /** The picked document could not even be copied out of its provider — nothing to inspect. */
     fun reportReadFailure() {
         outcome = Outcome.Failed(R.string.settings_backup_read_error)
