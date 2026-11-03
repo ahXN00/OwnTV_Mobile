@@ -212,9 +212,17 @@ class GuideViewModel(
     private val _day = MutableStateFlow(0)
     val day: StateFlow<Int> = _day
 
+    /**
+     * How many days back the day list reaches: the week of past programmes the guide keeps, when the
+     * playlists have catch-up channels to replay them on (the archive fill adds them), else none.
+     */
+    val pastDays: StateFlow<Int> by lazy { _stats
+        .map { if ((it?.catchupChannels ?: 0) > 0) PAST_DAYS else 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0) }
+
     fun selectDay(offset: Int) {
         if (_day.value == offset) return
-        _day.value = offset.coerceIn(0, guideDays.value - 1)
+        _day.value = offset.coerceIn(-pastDays.value, guideDays.value - 1)
         synchronized(rowCache) { rowCache.clear() }
     }
 
@@ -989,6 +997,8 @@ class GuideViewModel(
     }
 
     private companion object {
+        /** The guide keeps a week of past programmes (core's retention), so a week is offered. */
+        const val PAST_DAYS = 7
         const val PAGE_SIZE = 40
         // How many guide rows to keep read. A phone screen shows a handful; this is generous enough
         // that scrolling back never re-reads, and small enough that the guide's memory does not grow

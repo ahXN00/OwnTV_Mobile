@@ -444,9 +444,11 @@ fun GuideScreen(
     }
     if (dayOpen) {
         val days by vm.guideDays.collectAsStateWithLifecycle()
+        val past by vm.pastDays.collectAsStateWithLifecycle()
         GuideDaySheet(
             selected = day,
             days = days,
+            past = past,
             onPick = { offset ->
                 vm.selectDay(offset)
                 // On now is always now: another day is read in the grid.
@@ -524,7 +526,8 @@ internal fun LiveGuideTools(guide: GuideViewModel, onGuideView: () -> Unit, modi
     }
     if (dayOpen) {
         val days by guide.guideDays.collectAsStateWithLifecycle()
-        GuideDaySheet(selected = day, days = days, onPick = guide::selectDay, onDismiss = { dayOpen = false })
+        val past by guide.pastDays.collectAsStateWithLifecycle()
+        GuideDaySheet(selected = day, days = days, past = past, onPick = guide::selectDay, onDismiss = { dayOpen = false })
     }
 }
 
@@ -581,13 +584,14 @@ internal fun LiveGuideGrid(guide: GuideViewModel, category: LiveKey, onTune: (Ch
     }
 }
 
-/** "Today", "Tomorrow", else "Wed 14 Oct" in the locale's own order. */
+/** "Today", "Tomorrow", "Yesterday", else "Wed 14 Oct" in the locale's own order. */
 @Composable
 private fun dayLabel(offset: Int): String {
     val locale = LocalConfiguration.current.locales[0]
     return when (offset) {
         0 -> stringResource(R.string.content_epg_today)
         1 -> stringResource(R.string.content_epg_tomorrow)
+        -1 -> stringResource(R.string.content_epg_yesterday)
         else -> remember(locale, offset) {
             val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, "EEEdMMM")
             val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, offset) }
@@ -1046,10 +1050,11 @@ internal fun reminderLeadText(minutes: Int): String =
 
 /** Today first, then the days the guide keeps. */
 @Composable
-private fun GuideDaySheet(selected: Int, days: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+private fun GuideDaySheet(selected: Int, days: Int, past: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.content_epg_today)) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            repeat(days) { offset ->
+            // Oldest first, as the days run; [past] days back only when there is catch-up to replay them.
+            (-past until days).forEach { offset ->
                 StageMenuItem(dayLabel(offset), onClick = { onPick(offset); onDismiss() }, icon = MobileIcons.CalendarMonth, filled = offset == selected)
             }
         }
