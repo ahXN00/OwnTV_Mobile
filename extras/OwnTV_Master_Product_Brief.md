@@ -208,7 +208,8 @@ top. Predictive back is on.
 Seventy long-press handlers across twenty-one files — channels, films, shows, episodes, categories,
 downloads, recordings, guide rows, search results, playlists, EPG sources, profiles, quick toggles,
 the floating window and the navigation bar. The menus use core's own action keys and the user's saved
-order, so both apps offer the same actions in the same arrangement.
+order and hidden actions, so both apps offer the same actions in the same arrangement; a profile with
+downloads switched off has no Download anywhere, and a whole show or season asks first with the count.
 
 ---
 
