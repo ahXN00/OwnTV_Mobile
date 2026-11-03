@@ -113,7 +113,9 @@ class HomeViewModel(
     init {
         reloads.tryEmit(Unit)
         viewModelScope.launch {
-            combine(profileId, reloads) { pid, _ -> pid }.collectLatest { pid ->
+            // The playlist picker too: its rows are that playlist's, and without it a switch kept showing
+            // the previous playlist's rows until something else asked for a reload.
+            combine(profileId, settings.defaultSourceId.distinctUntilChanged(), reloads) { pid, _, _ -> pid }.collectLatest { pid ->
                 val feed = if (pid < 0) HomeFeed() else reader.load(pid)
                 _feed.value = feed
                 resolveHeroBackdrops(feed.heroItems)
