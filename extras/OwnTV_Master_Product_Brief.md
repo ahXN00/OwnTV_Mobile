@@ -199,7 +199,10 @@ top. Predictive back is on.
   terms and three curated chips. Results page as the list is scrolled rather than stopping at the
   shared reader's first forty of each kind. Once typing, filter chips (Live TV / TV Shows / Movies /
   Series, several at once) narrow the list. A **TV Shows** group lists stored-guide programmes whose
-  title matches, on now or in the next 12 hours; a tap opens the channel.
+  title matches, on now or in the next 12 hours; a tap opens the channel. A channel result opens
+  Live TV on that channel's own category, scrolled to it (not saved as the remembered category).
+- **Category memory** — the last Live TV / Movies / Series category is remembered per profile and
+  follows a profile switch at once; *TV Guide follows Live TV* (Browsing & lists) shares it with the Guide.
 - **More** (the avatar) — the profile and Switch, Settings, Downloads, Favourites, History, Backup,
   Local sync, the error log and About.
 

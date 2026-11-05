@@ -213,7 +213,10 @@ rearranges each menu with ↑ ↓, hides an action with the eye, and **Reset** b
 ### 🏷️ Categories
 **Tap the line under the title** for the categories sheet: Favourites, Recently watched, Catch-up,
 All channels, then your provider's groups with counts and a search field. **Settings → Layout → Browsing &
-lists** can leave out **Catch-up** or **All channels**; Live TV then opens on your first category.
+lists** can leave out **Catch-up** or **All channels**; Live TV then opens on your first category. The
+last category is remembered per profile (only the ones you pick); **TV Guide follows Live TV** makes the
+TV Guide open on it and share it. A channel tapped in **Search** opens Live TV on that channel's own
+category, scrolled to it.
 **Long-press a category** to hide or move it, or **Restore to playlist default** — hidden channels
 come back, moved ones return and the order resets; it tells you what will change first.
 
