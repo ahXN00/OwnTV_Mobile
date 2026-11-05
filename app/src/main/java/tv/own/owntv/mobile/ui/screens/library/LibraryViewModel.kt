@@ -632,16 +632,20 @@ class LibraryViewModel(
     }
 
     init {
+        // The remembered category of each tab, at start and again after every profile switch: this view
+        // model outlives the switch, and each profile has its own. After a switch a tab with nothing it
+        // can show goes back to All rather than keep the previous profile's folder.
         viewModelScope.launch {
-            if (settings.rememberCategoryMovies.first()) {
-                parseLiveKey(settings.lastMoviesCategory.first())?.let {
-                    if (lockedKey == null) _selectedMovies.value = it
-                }
-            }
-            if (settings.rememberCategorySeries.first()) {
-                parseLiveKey(settings.lastSeriesCategory.first())?.let {
-                    if (lockedKey == null) _selectedSeries.value = it
-                }
+            var atLaunch = true
+            ctx.filter { it.profileId >= 0L }.distinctUntilChanged { a, b -> a.profileId == b.profileId }.collect { c ->
+                val launch = atLaunch.also { atLaunch = false }
+                if (lockedKey != null) return@collect
+                suspend fun remembered(on: Boolean, stored: String, type: MediaType): LiveKey? =
+                    if (!on) null else parseLiveKey(stored)?.takeIf { !folderGone(it, c.sourceIdsFor(type)) }
+                val movies = remembered(settings.rememberCategoryMovies.first(), settings.lastMoviesCategory.first(), MediaType.MOVIE)
+                val series = remembered(settings.rememberCategorySeries.first(), settings.lastSeriesCategory.first(), MediaType.SERIES)
+                if (movies != null || !launch) _selectedMovies.value = movies ?: LiveKey.All
+                if (series != null || !launch) _selectedSeries.value = series ?: LiveKey.All
             }
         }
         // Another playlist can leave a tab on a folder the playlists now shown do not have: its titles stayed
