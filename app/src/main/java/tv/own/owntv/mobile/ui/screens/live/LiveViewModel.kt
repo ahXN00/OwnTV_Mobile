@@ -120,30 +120,7 @@ class LiveViewModel(
     epgDao: EpgDao,
     /** The app-wide reader the Guide uses too — one now/next cache, not two. */
     private val epgReader: LiveEpgReader,
-    /** The session tuner: it carries the category a Search result asked Live TV to open on. */
-    private val tuner: LiveTuner,
 ) : ViewModel() {
-
-    /**
-     * Whether this visit to Live TV began with a channel opened elsewhere — Search's channel result.
-     *
-     * Read once, at construction, because it only decides what this visit opens on: while it is
-     * true the remembered folder and the launch's "Start on" channel both stand aside, since the
-     * user has already said which channel they want and its category is where Back should land.
-     */
-    private val openedOnChannel: Boolean = tuner.revealCategoryFor.value != null
-
-    init {
-        // A channel picked in Search: the browse section moves to the channel's own category, so
-        // Back from the player lands on that folder. The search field's filter goes with it.
-        viewModelScope.launch {
-            tuner.revealCategoryFor.filterNotNull().collect { channelId ->
-                tuner.clearRevealCategory(channelId)
-                val channel = channelDao.getById(channelId) ?: return@collect
-                select(categoryKeyOf(channel))
-            }
-        }
-    }
 
 
     /** The same candidate set the Guide's picker uses — filtered by no source. */
@@ -544,16 +521,26 @@ class LiveViewModel(
 
     private var startupApplied = false
 
+    /** What a visit to the Live TV tab opens on: [channel] brought into view, previewed here or not. */
+    data class Opening(val channel: ChannelEntity, val preview: Boolean)
+
     /**
-     * "Start on: Favorites" and "Start on: Last channel · Live TV" outrank the remembered folder — they
-     * are what the user asked this launch to open on, and apply to this launch only. Called by the Live
-     * TV tab itself: the TV Guide borrowing this list of categories must not eat it. Returns the channel
-     * to preview, already on its category.
+     * What this visit to the Live TV tab opens on, ahead of the remembered folder. First a channel from
+     * Search: its own category (shown, not remembered — the channel was chosen, not the category), the
+     * search box cleared; the preview is already Search's to start. Else "Start on: Favorites" or "Start
+     * on: Last channel · Live TV", for this launch only, previewed here. Called by the Live TV tab itself:
+     * the TV Guide borrowing this list of categories must not eat either. The restore is stopped before
+     * any wait, so it cannot land on top.
      */
-    suspend fun applyStartupSelection(): ChannelEntity? {
-        // Opened on a channel from Search: previewing the start-on channel here would replace the
-        // one the user picked, and its category is already the right one.
-        if (openedOnChannel) return null
+    suspend fun applyOpeningSelection(): Opening? {
+        startupSelection.consumeReveal()?.let { id ->
+            startupApplied = true
+            restoreJob?.cancel()
+            _query.value = ""
+            val channel = channelDao.getById(id) ?: return null
+            _selected.value = categoryKeyOf(channel)
+            return Opening(channel, preview = false)
+        }
         if (startupSelection.consumeFavorites()) {
             startupApplied = true
             restoreJob?.cancel()
@@ -564,7 +551,7 @@ class LiveViewModel(
         startupApplied = true
         restoreJob?.cancel()
         _selected.value = categoryKeyOf(channel)
-        return channel
+        return Opening(channel, preview = true)
     }
 
     /** The category [channel] lives in, or the landing list (All channels while it is shown) when that

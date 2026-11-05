@@ -152,4 +152,20 @@ class StartupLiveSelection {
     /** The channel to open on, if the request was for this screen — Live TV ([guide] false) or the TV Guide. */
     fun consumeChannel(guide: Boolean): ChannelEntity? =
         pendingChannel?.takeIf { it.guide == guide }?.channel?.also { pendingChannel = null }
+
+    private var pendingReveal: Long? = null
+
+    /** Search's channel result: Live TV opens on that channel's own category. */
+    fun requestReveal(channelId: Long) { pendingReveal = channelId }
+
+    /**
+     * The channel Search asked Live TV to open on, once. Taken by the Live TV tab only (the TV Guide
+     * borrows Live TV's list but never this). Taking it drops a "Start on" still waiting: the user has
+     * just said which channel they want.
+     */
+    fun consumeReveal(): Long? = pendingReveal?.also {
+        pendingReveal = null
+        pendingFavorites = false
+        pendingChannel = null
+    }
 }

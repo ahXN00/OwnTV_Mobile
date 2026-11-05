@@ -258,6 +258,7 @@ fun MobileNavHost(
                     navController.navigateToTab(MobileDestination.LIVE)
                 }
             }
+            val startupLive: tv.own.owntv.mobile.ui.shell.StartupLiveSelection = koinInject()
             SearchScreen(
                 initialQuery = entry.arguments?.getString(ARG_QUERY).orEmpty(),
                 // Search goes to the channel (TV): Live TV, with it in the preview on top — or full
@@ -265,7 +266,7 @@ fun MobileNavHost(
                 // opens on that channel's own category, so Back from the player lands on the folder
                 // the channel lives in, not on the one that was open before the search.
                 onOpenChannel = { channelId ->
-                    tuner.revealCategoryOf(channelId)
+                    startupLive.requestReveal(channelId) // taken by the Live TV tab, once
                     if (previewOn) {
                         tuner.preview(channelId)
                         openLiveTab()
