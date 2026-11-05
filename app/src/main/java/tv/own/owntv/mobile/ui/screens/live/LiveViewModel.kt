@@ -487,6 +487,16 @@ class LiveViewModel(
                     }
                 }
         }
+        // "TV Guide follows Live TV": a category picked in the TV Guide (its own view model) is saved as this
+        // one's remembered category; it is shown here at once, not at the next restore. Only picks write
+        // that value, so this tab's own picks arrive here as no-ops.
+        viewModelScope.launch {
+            combine(settings.guideFollowsLiveCategory, settings.lastLiveCategory) { follows, stored -> stored.takeIf { follows } }
+                .drop(1).distinctUntilChanged().filterNotNull().collect { stored ->
+                    liveRestoreKey(stored, categories.value, { it.key }, { it.sealed })
+                        ?.takeIf { it != _selected.value }?.let { _selected.value = it }
+                }
+        }
         // Another playlist or profile can leave the selection on a folder the new playlists do not have:
         // its channels stayed listed under a wrong name. Such a folder falls back to All channels — or,
         // with All hidden, to the new list's first category, once that list has arrived.
