@@ -68,6 +68,12 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import androidx.paging.compose.LazyPagingItems
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.interaction.DragInteraction
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import tv.own.owntv.mobile.ui.screens.guide.LiveGuideGrid
@@ -203,14 +209,13 @@ fun LiveScreen(
     // Changing category scrolls back to the top: the position of the old list means nothing in the new one.
     LaunchedEffect(selected) { listState.scrollToItem(0) }
 
-    // "Start on: Last channel · Live TV": its category, the channel in the preview, its row scrolled to
-    // once loaded. With Live preview off it is only shown, not played — opening Live TV is not watching.
+    // A channel from Search, or "Start on: Last channel · Live TV": its category, its row scrolled to.
+    // Search has already started its preview; a startup one is previewed here, and with Live preview off
+    // only shown, not played — opening Live TV is not watching.
     LaunchedEffect(Unit) {
-        val channel = vm.applyStartupSelection() ?: return@LaunchedEffect
-        if (settings.livePreviewEnabled.first()) tuner.preview(channel.id)
-        withTimeoutOrNull(STARTUP_ROW_WAIT_MS) {
-            snapshotFlow { channels.itemSnapshotList.items.indexOfFirst { it.id == channel.id } }.first { it >= 0 }
-        }?.let { listState.scrollToItem(it) }
+        val opening = vm.applyOpeningSelection() ?: return@LaunchedEffect
+        if (opening.preview && settings.livePreviewEnabled.first()) tuner.preview(opening.channel.id)
+        scrollToChannel(listState, channels, opening.channel.id)
     }
 
     // The guide grid of Guide view reads through the TV Guide's own view model (its rows, its order).
@@ -556,3 +561,30 @@ private val PREVIEW_TOP = 20.dp
 
 /** How long the start-up channel's row is waited for before the list is left where it is. */
 internal const val STARTUP_ROW_WAIT_MS = 3_000L
+
+/** How long Live TV keeps loading pages to bring an opening channel's row into view. */
+private const val OPENING_ROW_WAIT_MS = 5_000L
+
+/**
+ * Scrolls to [channelId] in the paged [channels], asking for page after page until it is loaded — a
+ * channel deep in a large category is not in the first pages. Gives up after [OPENING_ROW_WAIT_MS], and
+ * at once when the user drags the list: their scroll wins.
+ */
+private suspend fun scrollToChannel(listState: LazyListState, channels: LazyPagingItems<ChannelEntity>, channelId: Long) = coroutineScope {
+    val userScrolled = async { listState.interactionSource.interactions.first { it is DragInteraction.Start } }
+    withTimeoutOrNull(OPENING_ROW_WAIT_MS) {
+        while (!userScrolled.isCompleted) {
+            val index = channels.itemSnapshotList.items.indexOfFirst { it.id == channelId }
+            if (index >= 0) {
+                listState.scrollToItem(index)
+                break
+            }
+            val count = channels.itemCount
+            if (count > 0) channels[count - 1] // reading the last row asks Paging for the next page
+            delay(OPENING_ROW_POLL_MS)
+        }
+    }
+    userScrolled.cancel()
+}
+
+private const val OPENING_ROW_POLL_MS = 50L

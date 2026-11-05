@@ -521,13 +521,26 @@ class LiveViewModel(
 
     private var startupApplied = false
 
+    /** What a visit to the Live TV tab opens on: [channel] brought into view, previewed here or not. */
+    data class Opening(val channel: ChannelEntity, val preview: Boolean)
+
     /**
-     * "Start on: Favorites" and "Start on: Last channel · Live TV" outrank the remembered folder — they
-     * are what the user asked this launch to open on, and apply to this launch only. Called by the Live
-     * TV tab itself: the TV Guide borrowing this list of categories must not eat it. Returns the channel
-     * to preview, already on its category.
+     * What this visit to the Live TV tab opens on, ahead of the remembered folder. First a channel from
+     * Search: its own category (shown, not remembered — the channel was chosen, not the category), the
+     * search box cleared; the preview is already Search's to start. Else "Start on: Favorites" or "Start
+     * on: Last channel · Live TV", for this launch only, previewed here. Called by the Live TV tab itself:
+     * the TV Guide borrowing this list of categories must not eat either. The restore is stopped before
+     * any wait, so it cannot land on top.
      */
-    suspend fun applyStartupSelection(): ChannelEntity? {
+    suspend fun applyOpeningSelection(): Opening? {
+        startupSelection.consumeReveal()?.let { id ->
+            startupApplied = true
+            restoreJob?.cancel()
+            _query.value = ""
+            val channel = channelDao.getById(id) ?: return null
+            _selected.value = categoryKeyOf(channel)
+            return Opening(channel, preview = false)
+        }
         if (startupSelection.consumeFavorites()) {
             startupApplied = true
             restoreJob?.cancel()
@@ -538,7 +551,7 @@ class LiveViewModel(
         startupApplied = true
         restoreJob?.cancel()
         _selected.value = categoryKeyOf(channel)
-        return channel
+        return Opening(channel, preview = true)
     }
 
     /** The category [channel] lives in, or the landing list (All channels while it is shown) when that
