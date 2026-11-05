@@ -224,7 +224,12 @@ fun SettingsPlaylistsPage(
                         stringResource(R.string.settings_sources_probe_running, state.progress.stream, state.progress.maxStreams),
                         style = stageText(12.5f, 500), color = palette.muted,
                     )
-                    is SettingsViewModel.SourceTestState.Done -> TestReport(state.result, state.limit)
+                    is SettingsViewModel.SourceTestState.Done -> {
+                        TestReport(state.result, state.limit)
+                        if (sources.firstOrNull { it.name == state.sourceName }?.ignoreConnectionLimit == true) {
+                            Text(stringResource(R.string.settings_sources_ignore_limit_on), style = stageText(12.5f, 500), color = palette.muted)
+                        }
+                    }
                 }
             }
             // While measuring the only honest action abandons it; afterwards, the one that repeats it.
@@ -233,6 +238,13 @@ fun SettingsPlaylistsPage(
             } else if (state is SettingsViewModel.SourceTestState.Done) {
                 sources.firstOrNull { it.name == state.sourceName }?.let { src ->
                     StageMenuItem(stringResource(R.string.settings_sources_retest), onClick = { confirmRetest = src }, icon = MobileIcons.Refresh)
+                    // For a provider that allows more than it says, when measuring cannot show it.
+                    StageMenuItem(
+                        stringResource(R.string.settings_sources_ignore_limit),
+                        onClick = { vm.setIgnoreConnectionLimit(src, !src.ignoreConnectionLimit) },
+                        icon = MobileIcons.Multiview,
+                        value = stringResource(if (src.ignoreConnectionLimit) R.string.common_on else R.string.common_off),
+                    )
                 }
             }
             StageMenuItem(stringResource(R.string.common_done), onClick = vm::dismissSourceTest, icon = MobileIcons.Check)

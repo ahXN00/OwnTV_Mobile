@@ -147,6 +147,14 @@ fun GuideScreen(
     val tuner: LiveTuner = koinInject()
     val categories by live.categories.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
+    val followsLive by live.guideFollowsLive.collectAsStateWithLifecycle()
+    // All channels or Catch-up the user hid is not left on screen: the guide moves to where Live TV
+    // lands. An empty list is the one not loaded yet.
+    LaunchedEffect(categories, selected) {
+        if ((selected == LiveKey.All || selected == LiveKey.Catchup) && categories.isNotEmpty() && categories.none { it.key == selected }) {
+            vm.select(tv.own.owntv.core.live.liveLandingKey(categories, { it.key }, { it.sealed }))
+        }
+    }
     val channels = vm.channels.collectAsLazyPagingItems()
     val favorites by vm.favoriteIds.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
@@ -245,10 +253,15 @@ fun GuideScreen(
 
     // "Start on: Last channel · TV Guide": its category, its row scrolled to, and what is on it now picked
     // and previewing, as a tap on the channel does. Only the grid has the preview; other views just show it.
+    // Otherwise, with "TV Guide follows Live TV" on, the guide opens on Live TV's remembered category.
     val startupSelection: StartupLiveSelection = koinInject()
     val settings: SettingsRepository = koinInject()
     LaunchedEffect(Unit) {
-        val channel = startupSelection.consumeChannel(guide = true) ?: return@LaunchedEffect
+        val channel = startupSelection.consumeChannel(guide = true)
+        if (channel == null) {
+            live.guideOpeningKey()?.let(vm::select)
+            return@LaunchedEffect
+        }
         vm.select(live.categoryKeyOf(channel))
         withTimeoutOrNull(STARTUP_ROW_WAIT_MS) {
             snapshotFlow { channels.itemSnapshotList.items.indexOfFirst { it.id == channel.id } }.first { it >= 0 }
@@ -398,7 +411,10 @@ fun GuideScreen(
             counts = counts,
             showCounts = showCounts,
             marks = marksBySource,
-            onSelect = vm::select,
+            onSelect = { key ->
+                vm.select(key)
+                if (followsLive) live.select(key) // one remembered category for both
+            },
             onHold = { categoryMenuFor = it },
             onDismiss = { categoriesOpen = false },
             title = stringResource(R.string.content_epg_guide_category),
@@ -413,7 +429,7 @@ fun GuideScreen(
             onHide = {
                 lock.guarded(category.key, category.sealed, SealedCategoryAction.HIDE) {
                     live.hideCategory(category.key)
-                    if (selected == category.key) vm.select(LiveKey.All)
+                    if (selected == category.key) vm.select(tv.own.owntv.core.live.liveLandingKey(categories.filter { it.key != category.key }, { it.key }, { it.sealed }))
                 }
             },
             onRestore = {
@@ -437,9 +453,11 @@ fun GuideScreen(
     }
     if (dayOpen) {
         val days by vm.guideDays.collectAsStateWithLifecycle()
+        val past by vm.pastDays.collectAsStateWithLifecycle()
         GuideDaySheet(
             selected = day,
             days = days,
+            past = past,
             onPick = { offset ->
                 vm.selectDay(offset)
                 // On now is always now: another day is read in the grid.
@@ -517,7 +535,8 @@ internal fun LiveGuideTools(guide: GuideViewModel, onGuideView: () -> Unit, modi
     }
     if (dayOpen) {
         val days by guide.guideDays.collectAsStateWithLifecycle()
-        GuideDaySheet(selected = day, days = days, onPick = guide::selectDay, onDismiss = { dayOpen = false })
+        val past by guide.pastDays.collectAsStateWithLifecycle()
+        GuideDaySheet(selected = day, days = days, past = past, onPick = guide::selectDay, onDismiss = { dayOpen = false })
     }
 }
 
@@ -574,13 +593,14 @@ internal fun LiveGuideGrid(guide: GuideViewModel, category: LiveKey, onTune: (Ch
     }
 }
 
-/** "Today", "Tomorrow", else "Wed 14 Oct" in the locale's own order. */
+/** "Today", "Tomorrow", "Yesterday", else "Wed 14 Oct" in the locale's own order. */
 @Composable
 private fun dayLabel(offset: Int): String {
     val locale = LocalConfiguration.current.locales[0]
     return when (offset) {
         0 -> stringResource(R.string.content_epg_today)
         1 -> stringResource(R.string.content_epg_tomorrow)
+        -1 -> stringResource(R.string.content_epg_yesterday)
         else -> remember(locale, offset) {
             val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, "EEEdMMM")
             val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, offset) }
@@ -1039,10 +1059,11 @@ internal fun reminderLeadText(minutes: Int): String =
 
 /** Today first, then the days the guide keeps. */
 @Composable
-private fun GuideDaySheet(selected: Int, days: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+private fun GuideDaySheet(selected: Int, days: Int, past: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     MobileBottomSheet(onDismissRequest = onDismiss, title = stringResource(R.string.content_epg_today)) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            repeat(days) { offset ->
+            // Oldest first, as the days run; [past] days back only when there is catch-up to replay them.
+            (-past until days).forEach { offset ->
                 StageMenuItem(dayLabel(offset), onClick = { onPick(offset); onDismiss() }, icon = MobileIcons.CalendarMonth, filled = offset == selected)
             }
         }

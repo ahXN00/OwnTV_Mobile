@@ -1054,6 +1054,16 @@ class LiveTuner(
         ).show()
     }
 
+    /** The start of the programme on air, when the provider's archive still reaches it — the first row
+     *  of the catch-up sheet. Core bounds the wait, so a guide fetched over the network cannot hold it. */
+    suspend fun currentProgrammeStart(): tv.own.owntv.core.live.CatchupProgrammeStart? {
+        if (casting()) return null
+        val ch = _channel.value?.takeIf { timeshift.canRewind(it) } ?: return null
+        return tv.own.owntv.core.live.CatchupProgrammeStart.lookUp(
+            epgReader, ch, custom.value, settings.epgOffsetMinutes.first(), timeshift.windowSec(ch),
+        )
+    }
+
     /** Offsets worth offering in the catch-up sheet, nearest first; empty without an archive. */
     fun jumpOptions(): List<Int> =
         // The provider archive's alone — a channel without catch-up gets no catch-up control for its saved copy.

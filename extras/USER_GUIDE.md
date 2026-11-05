@@ -162,7 +162,9 @@ it works from any phone on the same Wi-Fi, this app installed or not.
 **Where:** Settings → Sources & guide → Playlists → tap a playlist → **Info**
 Whether the account is alive, when it expires, and **how many streams your provider allows** —
 measured once at the first sync. **Re-test** re-measures it; it warns first, because it stops
-anything playing and takes a few minutes.
+anything playing and takes a few minutes, and what it measures is kept even when the provider's own
+number says less. **Ignore connection limit**, under Re-test, lets Multiview and recordings try more
+streams than the playlist reports; a stream the provider refuses still says so.
 
 ### ⚡ What to sync, and running it in the background
 **Where:** while adding, and Settings → Sources & guide → Playlists → Edit
@@ -205,11 +207,13 @@ in **Search** opens Live TV with it in the preview.
 Favourite · Rename · Hide · Match EPG · EPG offset · Move · Move to category · **Record** ·
 **Add to Multiview** · Catch-up · Play in another app. Inside a custom category: **Remove from this category**.
 What you **Move** keeps its place in **A–Z** and **Provider** alike; everything you never moved follows the
-sort around it. Deleting a download or a recording asks first.
+sort around it. Deleting a download or a recording asks first. **Settings → Layout → Long-press menus**
+rearranges each menu with ↑ ↓, hides an action with the eye, and **Reset** brings it back as shipped.
 
 ### 🏷️ Categories
 **Tap the line under the title** for the categories sheet: Favourites, Recently watched, Catch-up,
-All channels, then your provider's groups with counts and a search field.
+All channels, then your provider's groups with counts and a search field. **Settings → Layout → Browsing &
+lists** can leave out **Catch-up** or **All channels**; Live TV then opens on your first category.
 **Long-press a category** to hide or move it, or **Restore to playlist default** — hidden channels
 come back, moved ones return and the order resets; it tells you what will change first.
 
@@ -262,7 +266,8 @@ leaves empty.
 **Guide days to keep** is under Settings → Sources & guide → Guide & catch-up, beside EPG time offset: how many days of upcoming guide to store, 1–14, seven
 by default. The same number decides how much is downloaded, how much is kept, and how many days the
 strip above the guide offers. Old programmes are kept only on channels with catch-up, since those are
-the only ones that can play them back.
+the only ones that can play them back. With catch-up channels the day list also goes back up to a
+week, and the past days of their guide come from the provider's archive as their rows come on screen.
 
 A large guide takes a while, and it **keeps downloading when the screen goes off** — a notification
 shows while it does, so the phone lets it finish instead of stopping it and starting it over.
@@ -281,8 +286,9 @@ channel switches to live by itself instead of freezing.
 
 ### 🕐 Rewind live
 **Where:** full-screen player, on a channel with an archive
-Drag the live bar back, tap the rewind button, or use **Go back to…** for a list of times. **Go live**
-returns.
+Drag the live bar back, tap the rewind button, or use **Go back to…** for a list of times — its first
+row, when the guide knows what is on, is **Start of “…”**, back to the beginning of the programme on
+air. **Go live** returns.
 
 ### ⏸️ Pause and rewind channels without catch-up
 **Where:** **Settings → Live TV → Pause and rewind live TV**
@@ -435,6 +441,7 @@ Every gesture above also has a button on the control bar:
 | **Quality** | Only when the stream offers several picture sizes. Auto, or one size for what is playing now |
 | **Favourite** | Adds what is playing |
 | **Catch-up** | *Go back to…* on archive channels |
+| **Sources** | Live: the same channel in another quality, category or playlist, the one playing ticked; tap one to switch. Locked and hidden channels are left out |
 | **Previous channel** | Back to the channel you watched before; tap again to flip back. Headphone "previous" does the same on live |
 | **⇄** | Swap the player engine |
 | **Channels** | The channel list, categories first |
@@ -503,7 +510,8 @@ Both devices open Local sync  →  pair (scan the QR, or pick from the list)
 **Where:** More → **Profiles**
 Each has its own favourites, history, resume points and layout. Add a **PIN**, or make it a **kids
 profile** to hide adult content everywhere. Pick one of ten drawn avatars — or **a photo of your
-own**, already while creating the profile.
+own**, already while creating the profile. Editing a profile also has **Allow downloads**: off removes
+every Download button for it. Downloading a whole show or season first asks "Download N episodes?".
 
 **Where a profile opens:** Settings → App → **App startup** — Home, the last channel (full screen),
 **Last channel · TV Guide** or **Last channel · Live TV** (that tab opens on the channel's category with
@@ -573,7 +581,7 @@ finds any setting by its name, and **Quick** holds the rows you pin yourself by 
 | **Pre-buffer** (+ per playlist) | Live TV | Collect a few seconds first on a flaky provider |
 | **Multiview** | Watching & recording | Off by default; also sets the tile ceiling |
 | **Record what I'm watching** | Watching & recording | Adds the Record button to the player |
-| **Auto frame rate** | Picture | Off by default; full screen, seamless switches only; warns where the display can't be asked |
+| **Auto frame rate for films and series** · **for Live TV** | Picture | Two switches; an earlier single setting carries into both. Off by default; full screen, seamless switches only; warns where the display can't be asked |
 | **Film buffer** · **Network timeout** · **Reconnect attempts** | Player | Films, episodes and catch-up on a bad line. Auto / 1 = as before |
 | **Reset saved live TV player choices** | Player | Undo per-channel player choices |
 | **Delay for this output** | Sound & subtitles | An audio delay for the output playing now — Bluetooth, the phone's speakers, headphones, HDMI — each kept on its own |

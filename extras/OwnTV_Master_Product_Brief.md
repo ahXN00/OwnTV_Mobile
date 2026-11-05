@@ -208,7 +208,8 @@ top. Predictive back is on.
 Seventy long-press handlers across twenty-one files — channels, films, shows, episodes, categories,
 downloads, recordings, guide rows, search results, playlists, EPG sources, profiles, quick toggles,
 the floating window and the navigation bar. The menus use core's own action keys and the user's saved
-order, so both apps offer the same actions in the same arrangement.
+order and hidden actions, so both apps offer the same actions in the same arrangement; a profile with
+downloads switched off has no Download anywhere, and a whole show or season asks first with the count.
 
 ---
 
@@ -230,7 +231,11 @@ Mobile-specific shapes:
   because a device has very few hardware video planes and a second SurfaceView gets audio and no
   picture. Landscape puts two per row; portrait stacks them.
 - **Connection limits** — measured once at a playlist's first sync and used to refuse a tile or a
-  recording with a sentence rather than a failure.
+  recording with a sentence rather than a failure. Re-test's measurement outranks the panel's number;
+  **Ignore connection limit** (per playlist) lets Multiview and recordings try more streams.
+- **Past days in the guide** — up to a week back when there is catch-up, filled from the provider's
+  archive as rows come on screen; **Go back to…** offers **Start of “…”** first, and the player's
+  **Sources** sheet lists the other versions of the channel playing.
 
 ---
 

@@ -49,6 +49,7 @@ import tv.own.owntv.core.model.HomeRow
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.repository.activeSourceIds
 import tv.own.owntv.core.settings.SettingsRepository
+import tv.own.owntv.core.sync.LibraryLoading
 import tv.own.owntv.mobile.ui.components.jsonList
 import tv.own.owntv.mobile.ui.screens.ContentActions
 import tv.own.owntv.mobile.ui.screens.library.VodTuner
@@ -77,7 +78,12 @@ class HomeViewModel(
     private val channelDao: ChannelDao,
     private val categoryDao: CategoryDao,
     private val customize: CustomizationStore,
+    libraryLoading: LibraryLoading,
 ) : ViewModel() {
+
+    /** Titles stored so far while one of this profile's playlists still loads after setup; 0 once none does. */
+    val libraryLoadingTitles: StateFlow<Int> = libraryLoading.titles
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private val profileId: StateFlow<Long> = settings.activeProfileId
         .map { stored -> if (stored >= 0) profileDao.resolveExistingProfileId(stored) ?: -1L else -1L }
@@ -107,7 +113,9 @@ class HomeViewModel(
     init {
         reloads.tryEmit(Unit)
         viewModelScope.launch {
-            combine(profileId, reloads) { pid, _ -> pid }.collectLatest { pid ->
+            // The playlist picker too: its rows are that playlist's, and without it a switch kept showing
+            // the previous playlist's rows until something else asked for a reload.
+            combine(profileId, settings.defaultSourceId.distinctUntilChanged(), reloads) { pid, _, _ -> pid }.collectLatest { pid ->
                 val feed = if (pid < 0) HomeFeed() else reader.load(pid)
                 _feed.value = feed
                 resolveHeroBackdrops(feed.heroItems)
@@ -377,5 +385,10 @@ class HomeViewModel(
 
     fun download(type: MediaType, itemId: Long) {
         viewModelScope.launch { actions.download(type, itemId) }
+    }
+
+    /** How many episodes downloading [seriesId] would queue, handed to [then] when there are any. */
+    fun countEpisodes(seriesId: Long, then: (Int) -> Unit) {
+        viewModelScope.launch { seriesDao.episodesBySeriesOnce(seriesId).size.takeIf { it > 0 }?.let(then) }
     }
 }

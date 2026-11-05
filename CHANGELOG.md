@@ -22,12 +22,31 @@
 - **👕 Team pages: fixtures, results, next match, last five and table place**
 - **🆕 54 more leagues, with Volleyball and Lacrosse**
 - **🔄 Calendar refresh setting**
+- **📚 Home says the library is still loading, with the titles so far**
+- **👁️ Long-press menus: hide actions, and the default order matches the menus**
+- **📺 Hide All channels or Catch-up from the Live TV categories**
+- **⬇️ Allow downloads per profile; a whole show or season asks first with the episode count**
+- **📅 TV Guide: catch-up channels show their past days, up to a week back**
+- **⏮️ "Start of the programme" first in "Go back to…"**
+- **🎞️ Auto frame rate: separate switches for films and series, and Live TV**
+- **🔓 Ignore connection limit, per playlist**
+- **🔀 Sources: switch to another version of the channel playing**
+- **🧭 TV Guide follows Live TV's category, as a switch in Browsing & lists**
+- **👤 Each profile remembers its own last category and channel**
 
 ### Fixes
 - **Deleting a download or recording asks first**
+- **Re-test measures the connection limit on Xtream, and the next sync keeps it**
+- **"Live now" shows the programme's start and end**
 - **Moved categories, channels, films and series keep their place in A–Z and Provider; the rest follow the sort**
 - **"Mark as watched" no longer shows "0 min"**
 - **Clean channel names can be found in Settings search**
+- **Channel logos no longer all disappear when one fails to load (#73)**
+- **Backup to "File on this phone" no longer crashes when no app can save it (#74)**
+- **Home, Library and the TV Guide follow the playlist you switch to**
+- **Large playlists keep loading in the background after a pause, and a minute after playback stops**
+- **Films tagged " - CAM" find their poster**
+- **Stalker series filed under films get their episodes**
 - **Live TV no longer keeps showing a category from the playlist you just switched away from**
 - **An Xtream playlist with a refused password says so instead of loading empty**
 - **A changed password, server, username or MAC re-syncs the playlist on save**
@@ -42,6 +61,7 @@
 - **A live channel whose decoder fails to start is retried a few more times before giving up**
 - **Dolby Vision profile 5 films and series play with the right colours on mpv**
 - **Apple FairPlay channels say why they cannot play; FairPlay-labelled ClearKey channels play**
+- **Live TV no longer comes back on a hidden, locked or deleted category; switching profile brings back that profile's own**
 
 ## v1.1.1 — 2026-10-21
 

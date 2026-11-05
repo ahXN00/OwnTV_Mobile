@@ -418,6 +418,7 @@ fun LiveScreen(
                 offsetsSec = tuner.jumpOptions(),
                 windowSec = tuner.archiveWindowSec(),
                 onPick = tuner::jumpBackTo,
+                programmeStart = tuner::currentProgrammeStart,
             ),
             onDismiss = { jumpBackOpen = false },
         )
