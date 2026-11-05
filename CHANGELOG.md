@@ -31,6 +31,8 @@
 - **🎞️ Auto frame rate: separate switches for films and series, and Live TV**
 - **🔓 Ignore connection limit, per playlist**
 - **🔀 Sources: switch to another version of the channel playing**
+- **🧭 TV Guide follows Live TV's category, as a switch in Browsing & lists**
+- **👤 Each profile remembers its own last category and channel**
 
 ### Fixes
 - **Deleting a download or recording asks first**
@@ -59,6 +61,10 @@
 - **A live channel whose decoder fails to start is retried a few more times before giving up**
 - **Dolby Vision profile 5 films and series play with the right colours on mpv**
 - **Apple FairPlay channels say why they cannot play; FairPlay-labelled ClearKey channels play**
+- **Live TV no longer comes back on a hidden, locked or deleted category; switching profile brings back that profile's own**
+- **A channel from Search opens Live TV on its own category, scrolled to it** (community PR #75 by @saltimbanco)
+- **Series whose episodes carry two dates load their episodes again**
+- **A guide download cut off midway no longer deletes the rest of the guide**
 
 ## v1.1.1 — 2026-10-21
 
