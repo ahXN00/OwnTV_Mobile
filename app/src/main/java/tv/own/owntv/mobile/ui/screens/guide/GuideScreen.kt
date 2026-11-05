@@ -147,6 +147,7 @@ fun GuideScreen(
     val tuner: LiveTuner = koinInject()
     val categories by live.categories.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
+    val followsLive by live.guideFollowsLive.collectAsStateWithLifecycle()
     // All channels or Catch-up the user hid is not left on screen: the guide moves to where Live TV
     // lands. An empty list is the one not loaded yet.
     LaunchedEffect(categories, selected) {
@@ -252,10 +253,15 @@ fun GuideScreen(
 
     // "Start on: Last channel · TV Guide": its category, its row scrolled to, and what is on it now picked
     // and previewing, as a tap on the channel does. Only the grid has the preview; other views just show it.
+    // Otherwise, with "TV Guide follows Live TV" on, the guide opens on Live TV's remembered category.
     val startupSelection: StartupLiveSelection = koinInject()
     val settings: SettingsRepository = koinInject()
     LaunchedEffect(Unit) {
-        val channel = startupSelection.consumeChannel(guide = true) ?: return@LaunchedEffect
+        val channel = startupSelection.consumeChannel(guide = true)
+        if (channel == null) {
+            live.guideOpeningKey()?.let(vm::select)
+            return@LaunchedEffect
+        }
         vm.select(live.categoryKeyOf(channel))
         withTimeoutOrNull(STARTUP_ROW_WAIT_MS) {
             snapshotFlow { channels.itemSnapshotList.items.indexOfFirst { it.id == channel.id } }.first { it >= 0 }
@@ -405,7 +411,10 @@ fun GuideScreen(
             counts = counts,
             showCounts = showCounts,
             marks = marksBySource,
-            onSelect = vm::select,
+            onSelect = { key ->
+                vm.select(key)
+                if (followsLive) live.select(key) // one remembered category for both
+            },
             onHold = { categoryMenuFor = it },
             onDismiss = { categoriesOpen = false },
             title = stringResource(R.string.content_epg_guide_category),

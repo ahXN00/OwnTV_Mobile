@@ -450,6 +450,7 @@
 1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPages.kt	#FFFFFF
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPages.kt	accent
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPages.kt	browse_cat_$titleRes
+1	technical	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPages.kt	browse_guide_follows_live
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPages.kt	browse_item_$titleRes
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPages.kt	browse_live_all
 1	preference-key	app/src/main/java/tv/own/owntv/mobile/ui/screens/settings/SettingsLayoutPages.kt	browse_live_catchup

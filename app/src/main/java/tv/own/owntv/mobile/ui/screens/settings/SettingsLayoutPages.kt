@@ -131,11 +131,17 @@ fun SettingsBrowsingPage(modifier: Modifier = Modifier, vm: SettingsViewModel = 
             (({ on: Boolean -> vm.edit { setRememberCategorySeries(on) } }) to ({ on: Boolean -> vm.edit { setRememberLastSeries(on) } }))),
     )
     val note = stringResource(R.string.settings_browsing_description_full)
+    // Live TV's section only: whether the TV Guide shares its remembered category, under that row.
+    val guideFollows = switchItem(
+        "browse_guide_follows_live", MobileIcons.Guide, stringResource(R.string.settings_guide_follows_live),
+        stringResource(R.string.settings_guide_follows_live_description), s.guideFollowsLiveCategory.pref(false),
+    ) { on -> vm.edit { setGuideFollowsLiveCategory(on) } }
     val built = sections.map { (titleRes, values, setters) ->
         SettingSection(
             stringResource(titleRes),
-            listOf(
+            listOfNotNull(
                 switchItem("browse_cat_$titleRes", MobileIcons.Folder, stringResource(R.string.settings_browsing_last_category), null, values.first, setters.first),
+                guideFollows.takeIf { titleRes == R.string.common_nav_live_tv },
                 switchItem("browse_item_$titleRes", MobileIcons.History, stringResource(R.string.settings_browsing_last_item), null, values.second, setters.second),
             ),
         )
