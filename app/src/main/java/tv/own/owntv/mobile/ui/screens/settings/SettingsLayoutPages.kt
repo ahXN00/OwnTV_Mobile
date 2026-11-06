@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 import tv.own.owntv.core.menu.MenuLayout
 import tv.own.owntv.core.menu.applyMenuOrder
-import tv.own.owntv.core.menu.catalogue
+import tv.own.owntv.core.menu.phoneCatalogue
 import tv.own.owntv.core.model.ContentMenu
 import tv.own.owntv.core.theme.AccentColor
 import tv.own.owntv.core.theme.ThemeMode
@@ -189,8 +189,8 @@ fun SettingsMenusPage(modifier: Modifier = Modifier, vm: SettingsViewModel = koi
 @Composable
 private fun MenuOrderSheet(vm: SettingsViewModel, menu: ContentMenu, onDismiss: () -> Unit) {
     val layout = remember(menu) { vm.settings.menuLayout(menu) }.pref(MenuLayout())
-    val actions = applyMenuOrder(catalogue(menu), layout.order) { it.key }
-    val shipped = catalogue(menu).map { it.key }
+    val actions = applyMenuOrder(phoneCatalogue(menu), layout.order) { it.key }
+    val shipped = phoneCatalogue(menu).map { it.key }
     // A list equal to the shipped one is saved as "no order", so a later release's new action keeps its place.
     fun save(order: List<String>, hidden: Set<String>) = vm.edit { setMenuLayout(menu, MenuLayout(order.takeIf { it != shipped }.orEmpty(), hidden)) }
     MobileBottomSheet(onDismissRequest = onDismiss) {
