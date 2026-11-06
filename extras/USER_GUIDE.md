@@ -299,6 +299,8 @@ Off by default. While you watch a channel full screen, OwnTV saves it on this ph
 from that copy, so it still looks live — and you can **pause**, rewind and go forward on channels
 whose provider keeps no archive. Pause, the rewind button, forward (once you are behind), the bar and **Go live** work as on a catch-up channel. A dark stretch on the bar is a moment the connection
 dropped; playback jumps over it. If your internet drops, saving waits and carries on when it is back; the channel picks up by itself.
+Without it, a live channel paused for more than a minute — by you, a headphone unplug or the screen
+going off — goes back to the live edge when you press Play; a shorter pause carries on where it was.
 
 - **Rewind length:** 15 (default), 30, 45 or 60 minutes. At least **1 GB** of the phone's storage always
   stays free; the oldest part goes first.

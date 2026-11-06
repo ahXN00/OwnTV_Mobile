@@ -137,7 +137,8 @@ than growing.
 - **Audio focus for a phone** — a call **pauses** the film rather than playing it quietly under the
   caller, and it plays on by itself when the call ends; WhatsApp and other internet calls too (from
   Android 12). A notification sound only turns it down for a moment. Unplugging headphones stops it
-  instead of switching to the loudspeaker. These differ from the television's defaults on purpose.
+  instead of switching to the loudspeaker. Play after a live pause of over a minute goes back to the
+  live edge rather than resuming old pictures. These differ from the television's defaults on purpose.
 - **Casting (Google Cast)** — sender-side only, and absent from the television by nature: an Android
   TV box *is* a receiver. `CastPlaybackEngine` is another `PlaybackEngine`, so the lock screen and
   notification followed it for free. A stream a receiver cannot decode gets a readable, translated

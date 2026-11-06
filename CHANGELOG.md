@@ -65,6 +65,8 @@
 - **A channel from Search opens Live TV on its own category, scrolled to it** (community PR #75 by @saltimbanco)
 - **Series whose episodes carry two dates load their episodes again**
 - **A guide download cut off midway no longer deletes the rest of the guide**
+- **Play after a pause of over a minute on a live channel goes to the live edge, after a headphone unplug or a screen-off too**
+- **Panels that serve some channels as HLS behind a .ts address open faster and no longer fail after an offline channel** (community PRs ahXN00/OwnTV_Core#76 and #77 by @SirKitboard)
 
 ## v1.1.1 — 2026-10-21
 
