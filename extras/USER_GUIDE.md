@@ -494,7 +494,8 @@ the phone's lock screen and notification then drive *it*.
 
 **Where:** More → **Local sync**
 Swap playlists, profiles, favourites, history and resume positions with the television over your own
-Wi-Fi. No account, no cloud, no file.
+Wi-Fi. No account, no cloud, no file. **Only the profile in use syncs**, into the profile in use on
+the TV, whatever their names — like one viewer on two screens.
 
 ```
 Both devices open Local sync  →  pair (scan the QR, or pick from the list)
@@ -510,9 +511,11 @@ Both devices open Local sync  →  pair (scan the QR, or pick from the list)
 
 **Auto-sync** — tap a paired device → **Auto-sync** to keep the two in step by themselves. Turn it on
 with Local sync open on both; the other device asks "Allow auto-sync?".
+- It pairs the profile in use here with the one in use on the TV when it is turned on ("Profiles:
+  X ↔ B"); switching profile later does not change the pair.
 - Each device ticks what it lets through — Favorites, Watch history, Resume positions, Customizations
   and Manual reorder by default; **Sources** (the playlists, with their logins) and **App settings** only
-  where they are ticked — and which profiles.
+  where they are ticked.
 - **How often** is the least time between two syncs: each time either app opens or closes, 6 hours,
   daily or weekly. A sync is tried when OwnTV opens or goes to the background, when the Wi-Fi comes
   back, and by an hourly check on Wi-Fi with the battery not low.
@@ -540,9 +543,8 @@ ask for it too, until you leave the app or switch profile; favourites and playin
 
 **Protected profiles:** a profile with a PIN or a Settings lock is protected, and so are its playlists.
 A new profile gets only the playlists no protected profile uses (none, if every one belongs to one).
-From another profile, a backup includes it, a restore or Local sync changes it, and editing or
-deleting it happen only after one of its PINs; without it, a backup or sync leaves it out and a
-restore leaves it as it is.
+From another profile, ticking it for a backup, merging into or replacing it in a restore, and editing
+or deleting it ask one of its PINs. Local sync never touches it unless it is the profile in use.
 
 **Where a profile opens:** Settings → App → **App startup** — Home, the last channel (full screen),
 **Last channel · TV Guide** or **Last channel · Live TV** (that tab opens on the channel's category with
@@ -634,6 +636,12 @@ finds any setting by its name, and **Quick** holds the rows you pin yourself by 
 **Where:** More → **Backup & Restore**
 One `.own` file with your profiles, sources, settings and downloaded subtitles, **optionally
 encrypted with your own password**. Choose which profiles travel. Restores a television backup too.
+
+**Same name on both sides:** restoring a profile whose name is already here asks, per profile:
+**Merge into it** (keep what it has, add the backup's), **Replace it** (clear its data here for the
+parts being restored, then restore) or **Keep both** (the backup's comes in as "<name> (restored)").
+Merging into or replacing a locked profile other than the one in use asks its PIN; everything else
+needs only the backup password. A locked profile stays locked after a restore.
 
 ---
 

@@ -45,19 +45,27 @@ class BackupViewModel(
     /** Profiles with a profile lock or a Settings lock: another profile needs one of their PINs. */
     suspend fun protectedIds(): Set<Long> = protection.protectedIds()
 
-    /**
-     * Protected profiles (not the one in use) a restore would change: each one's PIN is asked before
-     * it runs; one left without its PIN stays exactly as it is.
-     */
-    var protectedAsk by mutableStateOf<List<ProfileEntity>?>(null)
-        private set
-    private var protectedAskFor: Triple<Set<BackupManager.Section>, String?, Boolean>? = null
+    /** A restore waiting for what to do with the file's profiles named like ones here. */
+    class ClashAsk(
+        val sections: Set<BackupManager.Section>,
+        val password: String?,
+        val deviceSettings: Boolean,
+        val clashes: List<BackupManager.ProfileClash>,
+        val protectedIds: Set<Long>,
+    )
 
-    fun protectedAnswered(unlocked: Set<Long>) {
-        val (sections, password, deviceSettings) = protectedAskFor ?: return
-        protectedAsk = null
-        protectedAskFor = null
-        restore(sections, password, deviceSettings, unlocked)
+    var clashAsk by mutableStateOf<ClashAsk?>(null)
+        private set
+
+    /** Every clash answered, by the profile's id in the file: the restore runs now. */
+    fun clashesAnswered(choices: Map<Long, BackupManager.ProfileRestoreChoice>) {
+        val ask = clashAsk ?: return
+        clashAsk = null
+        restore(ask.sections, ask.password, ask.deviceSettings, choices)
+    }
+
+    fun cancelClashes() {
+        clashAsk = null
     }
 
     val profiles: StateFlow<List<ProfileEntity>> = profileDao.observeAll()
@@ -236,24 +244,26 @@ class BackupViewModel(
      * Restore [sections]. [password] may be null even for an encrypted file: everything but the
      * saved passwords comes back, which is a fair trade for a forgotten passphrase.
      */
-    fun restore(sections: Set<BackupManager.Section>, password: String?, deviceSettings: Boolean = false, unlocked: Set<Long>? = null) {
+    fun restore(
+        sections: Set<BackupManager.Section>,
+        password: String?,
+        deviceSettings: Boolean = false,
+        choices: Map<Long, BackupManager.ProfileRestoreChoice>? = null,
+    ) {
         val current = pending ?: return
         if (busy) return
         viewModelScope.launch {
             busy = true
             val key = password ?: current.password
-            if (unlocked == null) {
-                val touched = backup.sectionsIn(current.file, key).getOrNull()?.touchedProfileIds.orEmpty()
-                val asking = protection.needingPin(touched)
-                if (asking.isNotEmpty()) {
-                    protectedAskFor = Triple(sections, password, deviceSettings)
-                    protectedAsk = asking
+            if (choices == null) {
+                val clashes = backup.sectionsIn(current.file, key).getOrNull()?.clashes.orEmpty()
+                if (clashes.isNotEmpty()) {
+                    clashAsk = ClashAsk(sections, password, deviceSettings, clashes, protection.protectedIds())
                     busy = false
                     return@launch
                 }
             }
-            val holdBack = protection.heldBack(unlocked.orEmpty())
-            backup.import(current.file, sections, key, deviceSettings = deviceSettings, holdBack = holdBack).fold(
+            backup.import(current.file, sections, key, deviceSettings = deviceSettings, profileChoices = choices.orEmpty()).fold(
                 onSuccess = {
                     outcome = Outcome.Restored(it)
                     current.file.delete()

@@ -183,14 +183,6 @@ fun SettingsLocalSyncPage(
         }
     }
 
-    vm.protectedAsk?.let { profiles ->
-        tv.own.owntv.mobile.ui.profiles.ProtectedProfilesStep(
-            profiles = profiles,
-            body = stringResource(R.string.profiles_protected_include),
-            verify = vm::verifyPin,
-            onDone = vm::protectedAnswered,
-        )
-    }
     when (val step = vm.step) {
         null -> Unit
         is LocalSyncViewModel.Step.FindDevice -> FindDeviceSheet(vm)
@@ -203,6 +195,7 @@ fun SettingsLocalSyncPage(
         )
         is LocalSyncViewModel.Step.ChooseSections -> SectionsSheet(
             direction = step.direction,
+            profileName = vm.activeProfileName.collectAsStateWithLifecycle().value,
             onStart = vm::start,
             onDismiss = vm::cancel,
         )
@@ -289,14 +282,6 @@ fun SetupLocalSyncStep(
         started = true
     }
 
-    vm.protectedAsk?.let { profiles ->
-        tv.own.owntv.mobile.ui.profiles.ProtectedProfilesStep(
-            profiles = profiles,
-            body = stringResource(R.string.profiles_protected_include),
-            verify = vm::verifyPin,
-            onDone = vm::protectedAnswered,
-        )
-    }
     val step = vm.step
     LaunchedEffect(step, started) {
         when {
@@ -332,6 +317,7 @@ fun SetupLocalSyncStep(
             is LocalSyncViewModel.Step.ChooseDirection -> Unit
             is LocalSyncViewModel.Step.ChooseSections -> SectionsSheet(
                 direction = step.direction,
+                profileName = vm.activeProfileName.collectAsStateWithLifecycle().value,
                 onStart = vm::start,
                 onDismiss = vm::cancel,
             )
@@ -579,6 +565,7 @@ private fun DirectionSheet(
 @Composable
 private fun SectionsSheet(
     direction: SyncDirection,
+    profileName: String,
     onStart: (Set<BackupManager.Section>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -601,6 +588,7 @@ private fun SectionsSheet(
             verticalArrangement = Arrangement.spacedBy(MobileDimens.GapTiny),
         ) {
             SyncNote(stringResource(R.string.local_sync_sections_hint))
+            SyncNote(stringResource(R.string.local_sync_profile_note, profileName))
             SyncCheckRow(
                 label = stringResource(R.string.local_sync_everything),
                 description = null,

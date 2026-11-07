@@ -186,12 +186,15 @@ fun SettingsBackupPage(
         }
     }
 
-    vm.protectedAsk?.let { asking ->
-        tv.own.owntv.mobile.ui.profiles.ProtectedProfilesStep(
-            profiles = asking,
-            body = stringResource(R.string.profiles_protected_include),
+    // Profiles in the file named like ones here: Merge, Replace or Keep both, one at a time.
+    vm.clashAsk?.let { ask ->
+        RestoreClashSheet(
+            ask = ask,
+            profiles = profiles,
+            activeId = activeId,
             verify = vm::verifyPin,
-            onDone = vm::protectedAnswered,
+            onDone = vm::clashesAnswered,
+            onCancel = vm::cancelClashes,
         )
     }
 

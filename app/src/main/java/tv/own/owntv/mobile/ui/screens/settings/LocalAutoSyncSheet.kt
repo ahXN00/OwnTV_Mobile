@@ -45,18 +45,11 @@ fun LocalAutoSyncSheet(vm: LocalAutoSyncViewModel, device: PairedDevice, onDismi
     val enabled = agreement != null
     var timing by remember(device.id) { mutableStateOf<LocalAutoSyncTiming?>(null) }
     var sections by remember(device.id) { mutableStateOf<Set<BackupManager.Section>?>(null) }
-    var profileDraft by remember(device.id) { mutableStateOf<Set<Long>?>(null) }
     val asking = enableState is LocalAutoSyncViewModel.EnableState.Asking
 
-    val allProfiles = profiles.map { it.id }.toSet()
     val chosenTiming = timing ?: agreement?.timing ?: LocalAutoSyncTiming.DEFAULT
     val chosenSections = sections ?: agreement?.sections ?: AutoSyncAgreement.DEFAULT_SECTIONS
-    val chosenProfiles = profileDraft
-        ?: if (profiles.size <= 1) allProfiles
-        else agreement?.profileIds?.takeIf { it.isNotEmpty() }?.intersect(allProfiles) ?: allProfiles
-    // Everything ticked is saved as "every profile", so a viewer added later is included too.
-    val profilesToSave = if (chosenProfiles.size == allProfiles.size) emptySet() else chosenProfiles
-    val choicesValid = chosenSections.isNotEmpty() && (allProfiles.isEmpty() || chosenProfiles.isNotEmpty())
+    val choicesValid = chosenSections.isNotEmpty()
 
     val dismiss = {
         vm.cancelEnable()
@@ -77,7 +70,7 @@ fun LocalAutoSyncSheet(vm: LocalAutoSyncViewModel, device: PairedDevice, onDismi
                     else -> stringResource(R.string.local_auto_sync_enable_hint)
                 },
                 checked = enabled,
-                onToggle = { on -> if (on) vm.enable(device, chosenSections, profilesToSave, chosenTiming) else vm.disable(device.id) },
+                onToggle = { on -> if (on) vm.enable(device, chosenSections, chosenTiming) else vm.disable(device.id) },
                 enabled = !asking && (enabled || choicesValid),
             )
             when (val state = enableState) {
@@ -85,6 +78,13 @@ fun LocalAutoSyncSheet(vm: LocalAutoSyncViewModel, device: PairedDevice, onDismi
                 is LocalAutoSyncViewModel.EnableState.Failed -> SyncDangerNote(stringResource(state.reason.messageRes()))
                 else -> Unit
             }
+            // Which profiles this is between: fixed when it was set up, whatever is on screen later.
+            val activeId by vm.activeProfileId.collectAsStateWithLifecycle()
+            val hereName = profiles.firstOrNull { it.id == (agreement?.localProfileId ?: activeId) }?.name.orEmpty()
+            SyncNote(
+                if (agreement != null) stringResource(R.string.local_auto_sync_profiles, hereName, agreement.theirProfileName)
+                else stringResource(R.string.local_auto_sync_profile_hint, hereName, device.name),
+            )
             agreement?.theirSections?.takeIf { it.isNotEmpty() }?.let { theirs ->
                 SyncNote(
                     stringResource(
@@ -105,18 +105,6 @@ fun LocalAutoSyncSheet(vm: LocalAutoSyncViewModel, device: PairedDevice, onDismi
                     enabled = !asking,
                 )
             }
-            if (profiles.size > 1) {
-                StageGroupLabel(stringResource(R.string.local_auto_sync_what_profiles))
-                profiles.forEach { profile ->
-                    SyncCheckRow(
-                        label = profile.name,
-                        description = null,
-                        checked = profile.id in chosenProfiles,
-                        onToggle = { on -> profileDraft = if (on) chosenProfiles + profile.id else chosenProfiles - profile.id },
-                        enabled = !asking,
-                    )
-                }
-            }
             StageGroupLabel(stringResource(R.string.local_auto_sync_when))
             LocalAutoSyncTiming.entries.forEach { option ->
                 StageSettingRow(
@@ -132,7 +120,7 @@ fun LocalAutoSyncSheet(vm: LocalAutoSyncViewModel, device: PairedDevice, onDismi
             confirm = stringResource(R.string.common_save),
             confirmEnabled = enabled && !asking && choicesValid,
             onConfirm = {
-                vm.save(device.id, chosenSections, profilesToSave, chosenTiming)
+                vm.save(device.id, chosenSections, chosenTiming)
                 onDismiss()
             },
             onDismiss = dismiss,

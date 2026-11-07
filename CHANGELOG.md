@@ -15,7 +15,9 @@
 - **🚀 Start on the last channel in the TV Guide or Live TV**
 - **🔒 Lock a category with its own category lock PIN**
 - **🔐 Settings › App › Settings lock: a PIN of its own per profile, optionally for long-press changes too**
-- **🛡️ Protected profiles: new profiles, backups, restores, Local sync and profile edits respect profile and Settings locks**
+- **🛡️ Protected profiles: new profiles, backups, restores and profile edits respect profile and Settings locks**
+- **🔀 Restore: a profile with the same name asks Merge, Replace or Keep both**
+- **👤 Local sync syncs the profile in use with the one in use on the other device**
 - **🔁 Local auto-sync: paired devices keep each other in step by themselves, with what each one allows** (community PR #71 by @igebara)
 - **👂 Keep auto-sync listening, as a switch (off by default)**
 - **🔑 Stalker portals: an optional username and password**
