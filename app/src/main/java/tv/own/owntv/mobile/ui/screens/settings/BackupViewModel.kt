@@ -21,7 +21,6 @@ import tv.own.owntv.core.companion.CompanionLink
 import tv.own.owntv.core.companion.CompanionServerState
 import tv.own.owntv.core.database.dao.ProfileDao
 import tv.own.owntv.core.database.entity.ProfileEntity
-import tv.own.owntv.core.profile.ProfileManager
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.mobile.R
 import java.io.File
@@ -36,12 +35,30 @@ import java.io.File
  */
 class BackupViewModel(
     private val backup: BackupManager,
-    private val profileManager: ProfileManager,
     private val context: Context,
     profileDao: ProfileDao,
     settings: SettingsRepository,
     private val companion: CompanionController,
+    private val protection: tv.own.owntv.core.profile.ProfileProtection,
 ) : ViewModel() {
+
+    /** Profiles with a profile lock or a Settings lock: another profile needs one of their PINs. */
+    suspend fun protectedIds(): Set<Long> = protection.protectedIds()
+
+    /**
+     * Protected profiles (not the one in use) a restore would change: each one's PIN is asked before
+     * it runs; one left without its PIN stays exactly as it is.
+     */
+    var protectedAsk by mutableStateOf<List<ProfileEntity>?>(null)
+        private set
+    private var protectedAskFor: Triple<Set<BackupManager.Section>, String?, Boolean>? = null
+
+    fun protectedAnswered(unlocked: Set<Long>) {
+        val (sections, password, deviceSettings) = protectedAskFor ?: return
+        protectedAsk = null
+        protectedAskFor = null
+        restore(sections, password, deviceSettings, unlocked)
+    }
 
     val profiles: StateFlow<List<ProfileEntity>> = profileDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
@@ -126,7 +143,8 @@ class BackupViewModel(
         }
     }
 
-    fun verifyPin(profile: ProfileEntity, pin: String): Boolean = profileManager.verifyPin(profile, pin)
+    /** A protected profile's profile PIN or Settings PIN, for including or changing it. */
+    suspend fun verifyPin(profile: ProfileEntity, pin: String): tv.own.owntv.core.categorylock.PinAttempt = protection.verify(profile, pin)
 
     /**
      * What to write once the save picker returns: the user has already said what to export, and the
@@ -218,12 +236,24 @@ class BackupViewModel(
      * Restore [sections]. [password] may be null even for an encrypted file: everything but the
      * saved passwords comes back, which is a fair trade for a forgotten passphrase.
      */
-    fun restore(sections: Set<BackupManager.Section>, password: String?, deviceSettings: Boolean = false) {
+    fun restore(sections: Set<BackupManager.Section>, password: String?, deviceSettings: Boolean = false, unlocked: Set<Long>? = null) {
         val current = pending ?: return
         if (busy) return
         viewModelScope.launch {
             busy = true
-            backup.import(current.file, sections, password ?: current.password, deviceSettings = deviceSettings).fold(
+            val key = password ?: current.password
+            if (unlocked == null) {
+                val touched = backup.sectionsIn(current.file, key).getOrNull()?.touchedProfileIds.orEmpty()
+                val asking = protection.needingPin(touched)
+                if (asking.isNotEmpty()) {
+                    protectedAskFor = Triple(sections, password, deviceSettings)
+                    protectedAsk = asking
+                    busy = false
+                    return@launch
+                }
+            }
+            val holdBack = protection.heldBack(unlocked.orEmpty())
+            backup.import(current.file, sections, key, deviceSettings = deviceSettings, holdBack = holdBack).fold(
                 onSuccess = {
                     outcome = Outcome.Restored(it)
                     current.file.delete()

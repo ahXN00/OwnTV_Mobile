@@ -1,5 +1,6 @@
 package tv.own.owntv.mobile.ui.screens.settings
 
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.activity.ComponentActivity
@@ -49,6 +50,9 @@ internal fun profileSections(
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<ProfileEntity?>(null) }
     var pinFor by remember { mutableStateOf<ProfileEntity?>(null) }
+    // Editing (or, from the editor, deleting) a protected profile from another one asks one of its PINs first.
+    var pinBeforeEdit by remember { mutableStateOf<ProfileEntity?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val list = profiles.orEmpty()
 
     // Switching here is the same authentication boundary as the launch chooser, so the session is told.
@@ -60,6 +64,15 @@ internal fun profileSections(
             profileName = locked.name,
             onSubmit = { pin -> vm.verifyPin(locked, pin).also { if (it) { pinFor = null; switchTo(locked) } } },
             onDismiss = { pinFor = null },
+        )
+    }
+    pinBeforeEdit?.let { profile ->
+        tv.own.owntv.mobile.ui.profiles.ProtectedProfilePinSheet(
+            profileName = profile.name,
+            body = stringResource(R.string.profiles_protected_edit),
+            verify = { pin -> vm.verifyProtected(profile, pin) },
+            onUnlocked = { pinBeforeEdit = null; editing = profile },
+            onDismiss = { pinBeforeEdit = null },
         )
     }
     if (adding) {
@@ -135,7 +148,9 @@ internal fun profileSections(
                     modifier = Modifier.size(34.dp).clip(CircleShape),
                 )
             },
-            onLongClick = { editing = profile },
+            onLongClick = {
+                scope.launch { if (vm.changeNeedsPin(profile, activeId ?: -1L)) pinBeforeEdit = profile else editing = profile }
+            },
         )
     }
     val add = SettingItem(

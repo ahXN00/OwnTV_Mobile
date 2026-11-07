@@ -13,8 +13,9 @@
 - **✨ Clean channel names: a Names option on each playlist**
 - **📋 EPG sources: Move up / Move down set the guide priority**
 - **🚀 Start on the last channel in the TV Guide or Live TV**
-- **🔒 Lock a category with the Customize PIN**
-- **🔐 Ask for the PIN to open Settings**
+- **🔒 Lock a category with its own category lock PIN**
+- **🔐 Settings › App › Settings lock: a PIN of its own per profile, optionally for long-press changes too**
+- **🛡️ Protected profiles: new profiles, backups, restores, Local sync and profile edits respect profile and Settings locks**
 - **🔑 Stalker portals: an optional username and password**
 - **🏆 Sports: Scores | Calendar | Leagues tabs**
 - **📅 Sports Calendar: the month of every followed league, with the day's matches**

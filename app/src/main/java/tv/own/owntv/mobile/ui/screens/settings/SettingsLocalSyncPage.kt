@@ -145,6 +145,14 @@ fun SettingsLocalSyncPage(
         }
     }
 
+    vm.protectedAsk?.let { profiles ->
+        tv.own.owntv.mobile.ui.profiles.ProtectedProfilesStep(
+            profiles = profiles,
+            body = stringResource(R.string.profiles_protected_include),
+            verify = vm::verifyPin,
+            onDone = vm::protectedAnswered,
+        )
+    }
     when (val step = vm.step) {
         null -> Unit
         is LocalSyncViewModel.Step.FindDevice -> FindDeviceSheet(vm)
@@ -204,6 +212,14 @@ fun SetupLocalSyncStep(
         started = true
     }
 
+    vm.protectedAsk?.let { profiles ->
+        tv.own.owntv.mobile.ui.profiles.ProtectedProfilesStep(
+            profiles = profiles,
+            body = stringResource(R.string.profiles_protected_include),
+            verify = vm::verifyPin,
+            onDone = vm::protectedAnswered,
+        )
+    }
     val step = vm.step
     LaunchedEffect(step, started) {
         when {
