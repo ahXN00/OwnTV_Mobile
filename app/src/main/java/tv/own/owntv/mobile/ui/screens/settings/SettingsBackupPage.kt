@@ -55,7 +55,6 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileIcons
 import tv.own.owntv.mobile.ui.components.StageConfirmItems
-import tv.own.owntv.mobile.ui.profiles.ProfilePinSheet
 import tv.own.owntv.mobile.ui.screens.MoreCountsViewModel
 import tv.own.owntv.mobile.ui.setup.copyPickedFile
 import tv.own.owntv.mobile.ui.setup.rememberBackupFilePicker
@@ -187,10 +186,26 @@ fun SettingsBackupPage(
         }
     }
 
+    // Profiles in the file named like ones here: Merge, Replace or Keep both, one at a time.
+    vm.clashAsk?.let { ask ->
+        RestoreClashSheet(
+            ask = ask,
+            profiles = profiles,
+            activeId = activeId,
+            verify = vm::verifyPin,
+            onDone = vm::clashesAnswered,
+            onCancel = vm::cancelClashes,
+        )
+    }
+
     exportTarget?.let { target ->
+        var protectedIds by remember(target) { mutableStateOf<Set<Long>?>(null) }
+        LaunchedEffect(target) { protectedIds = vm.protectedIds() }
+        val known = protectedIds ?: return@let
         ExportSheet(
             profiles = profiles,
             activeProfileId = activeId,
+            protectedIds = known,
             verifyPin = vm::verifyPin,
             onExport = { request ->
                 exportTarget = null
@@ -451,7 +466,8 @@ private fun SwitchRow(label: String, description: String?, checked: Boolean, onT
 private fun ExportSheet(
     profiles: List<ProfileEntity>,
     activeProfileId: Long,
-    verifyPin: (ProfileEntity, String) -> Boolean,
+    protectedIds: Set<Long>,
+    verifyPin: suspend (ProfileEntity, String) -> tv.own.owntv.core.categorylock.PinAttempt,
     onExport: (ExportRequest) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -466,7 +482,7 @@ private fun ExportSheet(
         Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
             StageGroupLabel(stringResource(R.string.settings_backup_which_profiles))
             profiles.forEach { profile ->
-                val locked = profile.pinHash != null && profile.id != activeProfileId
+                val locked = profile.id in protectedIds && profile.id != activeProfileId
                 SwitchRow(
                     label = if (profile.id == activeProfileId) stringResource(R.string.settings_backup_profile_current, profile.name) else profile.name,
                     description = if (locked) stringResource(R.string.settings_backup_pin_locked) else null,
@@ -510,16 +526,11 @@ private fun ExportSheet(
     }
 
     pinFor?.let { locked ->
-        ProfilePinSheet(
+        tv.own.owntv.mobile.ui.profiles.ProtectedProfilePinSheet(
             profileName = locked.name,
-            onSubmit = { pin ->
-                verifyPin(locked, pin).also {
-                    if (it) {
-                        profileIds = profileIds + locked.id
-                        pinFor = null
-                    }
-                }
-            },
+            body = stringResource(R.string.settings_backup_profile_pin_description),
+            verify = { pin -> verifyPin(locked, pin) },
+            onUnlocked = { profileIds = profileIds + locked.id; pinFor = null },
             onDismiss = { pinFor = null },
         )
     }

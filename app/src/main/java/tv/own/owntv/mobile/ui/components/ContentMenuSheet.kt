@@ -67,6 +67,8 @@ fun ContentMenuSheet(
     val settings: SettingsRepository = koinInject()
     val layout by remember(menu) { settings.menuLayout(menu) }.collectAsStateWithLifecycle(MenuLayout())
     val headings = layout.isShippedOrder(menu)
+    // The organising actions ask for the Settings PIN first when its long-press switch is on.
+    val gate: tv.own.owntv.mobile.ui.categorylock.MenuChangeGate = koinInject()
 
     MobileBottomSheet(onDismissRequest = onDismiss, title = title, modifier = modifier) {
         StageSheetHeader(title = title, subtitle = subtitle, leading = leading)
@@ -83,7 +85,7 @@ fun ContentMenuSheet(
                 StageMenuItem(
                     label = action.label,
                     onClick = {
-                        action.onClick()
+                        if (action.key in tv.own.owntv.core.categorylock.GUARDED_MENU_ACTIONS) gate.run(action.onClick) else action.onClick()
                         onDismiss()
                     },
                     icon = action.icon,

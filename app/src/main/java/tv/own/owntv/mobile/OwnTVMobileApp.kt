@@ -181,6 +181,9 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
             scope = appScope,
             settings = org.koin.core.context.GlobalContext.get().get(),
         )
+        // Local auto-sync: the paired-only listener, the moments a pass is tried (OwnTV to the front or
+        // the back, Wi-Fi back) and the hourly check while on Wi-Fi with the battery not low.
+        runCatching { GlobalContext.get().get<tv.own.owntv.core.sync.work.LocalAutoSyncStarter>().start(periodic = true) }
         // "Use this guide's logos": never started on the phone before, so the toggle did nothing here.
         // Reads no EPG data at all while no guide source has it on.
         tv.own.owntv.core.epg.EpgLogoStore.start(

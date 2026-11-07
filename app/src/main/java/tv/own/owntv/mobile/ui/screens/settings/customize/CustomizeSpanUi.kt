@@ -207,22 +207,33 @@ internal fun NewCategoryBehaviorSheet(
     }
 }
 
-/** Setting, changing or removing the lock on this screen. */
+/** Setting, changing or removing the category lock PIN. */
 internal enum class PinEdit { SET, CHANGE, REMOVE }
 
 /**
- * Set, change or remove the PIN. Setting and changing are one flow — type it, then type it again —
- * because reaching either means the screen is already unlocked.
+ * Set, change or remove the category lock PIN. Setting and changing are one flow — type it, then type
+ * it again. Changing and removing first ask for the current PIN ([storedPin]): the Customize screen has
+ * no lock of its own, and removing the PIN unlocks every category.
  */
 @Composable
-internal fun PinEditFlow(mode: PinEdit, onSetPin: (String?) -> Unit, onDone: () -> Unit) {
+internal fun PinEditFlow(mode: PinEdit, storedPin: String?, onSetPin: (String?) -> Unit, onDone: () -> Unit) {
     var firstPin by remember { mutableStateOf("") }
     var confirmStage by remember { mutableStateOf(false) }
     var mismatch by remember { mutableStateOf(false) }
+    var checked by remember { mutableStateOf(mode == PinEdit.SET || storedPin == null) }
+    if (!checked && storedPin != null) {
+        tv.own.owntv.mobile.ui.categorylock.PinDoorSheet(
+            pin = storedPin,
+            door = tv.own.owntv.core.categorylock.PinDoor.CATEGORY,
+            onUnlock = { checked = true },
+            onDismiss = onDone,
+        )
+        return
+    }
     when (mode) {
         PinEdit.REMOVE -> ConfirmDialog(
             title = stringResource(R.string.settings_customize_remove_pin_title),
-            message = stringResource(R.string.settings_customize_remove_pin_message) + " " + stringResource(R.string.settings_customize_remove_pin_locks),
+            message = stringResource(R.string.settings_customize_remove_pin_locks),
             confirmLabel = stringResource(R.string.settings_customize_remove),
             onConfirm = { onSetPin(null); onDone() },
             onDismiss = onDone,
@@ -247,17 +258,6 @@ internal fun PinEditFlow(mode: PinEdit, onSetPin: (String?) -> Unit, onDone: () 
             )
         }
     }
-}
-
-/** The screen shown instead of Customize until the right PIN is typed. */
-@Composable
-internal fun CustomizePinGate(storedPin: String, onUnlock: () -> Unit) {
-    tv.own.owntv.mobile.ui.categorylock.PinDoorSheet(
-        pin = storedPin,
-        onUnlock = onUnlock,
-        onDismiss = { },
-        description = stringResource(R.string.settings_customize_pin_locked),
-    )
 }
 
 @Composable

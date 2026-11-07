@@ -140,6 +140,9 @@ internal fun LiveCategoryMenu(
     locked: Boolean? = null,
     onToggleLock: () -> Unit = {},
 ) {
+    // Every entry here organises the list, so each asks for the Settings PIN first when its
+    // long-press switch is on.
+    val gate: tv.own.owntv.mobile.ui.categorylock.MenuChangeGate = org.koin.compose.koinInject()
     MobileBottomSheet(onDismissRequest = onDismiss, title = title) {
         StageSheetHeader(title = title)
         listOf(
@@ -148,19 +151,19 @@ internal fun LiveCategoryMenu(
             Triple(R.string.settings_row_menu_move_down, MobileIcons.KeyboardArrowDown, MoveKind.DOWN),
             Triple(R.string.settings_customize_move_bottom, MobileIcons.KeyboardDoubleArrowDown, MoveKind.BOTTOM),
         ).forEach { (label, icon, kind) ->
-            StageMenuItem(stringResource(label), onClick = { onDismiss(); onMove(kind) }, icon = icon)
+            StageMenuItem(stringResource(label), onClick = { onDismiss(); gate.run { onMove(kind) } }, icon = icon)
         }
-        StageMenuItem(stringResource(R.string.settings_customize_hide), onClick = { onDismiss(); onHide() }, icon = MobileIcons.VisibilityOff)
+        StageMenuItem(stringResource(R.string.settings_customize_hide), onClick = { onDismiss(); gate.run(onHide) }, icon = MobileIcons.VisibilityOff)
         if (locked != null) {
             StageMenuItem(
                 stringResource(if (locked) R.string.settings_customize_remove_lock else R.string.content_category_lock),
-                onClick = { onDismiss(); onToggleLock() },
+                onClick = { onDismiss(); gate.run(onToggleLock) },
                 icon = MobileIcons.Lock,
             )
         }
         StageMenuItem(
             stringResource(if (custom) R.string.content_category_restore_custom else R.string.content_category_restore_playlist),
-            onClick = onRestore,
+            onClick = { gate.run(onRestore) },
             icon = MobileIcons.Refresh,
         )
     }

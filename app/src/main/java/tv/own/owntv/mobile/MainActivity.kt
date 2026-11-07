@@ -169,6 +169,8 @@ open class MainActivity : FragmentActivity() {
                         // are the same problem, and the configuration re-reads itself on every
                         // rotation and resize.
                         MobileShell(windowWidthDp = LocalConfiguration.current.screenWidthDp)
+                        // The Settings PIN before a long-press change, when the Settings lock asks for it.
+                        tv.own.owntv.mobile.ui.categorylock.MenuChangeGateHost()
                     }
                 }
             }

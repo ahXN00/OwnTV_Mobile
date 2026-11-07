@@ -41,8 +41,8 @@ class SettingsPinSession {
 }
 
 /**
- * Shows [content] only once the profile's Customize PIN has been entered, when the profile asks for it
- * before Settings opens. Nothing shows while the lock is read, so a guarded page never flashes open.
+ * Shows [content] only once the profile's Settings PIN has been entered, while its Settings lock is
+ * on. Nothing shows while the lock is read, so a guarded page never flashes open.
  * Cancel on the PIN sheet calls [onDismiss], which leaves the page. Not [enabled]: [content] as it is.
  */
 @Composable
@@ -56,6 +56,7 @@ fun SettingsPinGate(onDismiss: () -> Unit, enabled: Boolean = true, content: @Co
     if (pin != null && lock.requiresPin(session.isOpen(lock))) {
         PinDoorSheet(
             pin = pin,
+            door = tv.own.owntv.core.categorylock.PinDoor.SETTINGS,
             onUnlock = session::unlock,
             onDismiss = onDismiss,
             description = stringResource(R.string.settings_customize_pin_locked),

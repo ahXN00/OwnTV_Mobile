@@ -266,7 +266,13 @@ Mobile-specific shapes:
 ## 6. Profiles & settings
 
 Profiles with PINs, kids mode, and **a photo of the user's own** as an avatar — something the
-television has no way to offer. A profile gate that survives rotation but not process death.
+television has no way to offer. A profile gate that survives rotation but not process death. Three
+separate locks, each with its own PIN and wrong-entry limit — profile, category and a per-profile
+**Settings lock** (Settings › App; Settings, Backup & Restore, Local sync, and optionally long-press
+changes). A profile with a profile or Settings lock is **protected**: a new profile does not inherit its
+playlists, and another profile backs it up, merges or replaces it in a restore, edits or deletes it only
+after one of its PINs. Local sync is profile-based: the profile in use merges with the one in use on the
+other device.
 
 **Settings is three levels**: root → group → leaf, with a registry that drives the routes, the
 breadcrumbs, the back titles and the search index together, so a page can never be reachable by one

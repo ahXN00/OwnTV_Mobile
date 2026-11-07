@@ -18,7 +18,8 @@ import org.koin.compose.koinInject
 import tv.own.owntv.core.categorylock.CategoryLockPrompt
 import tv.own.owntv.core.categorylock.CategoryLockUi
 import tv.own.owntv.core.categorylock.PinAttempt
-import tv.own.owntv.core.categorylock.PinAttemptLimiter
+import tv.own.owntv.core.categorylock.PinAttemptLimiters
+import tv.own.owntv.core.categorylock.PinDoor
 import tv.own.owntv.core.categorylock.SealedCategoryAction
 import tv.own.owntv.core.live.LiveKey
 import tv.own.owntv.core.model.MediaType
@@ -90,13 +91,13 @@ internal fun PinEntrySheet(title: String, onSubmit: (String) -> Unit, onDismiss:
 }
 
 /**
- * A door behind the profile's Customize PIN: Customize itself, Settings, Backup & Restore, Local sync.
- * [pin] is the stored value. This PIN also takes the category locks off, so wrong entries count against
- * the same [PinAttemptLimiter] as the locks: guessing at any door earns the same wait.
+ * A door behind a PIN: Settings, Backup & Restore and Local sync (the Settings PIN), or a change to the
+ * category lock PIN (that PIN). [pin] is the stored value. Wrong entries count only against [door]'s
+ * own limit, so guessing at one lock never makes another wait.
  */
 @Composable
-internal fun PinDoorSheet(pin: String, onUnlock: () -> Unit, onDismiss: () -> Unit, description: String? = null) {
-    val limiter: PinAttemptLimiter = koinInject()
+internal fun PinDoorSheet(pin: String, door: PinDoor, onUnlock: () -> Unit, onDismiss: () -> Unit, description: String? = null) {
+    val limiter = koinInject<PinAttemptLimiters>().of(door)
     var wrong by remember { mutableStateOf(false) }
     var waitSeconds by remember { mutableIntStateOf(limiter.waitSeconds()) }
     var attempt by remember { mutableIntStateOf(0) }
