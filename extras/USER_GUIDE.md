@@ -508,6 +508,19 @@ Both devices open Local sync  →  pair (scan the QR, or pick from the list)
 - **Nothing is applied on arrival** — you see what will change first.
 - **A deletion stays deleted** on both devices, rather than being undone by the merge.
 
+**Auto-sync** — tap a paired device → **Auto-sync** to keep the two in step by themselves. Turn it on
+with Local sync open on both; the other device asks "Allow auto-sync?".
+- Each device ticks what it lets through — Favorites, Watch history, Resume positions, Customizations
+  and Manual reorder by default; **Sources** (the playlists, with their logins) and **App settings** only
+  where they are ticked — and which profiles.
+- **How often** is the least time between two syncs: each time either app opens or closes, 6 hours,
+  daily or weekly. A sync is tried when OwnTV opens or goes to the background, when the Wi-Fi comes
+  back, and by an hourly check on Wi-Fi with the battery not low.
+- **Keep auto-sync listening** (off by default): on, the TV can sync with this phone whenever OwnTV is
+  open here; off, only while Sync mode is on.
+- The row says the last auto-sync, "Couldn't reach …, will try again", or "Auto-sync turned off on …".
+  Turning it off here tells the other device too.
+
 ---
 
 ## 👥 Profiles
