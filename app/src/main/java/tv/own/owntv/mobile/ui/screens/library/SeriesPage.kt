@@ -182,6 +182,9 @@ internal fun SeriesPage(
     }
     val categories by library.categories.collectAsStateWithLifecycle()
     var menuOpen by remember { mutableStateOf(false) }
+    var bulkDownload by remember { mutableStateOf<tv.own.owntv.mobile.ui.components.BulkDownloadAsk?>(null) }
+    val downloadsAllowed by org.koin.compose.koinInject<tv.own.owntv.core.settings.SettingsRepository>().activeDownloadsAllowed
+        .collectAsStateWithLifecycle(true)
     var orderOpen by remember { mutableStateOf(false) }
     var optionsFor by remember { mutableStateOf<EpisodeEntity?>(null) }
     val resumeGate = rememberResumeGate()
@@ -216,8 +219,13 @@ internal fun SeriesPage(
         episodeProgress[ep.id]?.takeIf { it.positionMs > 0 && it.durationMs > 0 && ep.id !in completedIds }
             ?.let { ((it.durationMs - it.positionMs) / 1000).coerceAtLeast(60) }
     }
+    // Without the provider's length, the one playback learned. "Mark as watched" replaces that progress with a
+    // 1 ms marker, which read as "0 min", so the marker is skipped and the learned length kept while open.
+    val learnedSecs = remember(series.id) { HashMap<Long, Long>() }
     val durationSecs: (EpisodeEntity) -> Long? = { ep ->
-        ep.durationSecs?.takeIf { it > 0 }?.toLong() ?: episodeProgress[ep.id]?.durationMs?.takeIf { it > 0 }?.let { it / 1000 }
+        ep.durationSecs?.takeIf { it > 0 }?.toLong()
+            ?: episodeProgress[ep.id]?.durationMs?.takeIf { it >= 60_000 }?.let { it / 1000 }?.also { learnedSecs[ep.id] = it }
+            ?: learnedSecs[ep.id]
     }
     val progressOf: (EpisodeEntity) -> Float? = { ep ->
         episodeProgress[ep.id]?.takeIf { it.positionMs > 0 && it.durationMs > 1 && ep.id !in completedIds }
@@ -269,9 +277,12 @@ internal fun SeriesPage(
                     val seasonRows = remember(seriesDownloads, seasonIds) { seriesDownloads.filter { it.itemId in seasonIds } }
                     val download = downloadActionFor(seasonRows)
                     val downloadLabel = download.label(stringResource(R.string.content_download_season))
-                    StageButton(
+                    if (downloadsAllowed) StageButton(
                         onClick = download.onTap(
-                            onDownload = { activeSeason?.let(vm::downloadSeason) },
+                            // The whole season at once, so it asks first with the count.
+                            onDownload = {
+                                activeSeason?.let { s -> vm.countSeasonEpisodes(s) { n -> bulkDownload = tv.own.owntv.mobile.ui.components.BulkDownloadAsk(n) { vm.downloadSeason(s) } } }
+                            },
                             onRetry = { vm.retryDownloads(seasonRows) },
                             onDelete = { vm.deleteDownloads(seasonRows) },
                         ),
@@ -354,6 +365,7 @@ internal fun SeriesPage(
         item(key = "bottom") { Spacer(Modifier.height(22.dp)) }
     }
 
+    bulkDownload?.let { tv.own.owntv.mobile.ui.components.BulkDownloadConfirm(it) { bulkDownload = null } }
     if (menuOpen) {
         VodMenu(
             item = VodItem(

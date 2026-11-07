@@ -44,7 +44,9 @@ before it changes. A phone being set up only ever *receives* — nothing on the 
 A backup made on the TV also restores here, encrypted ones included — and **Restore a backup** asks
 what to bring back before it applies anything, so you can take the playlists and leave the old
 device's settings behind. The app opens once the restore is complete and starts downloading the
-restored playlists straight away. Later on, the full two-way version lives at
+restored playlists straight away. An Xtream playlist whose password was not in the backup waits
+instead: the last screen names it, and typing the password in that playlist's **Edit** form loads it.
+Later on, the full two-way version lives at
 More → [Local sync](#-local-sync-with-your-tv).
 
 ---
@@ -92,11 +94,30 @@ moves per centimetre of finger, without changing how far you must travel to star
 **Settings → App → Sports → Sports and leagues**), tap a sport and switch on its leagues.
 **Sport buttons → All sports** fetches every league instead, which takes longer.
 
-- **The Sports page** — two rows of buttons filter it: sports (and ★ My teams), then that sport's
-  leagues; **⟳** at the end rebuilds the sports data (the status pill says **Rebuilding sports…**).
-  Rows: **Live now**, **Sport on your channels** (from your guide) and **Starting soon**.
-  Tap a match to open it; **long-press** to follow a side or set a reminder.
-- **A match** — score, venue, and the tabs **Watch live · Timeline · Stats · Line-ups · Table · Form ·
+- **The Sports page** — three tabs under the title: **Scores · Calendar · Leagues**. Two rows of
+  buttons filter all three: sports (and ★ My teams), then that sport's leagues; the choice stays when
+  you switch tab. **⟳** at the end rebuilds the sports data (the status pill says **Rebuilding
+  sports…**). Opening Sports from the bottom bar starts on Scores.
+- **Scores** — **Live now**, **Sport on your channels** (from your guide) and **Starting soon**.
+  Tap a match to open it; **long-press** for the sheet: tap a team's name for its team page, **Follow**
+  on the right, and **Remind me**.
+- **Calendar** — the month on top, the chosen day's matches below, grouped by league. Each day shows
+  up to three sport icons, ★ when one of your teams plays and a red dot while something is live; with
+  one league chosen, how many of its matches are on. Tap a day; **swipe** the month or tap **‹ ›**;
+  **Today** jumps back (the arrows stop at the season's start). Scroll the day's list and the month
+  folds into its week — swipe it for another week, tap the month name to open it again. Tap a league
+  heading to open it in Leagues; the bell sets a reminder. Past days show results; with
+  **Spoiler-free** on, a score shows as **• – •** until you tap it. Offline, what was saved is shown
+  with the time it was saved.
+- **Leagues** — a card per league you follow: who leads, what is next (long-press to follow or
+  unfollow). Tap a card, or choose one league, and it opens here: **Table · Fixtures · Results**
+  (fixtures and results by round, beyond today). Formula 1 has **Drivers · Constructors · Races**
+  with the next race weekend and every session in your time; other racing **Drivers · Races**;
+  ATP / WTA **Rankings · Matches**.
+- **Team pages** — tap a team on a match page, in a table, in the long-press sheet or in **Settings →
+  Sports → My teams**: the next match (Match page, Remind me), the last five, the table place (tap it
+  for the table), then **Fixtures · Results** by month, cups included, with W / D / L.
+- **A match** — the league name at the top opens that league in Leagues; score, venue, and the tabs **Watch live · Timeline · Stats · Line-ups · Table · Form ·
   Broadcasts**. In **Watch live**, **Find channels** lists the channels in your guide that show it, from
   30 minutes before kick-off. **Filter channels** narrows them by language, country, picture and
   playlist; **Strict filtering** hides the rest, and **Remember for every match** keeps the choice.
@@ -107,7 +128,9 @@ moves per centimetre of finger, without changing how far you must travel to star
   **Other channels** switches to another channel showing the same match.
 - **Your own order** — in Sports and leagues, **long-press** a sport or a switched-on league →
   **Move**, then the arrows and **Save**. The Sports page and the Home row follow it.
-- **Settings → App → Sports** — auto rebuild, live refresh, filters, My teams, **Goal alerts** (also
+- **Settings → App → Sports** — auto rebuild, **Calendar refresh** (how often saved months of this
+  season and later are fetched again: every 1–30 days, 7 at first; past months never are), live
+  refresh, **Refresh sports data now** (also marks the saved months out of date), filters, My teams, **Goal alerts** (also
   when OwnTV is closed: goals, kick-off and full time, half time, red cards; for My teams or every
   followed league) and match reminders. A reminder with a channel found shows OwnTV's own prompt while
   the app is open.
@@ -119,9 +142,12 @@ moves per centimetre of finger, without changing how far you must travel to star
 ### ➕ Add a playlist
 **Where:** Settings → Sources & guide → **Playlists** → Add, or the first-run wizard
 **Xtream** (server, user, password), **M3U** (a URL, or a file picked with your phone's file picker),
-or **Stalker/Ministra** (portal URL + MAC, with optional Serial Number, Device IDs and Signature).
+or **Stalker/Ministra** (portal URL + MAC, with an optional username and password, and optional Serial
+Number, Device IDs and Signature).
 An M3U link of the form `…/get.php?username=…&password=…` is really an Xtream account: when the
 provider's server confirms it, it is added as **Xtream**, with movies and series in their own tabs.
+A name another playlist already has gets a number, so two unnamed playlists are **My IPTV** and
+**My IPTV 2**.
 Under **User-Agent** there is an optional **Referer** — leave it empty unless your provider asks
 for one; it is then sent with every stream of that playlist.
 
@@ -136,12 +162,23 @@ it works from any phone on the same Wi-Fi, this app installed or not.
 **Where:** Settings → Sources & guide → Playlists → tap a playlist → **Info**
 Whether the account is alive, when it expires, and **how many streams your provider allows** —
 measured once at the first sync. **Re-test** re-measures it; it warns first, because it stops
-anything playing and takes a few minutes.
+anything playing and takes a few minutes, and what it measures is kept even when the provider's own
+number says less. **Ignore connection limit**, under Re-test, lets Multiview and recordings try more
+streams than the playlist reports; a stream the provider refuses still says so.
 
 ### ⚡ What to sync, and running it in the background
 **Where:** while adding, and Settings → Sources & guide → Playlists → Edit
 Choose per section whether Live, Movies and Series are fetched. A big import offers **Run in
 background** so you can start using the app immediately; a status pill shows progress.
+
+### ✨ Clean channel names
+**Where:** Settings → Sources & guide → Playlists → tap a playlist → **Names**
+Turn on **Clean channel names** and that playlist's channels lose a country prefix (`UK|`, `[US]`,
+`DE:`) and a quality tag at the end (`HD`, `FHD`, `4K`, `HEVC`) everywhere they appear: "UK| News
+One HD" shows as "News One". **Also remove** takes your own words, separated by `;`, removed from
+the start or end of every name. Saving refreshes the playlist. Guide matching still uses the
+provider's names, channels you renamed in Customize keep your name, and favourites and history stay
+put. Switch it off and the next refresh brings the original names back.
 
 ### 🗂️ Several playlists
 **Where:** the playlist button at the top right
@@ -149,7 +186,8 @@ Show them all merged, or narrow the whole app to one. Rows carry the provider's 
 one is loaded.
 
 ### 📡 Stalker portals
-Behave like any other playlist once added. If the portal refuses the login, re-check the MAC **and
+Behave like any other playlist once added. A portal that asks for a login on top of the MAC takes it
+in **Username** and **Password** under the MAC. If the portal refuses the login, re-check the MAC **and
 your phone's date & time** — Stalker validates timestamps.
 
 ---
@@ -168,10 +206,17 @@ in **Search** opens Live TV with it in the preview.
 **Where:** long-press any channel
 Favourite · Rename · Hide · Match EPG · EPG offset · Move · Move to category · **Record** ·
 **Add to Multiview** · Catch-up · Play in another app. Inside a custom category: **Remove from this category**.
+What you **Move** keeps its place in **A–Z** and **Provider** alike; everything you never moved follows the
+sort around it. Deleting a download or a recording asks first. **Settings → Layout → Long-press menus**
+rearranges each menu with ↑ ↓, hides an action with the eye, and **Reset** brings it back as shipped.
 
 ### 🏷️ Categories
 **Tap the line under the title** for the categories sheet: Favourites, Recently watched, Catch-up,
-All channels, then your provider's groups with counts and a search field.
+All channels, then your provider's groups with counts and a search field. **Settings → Layout → Browsing &
+lists** can leave out **Catch-up** or **All channels**; Live TV then opens on your first category. The
+last category is remembered per profile (only the ones you pick); **TV Guide follows Live TV** makes the
+TV Guide open on it and share it. A channel tapped in **Search** opens Live TV on that channel's own
+category, scrolled to it.
 **Long-press a category** to hide or move it, or **Restore to playlist default** — hidden channels
 come back, moved ones return and the order resets; it tells you what will change first.
 
@@ -217,10 +262,15 @@ carries, set a User-Agent, pick a refresh interval — which can be **every N da
 whether to use that feed's channel logos. The refresh runs when the app opens or comes back, and
 waits while something is playing.
 
+When two feeds list the same channel, the one higher on the list is used. Tap a feed and choose
+**Move up** or **Move down** to set the order; a lower feed still fills any hours the higher one
+leaves empty.
+
 **Guide days to keep** is under Settings → Sources & guide → Guide & catch-up, beside EPG time offset: how many days of upcoming guide to store, 1–14, seven
 by default. The same number decides how much is downloaded, how much is kept, and how many days the
 strip above the guide offers. Old programmes are kept only on channels with catch-up, since those are
-the only ones that can play them back.
+the only ones that can play them back. With catch-up channels the day list also goes back up to a
+week, and the past days of their guide come from the provider's archive as their rows come on screen.
 
 A large guide takes a while, and it **keeps downloading when the screen goes off** — a notification
 shows while it does, so the phone lets it finish instead of stopping it and starting it over.
@@ -239,8 +289,9 @@ channel switches to live by itself instead of freezing.
 
 ### 🕐 Rewind live
 **Where:** full-screen player, on a channel with an archive
-Drag the live bar back, tap the rewind button, or use **Go back to…** for a list of times. **Go live**
-returns.
+Drag the live bar back, tap the rewind button, or use **Go back to…** for a list of times — its first
+row, when the guide knows what is on, is **Start of “…”**, back to the beginning of the programme on
+air. **Go live** returns.
 
 ### ⏸️ Pause and rewind channels without catch-up
 **Where:** **Settings → Live TV → Pause and rewind live TV**
@@ -248,6 +299,8 @@ Off by default. While you watch a channel full screen, OwnTV saves it on this ph
 from that copy, so it still looks live — and you can **pause**, rewind and go forward on channels
 whose provider keeps no archive. Pause, the rewind button, forward (once you are behind), the bar and **Go live** work as on a catch-up channel. A dark stretch on the bar is a moment the connection
 dropped; playback jumps over it. If your internet drops, saving waits and carries on when it is back; the channel picks up by itself.
+Without it, a live channel paused for more than a minute — by you, a headphone unplug or the screen
+going off — goes back to the live edge when you press Play; a shorter pause carries on where it was.
 
 - **Rewind length:** 15 (default), 30, 45 or 60 minutes. At least **1 GB** of the phone's storage always
   stays free; the oldest part goes first.
@@ -393,6 +446,7 @@ Every gesture above also has a button on the control bar:
 | **Quality** | Only when the stream offers several picture sizes. Auto, or one size for what is playing now |
 | **Favourite** | Adds what is playing |
 | **Catch-up** | *Go back to…* on archive channels |
+| **Sources** | Live: the same channel in another quality, category or playlist, the one playing ticked; tap one to switch. Locked and hidden channels are left out |
 | **Previous channel** | Back to the channel you watched before; tap again to flip back. Headphone "previous" does the same on live |
 | **⇄** | Swap the player engine |
 | **Channels** | The channel list, categories first |
@@ -461,10 +515,25 @@ Both devices open Local sync  →  pair (scan the QR, or pick from the list)
 **Where:** More → **Profiles**
 Each has its own favourites, history, resume points and layout. Add a **PIN**, or make it a **kids
 profile** to hide adult content everywhere. Pick one of ten drawn avatars — or **a photo of your
-own**, already while creating the profile.
+own**, already while creating the profile. Editing a profile also has **Allow downloads**: off removes
+every Download button for it. Downloading a whole show or season first asks "Download N episodes?".
 
-**Where a profile opens:** Settings → App → **App startup** — Home, the last channel, Favourites, or one
-chosen channel.
+**Settings lock:** Settings → App → **Settings lock** — a PIN of its own, per profile, that Settings,
+Backup & Restore and Local sync ask for. It is neither the profile PIN nor the category lock PIN —
+three locks, three PINs, and none opens another; 5 wrong tries on one make only that one wait 30 s.
+**Change PIN** and **Turn off** ask for the current one. **Also lock long-press menu changes** (shown
+while it is on, off by default) makes Hide, Move, Rename, locking a category and Remove from History
+ask for it too, until you leave the app or switch profile; favourites and playing never ask.
+
+**Protected profiles:** a profile with a PIN or a Settings lock is protected, and so are its playlists.
+A new profile gets only the playlists no protected profile uses (none, if every one belongs to one).
+From another profile, a backup includes it, a restore or Local sync changes it, and editing or
+deleting it happen only after one of its PINs; without it, a backup or sync leaves it out and a
+restore leaves it as it is.
+
+**Where a profile opens:** Settings → App → **App startup** — Home, the last channel (full screen),
+**Last channel · TV Guide** or **Last channel · Live TV** (that tab opens on the channel's category with
+the channel in the preview), Favourites, or one chosen channel.
 
 ---
 
@@ -494,8 +563,17 @@ Six font families for the interface and for popups, and interface zoom.
 **Where:** Settings → Content & metadata → **Customize categories & items**
 Hide, rename, reorder and regroup categories and items, with **bulk rename** (rules, automatic
 cleanup, a review step and restore-originals — for category names too, from the categories page),
-**custom categories**, span selection, and an optional
-**PIN lock**.
+**custom categories**, span selection, and the **category lock PIN** (**⋯ → Set category lock PIN**;
+**Change** and **Remove** ask for the current one first). It is the PIN locked categories ask for, and
+nothing else: it does not open Settings.
+
+**Lock a category with a PIN** — in the categories sheet of Live TV, the TV Guide, Movies or Series,
+hold a playlist category → **Lock with PIN**. It uses the category lock PIN (the first lock asks you to set
+one). The category stays in the list with a lock; its channels, films and shows stay out of everything
+else (search, Guide, Home, favourites, history, Downloads, recordings) until you open it with
+**Enter PIN**. It stays open until you leave the app or switch profile — leaving also stops anything
+playing from it, the floating window included. **Remove lock** in the same menu asks the PIN, and
+removing the category lock PIN unlocks every category. 5 wrong PINs → a 30 s wait.
 
 ### 🏠 Home & layout
 **Where:** Settings → Layout → **Home screen**
@@ -521,7 +599,7 @@ finds any setting by its name, and **Quick** holds the rows you pin yourself by 
 | **Pre-buffer** (+ per playlist) | Live TV | Collect a few seconds first on a flaky provider |
 | **Multiview** | Watching & recording | Off by default; also sets the tile ceiling |
 | **Record what I'm watching** | Watching & recording | Adds the Record button to the player |
-| **Auto frame rate** | Picture | Off by default; full screen, seamless switches only; warns where the display can't be asked |
+| **Auto frame rate for films and series** · **for Live TV** | Picture | Two switches; an earlier single setting carries into both. Off by default; full screen, seamless switches only; warns where the display can't be asked |
 | **Film buffer** · **Network timeout** · **Reconnect attempts** | Player | Films, episodes and catch-up on a bad line. Auto / 1 = as before |
 | **Reset saved live TV player choices** | Player | Undo per-channel player choices |
 | **Delay for this output** | Sound & subtitles | An audio delay for the output playing now — Bluetooth, the phone's speakers, headphones, HDMI — each kept on its own |
