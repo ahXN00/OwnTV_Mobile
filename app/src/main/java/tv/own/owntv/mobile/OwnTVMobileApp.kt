@@ -181,11 +181,9 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
             scope = appScope,
             settings = org.koin.core.context.GlobalContext.get().get(),
         )
-        // Auto-sync: a timer is not kept by the process, so the schedule is put back in front of
-        // WorkManager from the saved settings — and, when the user asked for "immediately", a run
-        // is asked for as soon as the phone is here or the Wi-Fi comes back. Core owns what that
-        // means; the app only says that it started.
-        runCatching { GlobalContext.get().get<tv.own.owntv.core.sync.work.LocalAutoSyncStarter>().start() }
+        // Local auto-sync: the paired-only listener, the moments a pass is tried (OwnTV to the front or
+        // the back, Wi-Fi back) and the hourly check while on Wi-Fi with the battery not low.
+        runCatching { GlobalContext.get().get<tv.own.owntv.core.sync.work.LocalAutoSyncStarter>().start(periodic = true) }
         // "Use this guide's logos": never started on the phone before, so the toggle did nothing here.
         // Reads no EPG data at all while no guide source has it on.
         tv.own.owntv.core.epg.EpgLogoStore.start(

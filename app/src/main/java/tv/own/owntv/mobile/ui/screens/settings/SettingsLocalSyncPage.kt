@@ -87,7 +87,11 @@ fun SettingsLocalSyncPage(
 ) {
     val paired by vm.paired.collectAsStateWithLifecycle()
     val hosting by vm.hosting.collectAsStateWithLifecycle()
-    val autoSync by autoSyncVm.settings.collectAsStateWithLifecycle()
+    val agreements by autoSyncVm.agreements.collectAsStateWithLifecycle()
+    val turnedOff by autoSyncVm.turnedOff.collectAsStateWithLifecycle()
+    val autoEvents by autoSyncVm.events.collectAsStateWithLifecycle()
+    val listenAlways by autoSyncVm.listenAlways.collectAsStateWithLifecycle()
+    val autoListening by autoSyncVm.listening.collectAsStateWithLifecycle()
     // Someone at the other end may be waiting for an answer while this page is hosting.
     val autoSyncRequests by vm.autoSyncRequests.collectAsStateWithLifecycle()
     val palette = LocalStagePalette.current
@@ -127,22 +131,37 @@ fun SettingsLocalSyncPage(
             onClick = { if (!vm.busy) vm.beginPairing() },
             trailing = { StageIcon(MobileIcons.KeyboardArrowRight, 16.dp, palette.text) },
         )
+        Spacer(Modifier.height(8.dp))
+        // Whether a paired device can auto-sync with this phone while OwnTV is open here, or only
+        // while Sync mode is on. Device-local, never backed up: it is about this device's exposure.
+        SyncCard(
+            icon = MobileIcons.Schedule,
+            title = stringResource(R.string.local_auto_sync_listen),
+            subtitle = listOfNotNull(
+                stringResource(R.string.local_auto_sync_listen_description),
+                when {
+                    autoListening -> stringResource(R.string.local_auto_sync_listening)
+                    !listenAlways -> stringResource(R.string.local_auto_sync_listen_sync_mode)
+                    else -> null
+                },
+            ).joinToString("\n"),
+            onClick = { autoSyncVm.setListenAlways(!listenAlways) },
+            trailing = { StageSwitch(listenAlways) },
+        )
         if (paired.isNotEmpty()) {
             // Only the devices whose names collide get a code, so a normal household never sees one.
             val codes = shortCodes(paired)
             StageLabel(stringResource(R.string.local_sync_paired_devices), Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp))
             paired.forEach { device ->
                 val selected = picked == device.id
-                val timing = autoSync[device.id]
                 StageSettingRow(
                     title = codes[device.id]?.let { stringResource(R.string.local_sync_device_with_code, device.name, it) } ?: device.name,
-                    // The schedule is part of what the row says about the device: "last synced an
-                    // hour ago" and "daily by itself" are both true, and the user should not have
-                    // to open the sheet to find the second one.
+                    // Auto-sync is part of what the row says about the device: its last pass, that it
+                    // could not be reached, or that the other side turned it off.
                     subtitle = listOfNotNull(
                         device.address,
                         lastSyncedText(device.lastSyncAt),
-                        timing.takeIf { it.enabled }?.let { stringResource(it.timing.labelRes()) },
+                        autoSyncLine(device, agreements[device.id], turnedOff[device.id], autoEvents[device.id]),
                     ).joinToString(stringResource(R.string.content_epg_bits_separator)),
                     // A paired device records no kind (television or phone), so one neutral glyph for all.
                     icon = MobileIcons.Sync,
@@ -765,4 +784,19 @@ internal fun SyncCheckRow(
 internal fun SyncButtons(confirm: String, confirmEnabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     StageMenuItem(confirm, onClick = onConfirm, icon = MobileIcons.Check, filled = confirmEnabled, enabled = confirmEnabled, modifier = Modifier.padding(top = 6.dp))
     StageMenuItem(stringResource(R.string.common_cancel), onClick = onDismiss, icon = MobileIcons.Close)
+}
+
+/** The auto-sync part of a paired device's line, or null when it has none. */
+@Composable
+private fun autoSyncLine(
+    device: PairedDevice,
+    agreement: tv.own.owntv.core.sync.local.AutoSyncAgreement?,
+    turnedOffAt: Long?,
+    event: tv.own.owntv.core.sync.local.AutoSyncEvent?,
+): String? = when {
+    agreement == null -> turnedOffAt?.let { stringResource(R.string.local_auto_sync_turned_off, device.name) }
+    agreement.failures > 0 || event?.outcome == tv.own.owntv.core.sync.local.AutoSyncOutcome.UNREACHABLE ->
+        stringResource(R.string.local_auto_sync_unreachable, device.name)
+    agreement.lastSuccessAt > 0 -> stringResource(R.string.local_auto_sync_last_run, autoSyncWhen(agreement.lastSuccessAt))
+    else -> stringResource(R.string.local_auto_sync_title) + stringResource(R.string.content_epg_bits_separator) + stringResource(agreement.timing.labelRes())
 }
