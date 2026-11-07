@@ -141,7 +141,6 @@ fun SettingsLocalSyncPage(
                 stringResource(R.string.local_auto_sync_listen_description),
                 when {
                     autoListening -> stringResource(R.string.local_auto_sync_listening)
-                    !listenAlways -> stringResource(R.string.local_auto_sync_listen_sync_mode)
                     else -> null
                 },
             ).joinToString("\n"),
@@ -160,7 +159,7 @@ fun SettingsLocalSyncPage(
                     // could not be reached, or that the other side turned it off.
                     subtitle = listOfNotNull(
                         device.address,
-                        lastSyncedText(device.lastSyncAt),
+                        lastSyncedText(device.lastSyncAt).takeUnless { device.lastSyncAt <= 0 && (agreements[device.id]?.lastSuccessAt ?: 0) > 0 },
                         autoSyncLine(device, agreements[device.id], turnedOff[device.id], autoEvents[device.id]),
                     ).joinToString(stringResource(R.string.content_epg_bits_separator)),
                     // A paired device records no kind (television or phone), so one neutral glyph for all.
