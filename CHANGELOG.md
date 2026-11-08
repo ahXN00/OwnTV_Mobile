@@ -38,6 +38,8 @@
 - **🔀 Sources: switch to another version of the channel playing**
 - **🧭 TV Guide follows Live TV's category, as a switch in Browsing & lists**
 - **👤 Each profile remembers its own last category and channel**
+- **🔎 Sports: Find channels knows every name a competition goes by — F1, EPL, La Liga, Formel 1 and more**
+- **🎚️ Sports: "Show likely channels" in Filter channels**
 
 ### Fixes
 - **Deleting a download or recording asks first**
@@ -72,6 +74,9 @@
 - **A guide download cut off midway no longer deletes the rest of the guide**
 - **Play after a pause of over a minute on a live channel goes to the live edge, after a headphone unplug or a screen-off too**
 - **Panels that serve some channels as HLS behind a .ts address open faster and no longer fail after an offline channel** (community PRs ahXN00/OwnTV_Core#76 and #77 by @SirKitboard)
+- **Sports: Formula 1 no longer lists Formula E channels, nor the Premier League the Indian Premier League's**
+- **Sports: a broadcaster's unrelated channels are no longer "likely"**
+- **Adding an Xtream playlist no longer fails with "Expected a string but was BOOLEAN"**
 
 ## v1.1.1 — 2026-10-21
 

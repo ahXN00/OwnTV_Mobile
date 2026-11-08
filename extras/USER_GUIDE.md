@@ -119,8 +119,11 @@ moves per centimetre of finger, without changing how far you must travel to star
   for the table), then **Fixtures · Results** by month, cups included, with W / D / L.
 - **A match** — the league name at the top opens that league in Leagues; score, venue, and the tabs **Watch live · Timeline · Stats · Line-ups · Table · Form ·
   Broadcasts**. In **Watch live**, **Find channels** lists the channels in your guide that show it, from
-  30 minutes before kick-off. **Filter channels** narrows them by language, country, picture and
-  playlist; **Strict filtering** hides the rest, and **Remember for every match** keeps the choice.
+  30 minutes before kick-off, then the channels that usually show the competition — named after it by
+  any name it goes by ("Sky Sport F1", "EPL 3", "DAZN LaLiga"), never a look-alike such as Formula E.
+  **Filter channels** narrows them by language, country, picture and playlist; **Show "likely"
+  channels** turns those usual channels on or off; **Strict filtering** hides the rest, and **Remember
+  for every match** keeps the choice.
   Tap a channel to watch full screen; **Back** returns to the match. **Long-press** a channel for
   **Always use for …**. **Broadcasts** lists the channels found, one per row by country.
 - **Live score card** on a match keeps its score in your notifications until full time.
