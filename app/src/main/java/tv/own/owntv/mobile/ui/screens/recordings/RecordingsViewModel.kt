@@ -21,9 +21,11 @@ import tv.own.owntv.core.customize.CustomizationStore
 import tv.own.owntv.core.customize.ItemCategory
 import tv.own.owntv.core.database.dao.ChannelDao
 import tv.own.owntv.core.database.entity.RecordingEntity
+import tv.own.owntv.core.database.entity.RecordingRuleEntity
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.model.RecordingStatus
 import tv.own.owntv.core.recording.RecordingManager
+import tv.own.owntv.core.recording.SeriesRecording
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.core.storage.MediaTarget
 import tv.own.owntv.core.storage.StorageAccess
@@ -87,6 +89,23 @@ class RecordingsViewModel(
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The programmes set to record every showing, kept out of view like recordings while their channel is locked. */
+    val seriesRules: StateFlow<List<SeriesRecording>> = settings.activeProfileId
+        .flatMapLatest { pid ->
+            if (pid < 0) flowOf(emptyList())
+            else recordings.observeSeriesRecordings(pid).withoutSealed(
+                customize.sealedCategoryIds(pid, MediaType.LIVE),
+                customize.anyLockSealed(pid),
+                ::channelCategory,
+            )
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Stops recording every showing, and cancels the showings it had scheduled; what was recorded stays. */
+    fun stopSeries(rule: RecordingRuleEntity) {
+        viewModelScope.launch { recordings.removeSeriesRule(rule) }
+    }
 
     /** Paths of finished items whose file is gone (drive formatted, swapped or unplugged). */
     val missingFiles: StateFlow<Set<String>> = rows

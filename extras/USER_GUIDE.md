@@ -321,7 +321,8 @@ going off — goes back to the live edge when you press Play; a shorter pause ca
 ### ⏺️ Record
 **Where:** long-press a programme in the Guide, or a channel in the list, or the **Record** button in
 the player
-**Record every showing** sets a standing rule. **Schedule recording…** in a channel's menu records it
+**Record every showing** sets a standing rule; every rule is listed at the top of **Downloads → Live TV**
+under **Every showing**, and a tap offers **Stop recording every showing** (what was recorded stays). **Schedule recording…** in a channel's menu records it
 between a day and times you pick, guide or not; an overlap with another recording is shown first. While
 a channel records, its menu offers **Stop recording**. Recordings land in **Downloads → Live TV**, and the
 status pill shows one running even over the player.
@@ -439,6 +440,7 @@ Every gesture above also has a button on the control bar:
 
 | Button | What |
 |---|---|
+| **Title** | Top bar — a film's or show's title art when TMDB has it, else its name; a gold **4K** badge on a 4K picture |
 | **Go live** | Back to the live edge |
 | **Volume · Brightness** | Sliders, with a mute row |
 | **Speed** | 0.5× to 2× |

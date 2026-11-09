@@ -93,6 +93,7 @@ import tv.own.owntv.mobile.ui.screens.home.durationText
 import tv.own.owntv.mobile.ui.screens.home.formatRating
 import tv.own.owntv.mobile.ui.screens.home.formatYear
 import tv.own.owntv.mobile.ui.shell.LocalTitleChrome
+import tv.own.owntv.mobile.ui.stage.StageTitleArt
 import tv.own.owntv.mobile.ui.stage.LocalStagePalette
 import tv.own.owntv.mobile.ui.stage.StageButton
 import tv.own.owntv.mobile.ui.stage.StageButtonStyle
@@ -432,14 +433,26 @@ private fun SeriesHeader(series: SeriesEntity, page: DetailViewModel.TitlePage, 
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
-    Text(
-        HeadlineTitle.of(series.name),
-        style = stageText(36f, 800, (-1f / 36f).em, lineHeight = 1.02f),
-        color = palette.text,
-        maxLines = 3,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(top = 6.dp),
-    )
+    // The show's title art where it has one, as on the movie page; the name when it has none or it fails.
+    var logoFailed by remember(meta?.logoPath) { mutableStateOf(false) }
+    val logo = MetadataImages.logo(meta?.logoPath)?.takeIf { !logoFailed }
+    if (logo != null) {
+        StageTitleArt(
+            url = logo,
+            contentDescription = series.name,
+            onFailed = { logoFailed = true },
+            modifier = Modifier.padding(top = 6.dp).fillMaxWidth(0.85f).height(84.dp),
+        )
+    } else {
+        Text(
+            HeadlineTitle.of(series.name),
+            style = stageText(36f, 800, (-1f / 36f).em, lineHeight = 1.02f),
+            color = palette.text,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
     // Specials are not counted as a season, as on Home and the TV.
     val numbered = seasons.count { it > 0 }
     Box(Modifier.padding(top = 8.dp)) {

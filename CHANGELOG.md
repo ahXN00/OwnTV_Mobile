@@ -40,8 +40,12 @@
 - **👤 Each profile remembers its own last category and channel**
 - **🔎 Sports: Find channels knows every name a competition goes by — F1, EPL, La Liga, Formel 1 and more**
 - **🎚️ Sports: "Show likely channels" in Filter channels**
+- **🎬 Player: a film's or show's title art in place of its name, and a 4K badge**
+- **⏺️ Downloads › Live TV: every "Record every showing" listed, with Stop**
 
 ### Fixes
+- **Fit: wide films stored in a 16:9 frame are no longer stretched**
+- **A series page shows the show's title art instead of its name**
 - **Deleting a download or recording asks first**
 - **Re-test measures the connection limit on Xtream, and the next sync keeps it**
 - **"Live now" shows the programme's start and end**

@@ -30,6 +30,7 @@ import tv.own.owntv.core.database.entity.WatchHistoryEntity
 import tv.own.owntv.core.metadata.MetadataRepository
 import tv.own.owntv.core.model.MediaType
 import tv.own.owntv.core.player.ExternalPlayerLauncher
+import tv.own.owntv.core.metadata.MetadataImages
 import tv.own.owntv.core.player.enginePinKey
 import tv.own.owntv.core.database.dao.resolveExistingProfileId
 import tv.own.owntv.core.settings.SettingsRepository
@@ -223,6 +224,7 @@ class VodTuner(
 
         if (!dataSaver.allowsStreaming()) return false
         val url = resolve(source, movie.streamUrl) ?: return false
+        val movieKey = enginePinKey(movie.sourceId, "MOVIE", movie.remoteId)
         saveProgress()
         liveTuner.stop()
         val handedOver = cast.offer(
@@ -248,16 +250,20 @@ class VodTuner(
                 httpHeaders = SourceOverrides.headersWithReferer(movie.httpHeaders, source),
                 drmConfig = movie.drmConfig,
                 manifestType = movie.manifestType,
-                contentKey = enginePinKey(movie.sourceId, "MOVIE", movie.remoteId),
+                contentKey = movieKey,
                 reconnectProvider = reconnectFor(source, movie.streamUrl),
                 vodEngineOverride = SourceOverrides.vodEngineOf(source),
             )
         }
         began(pid, VodPlayback(MediaType.MOVIE, movie.id, movie.name, posterUrl = movie.posterUrl, sourceId = movie.sourceId, categoryId = movie.categoryId), handedOver)
         playingQueue = null
-        // Turns on the player's "Add subtitles" search for this film. The TMDB id is a precision
-        // boost when the metadata cache has one, never a requirement.
-        subtitleController.setMovie(pid, movie, runCatching { metadata.resolveMovie(movie)?.tmdbId?.toLong() }.getOrNull())
+        // The film's details, after playback has started: its title art for the player bar, and its
+        // TMDB id, a precision boost (never a requirement) for the player's "Add subtitles" search.
+        val details = runCatching { metadata.resolveMovie(movie) }.getOrNull()
+        if (!handedOver) {
+            player.setTitleLogo(movieKey, MetadataImages.logo(details?.logoPath))
+        }
+        subtitleController.setMovie(pid, movie, details?.tmdbId?.toLong())
         return true
     }
 
@@ -288,6 +294,7 @@ class VodTuner(
             .ifEmpty { listOf(episode) }
         val startIndex = episodes.indexOfFirst { it.id == episode.id }.coerceAtLeast(0)
         val needsResolve = streamUrlResolver.needsResolve(source)
+        val showKey = enginePinKey(show.sourceId, "SERIES", show.remoteId)
 
         // The receiver takes one item, not the season. Auto-advance to the next episode is one of the
         // things casting costs, along with the fallback ladder and the subtitle rendering — there is
@@ -316,7 +323,7 @@ class VodTuner(
                         logoUrl = show.posterUrl,
                         contentKey = enginePinKey(show.sourceId, "EPISODE", ep.remoteId),
                         // v44 — audio/subtitle choices are remembered per series.
-                        trackKey = enginePinKey(show.sourceId, "SERIES", show.remoteId),
+                        trackKey = showKey,
                         seasonNumber = ep.seasonNumber,
                         episodeNumber = ep.episodeNumber,
                     ),
@@ -338,7 +345,13 @@ class VodTuner(
             vodEngineOverride = SourceOverrides.vodEngineOf(source),
         )
         began(pid, VodPlayback(MediaType.EPISODE, episode.id, title, subtitle, show.posterUrl, show.id, show.sourceId, show.categoryId), handedOver)
-        val parentTmdbId = runCatching { metadata.resolveSeries(show)?.tmdbId?.toLong() }.getOrNull()
+        // The show's details, after playback has started: its title art for the player bar (keyed on
+        // the show, so it stays for the whole queue) and its TMDB id for the subtitle search.
+        val showDetails = runCatching { metadata.resolveSeries(show) }.getOrNull()
+        if (!handedOver) {
+            player.setTitleLogo(showKey, MetadataImages.logo(showDetails?.logoPath))
+        }
+        val parentTmdbId = showDetails?.tmdbId?.toLong()
         subtitleController.setEpisode(pid, show, episode, parentTmdbId)
         // Nothing follows a cast episode, so there is no queue to follow either — and a queue kept
         // here would have the player's advance callback re-pointing a stream it is not driving.
