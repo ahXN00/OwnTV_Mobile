@@ -29,6 +29,7 @@ fun SettingsLeafPage(leaf: SettingsLeaf, onSetup: (SetupEntry) -> Unit) {
         SettingsLeaf.CONTENT_MENUS -> SettingsMenusPage()
         SettingsLeaf.CUSTOMIZE -> SettingsCustomizePage()
         SettingsLeaf.METADATA -> SettingsMetadataPage()
+        SettingsLeaf.THEINTRODB -> SettingsTheIntroDbPage()
         SettingsLeaf.OPEN_SUBTITLES -> SettingsOpenSubtitlesPage()
         SettingsLeaf.EXTERNAL_PLAYER -> ExternalPlayerPage()
         SettingsLeaf.SUBTITLE_APPEARANCE -> SettingsSubtitleAppearancePage()

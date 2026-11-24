@@ -115,6 +115,8 @@ class VodTuner(
     private val watchSession: tv.own.owntv.core.live.WatchSession,
     /** Category locks: nothing in a category the PIN has not opened plays. */
     private val customize: CustomizationStore,
+    /** Leaving during the end credits saves the film or episode as finished. */
+    private val skip: tv.own.owntv.player.SkipSegmentController,
 ) : CastHandoff {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -542,8 +544,10 @@ class VodTuner(
         // Whichever engine actually has the film. Casting for an hour and coming back to a resume
         // position of zero would be the same bug as never writing one at all.
         val remote = cast.engine.value
-        val position = remote?.position?.value ?: player.position.value
         val duration = remote?.duration?.value ?: player.duration.value
+        // The end credits count as finished — on this phone's player only: a cast receiver's position
+        // is not the one the skip times were matched to.
+        val position = remote?.position?.value ?: skip.savedPosition(player.position.value, duration)
         if (position <= 0 || duration <= 0) return
         if (currentProfileId() != playingProfileId) return
         runCatching {

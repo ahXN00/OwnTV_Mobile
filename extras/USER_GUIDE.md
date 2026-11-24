@@ -387,18 +387,86 @@ ten seconds never asks.
 
 ### 🔧 The long-press menu
 Favourite · Download · Hide · Rename · Move · Move to category · Mark watched/unwatched ·
-TMDB details · Trailer · Play in another app.
+TMDB details · Trailer · Check TheIntroDB · Play in another app.
 
 ---
 
 ## 🎬 TMDB metadata
 
-**Where:** Settings → Content & metadata → **Metadata (TMDB)**
+**Where:** Settings → Content & metadata → Metadata → **TMDB**
 Posters, plots, cast and trailers. **Metadata source** picks provider-only, provider + TMDB, or TMDB
 only; **Language** sets the language of plots and artwork, separately from the app's own language.
 
 **Your own key** removes the shared allowance — the page shows what is left of it and has a **Test
 connection** so you can prove a key or a self-hosted server works.
+
+---
+
+## ⏭️ Skip intro & credits — TheIntroDB
+
+Films and episodes can skip their **intro**, **recap**, **end credits** and **preview** of the next
+episode. The times come from [TheIntroDB](https://theintrodb.org/), a free database filled in by
+viewers. It works with no account and no key.
+
+**It needs TMDB details:** TheIntroDB finds a title by its TMDB match, so Metadata source must not be
+*Provider only*, and the title must be matched (long-press → **Set TMDB name** fixes a wrong one).
+Live TV and catch-up are never skipped.
+
+### ⚙️ Choose what happens
+**Where:** Settings → Content & metadata → Metadata → **TheIntroDB**
+- **Intro · Recap · End credits · Preview** — each one on its own:
+  - **Off** — nothing happens.
+  - **Show a button** (default) — a **Skip intro** (Skip recap, Skip credits, Skip preview) button
+    appears above the control bar; tap it to jump to the end of that part.
+  - **Skip automatically** — the part is jumped over by itself, and a short "Intro skipped" note shows.
+- **Skip button** — how long the button stays:
+  - **First 10 seconds** (default) — at the start of the part, and again whenever you tap to bring up
+    the controls while it is playing.
+  - **Whole part** — for as long as the part plays.
+
+### 🎬 End credits and the next episode
+- **An episode with a next one, Auto-play next episode on:**
+  - *Show a button* — when the credits start, the next-episode card counts down from 10 seconds, with
+    **Play now** and **Watch credits**.
+  - *Skip automatically* — a 3-second notice, then the next episode starts. Tap the notice to stay and
+    watch the credits.
+- **Auto-play off** — the button reads **Next episode**.
+- **A film, the last episode, or the sleep timer set to end of episode** — **Skip credits** finishes
+  the title as if it had played to the end; it is never done automatically.
+- **No credit times for the title** — everything works as before: the card in the last 30 seconds.
+- A title counts as **watched** once its end credits start.
+
+### 🔑 Your own key — optional
+Without a key, lookups use TheIntroDB's free daily allowance for your network. A key of your own
+gives you more lookups, counted for your account.
+1. Open **theintrodb.org** and **sign in** — this creates your account.
+2. Open **Docs** on the site. Your key is shown there as **Your API Key**; copy it. It starts with
+   `theintrodb:`.
+3. In OwnTV: Settings → Content & metadata → Metadata → TheIntroDB → **TheIntroDB account**. Paste the
+   key into **TheIntroDB API key** and tap **Check key**.
+4. The line underneath shows **Connected · submissions: N** (the times your account has added) and
+   today's allowance: **Day · X / Y left · Refills HH:MM**. **Key not accepted** means it was copied
+   wrongly.
+5. **Stop using your own key?** removes it; lookups carry on without a key.
+
+**Sending the key to the TV:** on the TV choose TheIntroDB account → **Get key from another device**,
+scan its QR code with the phone, enter the PIN, and paste the key there.
+
+A backup with a password carries the key, encrypted, like the TMDB and OpenSubtitles keys; a backup
+without a password leaves it out.
+
+### 🔍 Check TheIntroDB
+**Where:** long-press a film, a series or an episode → **Check TheIntroDB**
+Asks TheIntroDB right away and shows the title, its **TMDB ID** (and season and episode), and which
+parts it has times for — for example *TheIntroDB has skip times for: Intro · End credits*. On a series
+it checks Season 1 Episode 1; on an episode, that episode. The answer can also be that TheIntroDB knows
+the title but has no times yet, that it doesn't list the title at all, or that the title isn't matched
+with TMDB. Like every action, you can move or hide it in Settings → Layout → **Long-press menus**.
+
+### 🤝 Add the missing times yourself
+TheIntroDB doesn't have every film and series — its times come from viewers. If a title has no skip
+button, sign in at **theintrodb.org** and submit its times; once they are accepted, everyone watching it
+gets the button, in OwnTV too.
 
 ---
 

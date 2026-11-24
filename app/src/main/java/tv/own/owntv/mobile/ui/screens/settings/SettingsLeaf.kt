@@ -28,6 +28,7 @@ enum class SettingsLeaf(
 
     CUSTOMIZE(SettingsGroup.CONTENT, "customize", R.string.settings_customize_short_mobile),
     METADATA(SettingsGroup.CONTENT, "metadata", R.string.settings_metadata),
+    THEINTRODB(SettingsGroup.CONTENT, "theintrodb", R.string.settings_theintrodb),
     OPEN_SUBTITLES(SettingsGroup.CONTENT, "opensubtitles", R.string.settings_open_subtitles),
 
     LIVE_ENGINE_SOURCES(SettingsGroup.PLAYER, "live-engine-playlists", R.string.settings_live_engine_per_playlist),

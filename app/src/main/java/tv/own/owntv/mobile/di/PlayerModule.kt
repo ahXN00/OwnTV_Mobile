@@ -77,6 +77,9 @@ val playerModule = module {
     // the settings page deletes from. Bound here rather than with the rest of the subtitle stack
     // because it takes the player, which is this module's.
     single { SubtitleController(get(), get(), get(), get()) }
+    // Skip intro & credits: reads the playing title from the subtitle context above (player, subtitles,
+    // TheIntroDB repository, settings).
+    single { tv.own.owntv.player.SkipSegmentController(get(), get(), get(), get()) }
     // Backs the player's "Add subtitles" sheet.
     viewModelOf(::SubtitleSearchViewModel)
     viewModelOf(::FolderSubtitleViewModel)

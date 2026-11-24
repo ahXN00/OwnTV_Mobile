@@ -182,6 +182,8 @@ open class MainActivity : FragmentActivity() {
                         MobileShell(windowWidthDp = windowWidthDp())
                         // The Settings PIN before a long-press change, when the Settings lock asks for it.
                         tv.own.owntv.mobile.ui.categorylock.MenuChangeGateHost()
+                        // "Check TheIntroDB" from any long-press menu.
+                        tv.own.owntv.mobile.ui.components.TheIntroDbCheckHost()
                     }
                 }
             }

@@ -2,6 +2,8 @@ package tv.own.owntv.mobile.ui.screens.library
 
 import androidx.core.net.toUri
 import tv.own.owntv.mobile.ui.components.MobileIcons
+import tv.own.owntv.mobile.ui.components.TheIntroDbCheckRequests
+import tv.own.owntv.core.menu.CHECK_THEINTRODB_ACTION
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -272,6 +274,20 @@ fun VodMenu(
                     ),
                 )
             }
+            add(
+                SheetAction(
+                    key = CHECK_THEINTRODB_ACTION,
+                    label = stringResource(R.string.content_check_theintrodb),
+                    icon = MobileIcons.SkipNext,
+                    group = GROUP_DETAILS,
+                    onClick = {
+                        scope.launch {
+                            if (movie) vm.movieById(item.id)?.let { TheIntroDbCheckRequests.movie(it) }
+                            else vm.seriesById(item.id)?.let { TheIntroDbCheckRequests.series(it) }
+                        }
+                    },
+                ),
+            )
             // Films only, as on the TV.
             if (movie) {
                 add(

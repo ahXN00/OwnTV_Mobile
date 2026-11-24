@@ -11,6 +11,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -103,6 +104,8 @@ private const val UNLOCK_PILL_MS = 3_000L
 
 /** How long a confirmation line stays over the picture. */
 private const val TOAST_MS = 1_800L
+/** "Skip button: first 10 seconds" — how long it stays after the playhead reaches the part. */
+private const val SKIP_BUTTON_FIRST_MS = 10_000L
 private const val HINT_MS = 6_000L
 private const val SPEED_HOLD = 2.0
 
@@ -375,21 +378,48 @@ fun PlayerScreen(
         }
     }
 
-    // The automatic advance, made visible. The engine starts the next episode eight seconds before the
-    // end, so the card counts down to that, not to the duration.
+    // Skip intro & credits: core decides what the button does and when the episode moves on.
+    val skip = org.koin.compose.koinInject<tv.own.owntv.player.SkipSegmentController>()
+    val activeSkip by skip.active.collectAsStateWithLifecycle()
+    val upNext by skip.upNext.collectAsStateWithLifecycle()
+    val skipButtonShow by skip.buttonShow.collectAsStateWithLifecycle()
+    // An automatic skip says so, in the player's short toast.
+    val skippedTexts = mapOf(
+        tv.own.owntv.core.skip.SkipKind.INTRO to stringResource(R.string.player_skipped_intro),
+        tv.own.owntv.core.skip.SkipKind.RECAP to stringResource(R.string.player_skipped_recap),
+        tv.own.owntv.core.skip.SkipKind.CREDITS to stringResource(R.string.player_skipped_credits),
+        tv.own.owntv.core.skip.SkipKind.PREVIEW to stringResource(R.string.player_skipped_preview),
+    )
+    LaunchedEffect(skip) { skip.skipped.collect { kind -> toast = skippedTexts[kind] } }
+
+    // The automatic advance, made visible: from core's card time — 30 s before the end of the file, or
+    // the start of the end credits when they are known — counting down to the advance. Skipping the
+    // end credits automatically shows a short notice instead, which a tap turns into watching them.
     var autoNextDismissed by remember { mutableStateOf(false) }
     LaunchedEffect(nextUpTitle, nav.hasNext) { autoNextDismissed = false }
     // Derived, so the screen recomposes only when the countdown's second changes, not on every tick.
-    val secondsToAdvance by remember(isLive, duration, positionState) {
+    val secondsToAdvance by remember(isLive, duration, positionState, upNext) {
         derivedStateOf {
-            val msToAdvance = if (!isLive && duration > 0L) (duration - 8_000L) - positionState.value else Long.MAX_VALUE
-            if (msToAdvance in 0L..30_000L) ((msToAdvance + 999L) / 1000L).toInt().coerceIn(0, 30) else null
+            val msToAdvance = if (!isLive && duration > 0L) upNext.advanceAtMs - positionState.value else Long.MAX_VALUE
+            if (positionState.value >= upNext.cardAtMs && msToAdvance >= 0L) ((msToAdvance + 999L) / 1000L).toInt().coerceIn(0, 30) else null
         }
     }
-    val showNextCard = !isLive && error == null && nav.hasNext && nextUpTitle != null && !stopsAtItemEnd &&
+    val nextDue = !isLive && error == null && nav.hasNext && nextUpTitle != null && !stopsAtItemEnd &&
         secondsToAdvance != null && !autoNextDismissed
+    val showNextCard = nextDue && !upNext.notice
+    val showNextNotice = nextDue && upNext.notice
 
     var controlsVisible by remember { mutableStateOf(true) }
+    // The skip button: its first seconds (and whenever the controls are up), or the whole part.
+    val skipWindowOpen by remember(activeSkip, skipButtonShow, positionState) {
+        derivedStateOf {
+            val a = activeSkip
+            a != null && (skipButtonShow == tv.own.owntv.core.skip.SkipButtonShow.WHOLE ||
+                positionState.value - a.enteredAtMs < SKIP_BUTTON_FIRST_MS)
+        }
+    }
+    val showSkipPill = activeSkip != null && !isLive && error == null && !showNextCard && !showNextNotice &&
+        (skipWindowOpen || controlsVisible)
     // Derived, so the screen recomposes only when the live edge is crossed, not on every tick.
     val atLiveEdge by remember { derivedStateOf { (offsetSecState.value ?: 0) <= 1 } }
     // Pure except for the channel (and the cast route) it reads: recompute on those, not on ticks.
@@ -909,11 +939,65 @@ fun PlayerScreen(
                 title = nextUpTitle.orEmpty(),
                 onPlayNow = { autoNextDismissed = true; player.next() },
                 onCancel = { autoNextDismissed = true; player.cancelAutoNext() },
+                atCredits = upNext.coreAdvances,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .systemBarsPadding()
                     .padding(end = 16.dp, bottom = 96.dp),
             )
+        }
+        // The 3-second notice when the end credits are skipped automatically: a tap stays on them.
+        if (showNextNotice) {
+            PlayerToast(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .systemBarsPadding()
+                    .padding(end = 16.dp, bottom = 96.dp)
+                    .clickable { autoNextDismissed = true; player.cancelAutoNext() },
+            ) {
+                Text(
+                    text = stringResource(R.string.content_action_next_episode),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LocalAccentOnVideo.current,
+                )
+                Text(
+                    text = nextUpTitle.orEmpty(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(R.string.player_keep_credits_mobile),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White,
+                )
+            }
+        }
+        // The skip button, where the next-episode card sits (the two never show together).
+        activeSkip?.let { a ->
+            if (showSkipPill) {
+                androidx.compose.material3.Button(
+                    onClick = { skip.skip() },
+                    // Clear of the control dock's top edge, so the two never touch.
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .systemBarsPadding()
+                        .padding(end = 16.dp, bottom = 140.dp),
+                ) {
+                    Text(
+                        stringResource(
+                            when (a.action) {
+                                tv.own.owntv.player.SkipAction.SKIP_INTRO -> R.string.player_skip_intro
+                                tv.own.owntv.player.SkipAction.SKIP_RECAP -> R.string.player_skip_recap
+                                tv.own.owntv.player.SkipAction.SKIP_CREDITS -> R.string.player_skip_credits
+                                tv.own.owntv.player.SkipAction.SKIP_PREVIEW -> R.string.player_skip_preview
+                                tv.own.owntv.player.SkipAction.NEXT_EPISODE -> R.string.content_action_next_episode
+                            },
+                        ),
+                    )
+                }
+            }
         }
 
         toast?.let { message ->
@@ -1165,6 +1249,8 @@ private fun NextEpisodeCard(
     onPlayNow: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    /** At the start of the end credits, staying means watching them: "Watch credits" instead of Cancel. */
+    atCredits: Boolean = false,
 ) {
     PlayerToast(modifier) {
         Text(
@@ -1181,7 +1267,7 @@ private fun NextEpisodeCard(
         )
         Row {
             TextButton(onClick = onPlayNow) { Text(stringResource(R.string.player_play_now)) }
-            TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
+            TextButton(onClick = onCancel) { Text(stringResource(if (atCredits) R.string.player_watch_credits else R.string.common_cancel)) }
         }
     }
 }

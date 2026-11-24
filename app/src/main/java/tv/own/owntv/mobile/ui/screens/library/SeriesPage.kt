@@ -80,6 +80,8 @@ import tv.own.owntv.mobile.R
 import tv.own.owntv.mobile.ui.components.ContentMenuSheet
 import tv.own.owntv.mobile.ui.components.MobileBottomSheet
 import tv.own.owntv.mobile.ui.components.MobileIcons
+import tv.own.owntv.mobile.ui.components.TheIntroDbCheckRequests
+import tv.own.owntv.core.menu.CHECK_THEINTRODB_ACTION
 import tv.own.owntv.mobile.ui.components.SheetAction
 import tv.own.owntv.mobile.ui.components.TmdbDetailsSheet
 import tv.own.owntv.mobile.ui.components.downloadActionFor
@@ -705,6 +707,7 @@ private fun EpisodeOptions(
     onDismiss: () -> Unit,
 ) {
     val mode by vm.metadataMode.collectAsStateWithLifecycle()
+    val show by vm.show.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -776,6 +779,16 @@ private fun EpisodeOptions(
                     ),
                 )
             }
+            add(
+                SheetAction(
+                    key = CHECK_THEINTRODB_ACTION,
+                    label = stringResource(R.string.content_check_theintrodb),
+                    icon = MobileIcons.SkipNext,
+                    group = GROUP_DETAILS,
+                    enabled = show != null,
+                    onClick = { show?.let { TheIntroDbCheckRequests.series(it, episode) } },
+                ),
+            )
             add(
                 SheetAction(
                     key = "delete_subtitles",

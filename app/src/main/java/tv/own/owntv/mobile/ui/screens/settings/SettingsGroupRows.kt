@@ -523,6 +523,7 @@ private const val GUIDE_DENSITY_MAX = 130
 private fun contentSections(vm: SettingsViewModel): List<SettingSection> {
     val mode = vm.settings.metadataMode.pref(MetadataMode.PROVIDER)
     val tier by vm.metadataTier.collectAsStateWithLifecycle()
+    val introKey = vm.settings.theIntroDbApiKey.pref("")
     val osVm: OpenSubtitlesViewModel = koinViewModel()
     val os by osVm.state.collectAsStateWithLifecycle()
     var hidden = 0
@@ -539,8 +540,15 @@ private fun contentSections(vm: SettingsViewModel): List<SettingSection> {
                     if (hidden > 0) pluralStringResource(R.plurals.settings_customize_hidden_count, hidden, hidden) else null,
                     SettingsLeaf.CUSTOMIZE.route,
                 ),
+            ),
+        ),
+        // Two services feed the library's details: TMDB (posters, plots, cast) and TheIntroDB (skip
+        // times). Each has its own page under one heading.
+        SettingSection(
+            stringResource(R.string.settings_heading_metadata),
+            listOf(
                 pageItem(
-                    "tab_METADATA", MobileIcons.Info, stringResource(R.string.settings_metadata), stringResource(R.string.settings_line_metadata),
+                    "tab_METADATA", MobileIcons.Info, stringResource(R.string.settings_tmdb), stringResource(R.string.settings_line_metadata),
                     if (mode == MetadataMode.PROVIDER) stringResource(R.string.common_off) else stringResource(
                         when (tier) {
                             MetadataConfig.Tier.DEFAULT_WORKER -> R.string.settings_shared
@@ -550,6 +558,17 @@ private fun contentSections(vm: SettingsViewModel): List<SettingSection> {
                     ),
                     SettingsLeaf.METADATA.route,
                 ),
+                pageItem(
+                    "tab_THEINTRODB", MobileIcons.Info, stringResource(R.string.settings_theintrodb),
+                    stringResource(R.string.settings_theintrodb_root_description),
+                    if (introKey.isBlank()) stringResource(R.string.settings_shared) else stringResource(R.string.settings_tier_key),
+                    SettingsLeaf.THEINTRODB.route,
+                ),
+            ),
+        ),
+        SettingSection(
+            stringResource(R.string.player_subtitles),
+            listOf(
                 pageItem(
                     "tab_OPEN_SUBTITLES", MobileIcons.Subtitles, stringResource(R.string.settings_open_subtitles),
                     stringResource(R.string.settings_line_open_subtitles),

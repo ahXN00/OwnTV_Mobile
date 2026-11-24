@@ -154,6 +154,11 @@ remember-this-delay, surround handling and 150% volume boost, Night mode and Vol
 engines), a Dolby/DTS passthrough switch, Maximum video quality with a mobile-data limit and a per-item
 Quality button, and experimental tunneled playback — all core's, all shared.
 
+**Skip intro, recap, end credits and preview** from **TheIntroDB** — per part Off, a button or
+automatic; known end credits start the next-episode card and count the title as watched; an optional
+personal key; "Check TheIntroDB" in the film, series and episode menus. Core's logic, the same as the
+television's.
+
 ---
 
 ## 3. Browse
@@ -397,5 +402,6 @@ Released under the **GNU General Public License v3.0**.
 
 Metadata and trailers from [TMDB](https://www.themoviedb.org/) (not endorsed or certified by TMDB).
 Subtitles from [OpenSubtitles](https://www.opensubtitles.com/) (not endorsed or certified by
-OpenSubtitles). Translations hosted free of charge by
+OpenSubtitles). Skip times from [TheIntroDB](https://theintrodb.org/) (not endorsed by TheIntroDB).
+Translations hosted free of charge by
 [Hosted Weblate](https://hosted.weblate.org/projects/owntv/).

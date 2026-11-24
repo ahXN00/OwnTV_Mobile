@@ -21,6 +21,7 @@ Two rows took a second look before they settled. Both are explained below, under
 | Catch-up & live rewind | ✅ | The same `LiveLadder` as the television; a drag replaces the D-pad |
 | Pause and rewind live TV (saved copy) | ✅ | Core's `TimeshiftManager`; rewind/forward buttons, bar, Go live, resume popup; PiP and sound-only keep saving |
 | Series detail, seasons, episodes | ✅ | Opens on the last-watched episode. Since 2026-10-12 Specials sit after the last season, as on the television, and an unstarted show plays from S1 E1 (core's `EpisodeOrder`) |
+| Skip intro, recap, end credits, preview (TheIntroDB) | ✅ | Core's `SkipSegmentController`; the phone draws the button, the credits card and the notice. Settings › Content & metadata › Metadata › TheIntroDB, and "Check TheIntroDB" in the film, series and episode menus, as on the television. The key reaches the television through its "Get key from another device" page |
 | Autoplay next episode / season | ✅ | Core logic, untouched. **Previous / Next** buttons joined the transport row on 2026-09-17 — until then the next episode was reachable only from the card in the last thirty seconds |
 | Resume / watch history | ✅ | Core. The **Resume playback** setting (Always / Ask / Never) was displayed but never read until 2026-09-17, so the phone always resumed silently; all three modes now behave as the television's, including its ten-second threshold |
 | Favourites | ✅ | Core, plus a Favourites screen under More |

@@ -10,6 +10,10 @@
 ## v1.1.3 — unreleased
 
 ### ✨ New features
+- **⏭️ Skip intro, recap, end credits and preview, from TheIntroDB**
+- **🎬 Next-episode countdown starts with the end credits**
+- **🔑 Settings › Content & metadata › TheIntroDB, with an optional API key**
+- **🔍 "Check TheIntroDB" in the long-press menu of films, series and episodes**
 - **🔒 Player screen lock: touches do nothing until you hold "Hold to unlock"**
 - **📄 GPL-3.0 licence file (#78)**
 - **📼 "Prefer HLS for catch-up" on each Xtream playlist**

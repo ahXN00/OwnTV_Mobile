@@ -79,6 +79,8 @@ Scan to join from your phone:
   mode** when a stream only likes one of them.
 - **Full-screen player** with the complete control bar — including **previous and next episode** —
   and **touch gestures** for skip, scrub, volume, brightness, zoom, speed and mute.
+- **Skip intro, recap, end credits and preview** in films and series — a button or automatically,
+  from [TheIntroDB](https://theintrodb.org/).
 - **Picture-in-Picture**, a **draggable floating window**, and a **docked mini player** above the
   tabs — whichever you prefer, or none.
 - **Sound-only mode** with artwork, volume to 150 % and a sleep timer; it can switch itself on when
@@ -278,6 +280,12 @@ Movie & series metadata and trailers are provided by [TMDB](https://www.themovie
 Subtitle search & download is powered by [OpenSubtitles.com](https://www.opensubtitles.com/).
 **This product uses the OpenSubtitles API but is not endorsed or certified by OpenSubtitles.** You
 sign in with your own OpenSubtitles account and are subject to their terms and download quotas.
+
+<img src="extras/partner-logos/theintrodb_logo.svg" alt="TheIntroDB" height="120">
+
+Skip times for intros, recaps, end credits and previews come from [TheIntroDB](https://theintrodb.org/),
+a free database built by its community — anyone can add the times a title is still missing there. The
+TheIntroDB logo is the project's own artwork, used unchanged under CC BY-SA 4.0.
 
 ### ▶️ Playback engines
 
