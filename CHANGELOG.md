@@ -29,7 +29,13 @@
 - **⏳ "Performing database migration" screen on the first start after an update**
 - **🖥️ Player zoom: Force 20:9 (ahXN00/OwnTV#378)**
 
+- **🔐 DRM: the newer Kodi `drm` and `drm_legacy` playlist lines (ahXN00/OwnTV#393)**
+
 ### 🐛 Fixes
+- **📺 Player channel list: a programme that ends is replaced by the next one**
+- **🎬 Stalker films play on portals that need the film's file first, and say so when a film cannot open (ahXN00/OwnTV#390)**
+- **🔄 Local sync: synced episodes and films show in Keep watching straight away (ahXN00/OwnTV#394)**
+- **🌐 Update check asks again when GitHub briefly fails**
 - **🔒 A Merge restore or a sync with the TV no longer removes a category lock**
 - **📅 Guide: a channel matched by hand gets its programmes and past days even when the downloaded guide is old** (reported in PR #380 by @Sekator778)
 - **📼 Catch-up: a channel's past days fill in from the provider's archive when the downloaded guide stopped early**

@@ -126,6 +126,27 @@ class HomeViewModel(
         viewModelScope.launch {
             customize.sealedCategoryKeys(settings.activeProfileId).drop(1).collect { reloads.tryEmit(Unit) }
         }
+        // A film or show gaining or losing a resume point — one watched on another device and brought
+        // over by a local sync above all — changes Keep watching while Home is on screen. Keyed on
+        // which titles have one, not on positions (the bars already follow those live). A profile
+        // switch reloads through `profileId` above, so only a change within one profile counts.
+        viewModelScope.launch {
+            var lastProfile: Long? = null
+            profileId
+                .flatMapLatest { pid ->
+                    if (pid < 0) flowOf(null)
+                    else combine(
+                        progressDao.observeMovieProgress(pid).map { rows -> rows.mapTo(HashSet()) { it.itemId } },
+                        progressDao.observeLatestEpisodeProgressPerSeries(pid).map { rows -> rows.mapTo(HashSet()) { it.seriesId } },
+                    ) { films, shows -> Triple(pid, films, shows) }
+                }
+                .distinctUntilChanged()
+                .collect { titles ->
+                    val pid = titles?.first
+                    if (pid != null && pid == lastProfile) reloads.tryEmit(Unit)
+                    lastProfile = pid
+                }
+        }
     }
 
     fun refresh() {

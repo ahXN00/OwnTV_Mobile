@@ -468,7 +468,19 @@ private fun ChannelSheet(
     // own rows with what is on now; the playing channel carries the accent bar.
     val tuner: LiveTuner = koinInject()
     val playing by tuner.channel.collectAsStateWithLifecycle()
-    val now by produceState(emptyMap<Long, XtEpgEntry>(), channels) { value = tuner.nowProgrammes(channels) }
+    // On each minute, the channels whose programme has ended are read again — a sheet left open
+    // would otherwise keep showing what ended.
+    val now by produceState(emptyMap<Long, XtEpgEntry>(), channels) {
+        value = tuner.nowProgrammes(channels)
+        while (true) {
+            kotlinx.coroutines.delay(60_000 - (System.currentTimeMillis() % 60_000))
+            val clock = System.currentTimeMillis()
+            val ended = channels.filter { ch -> value[ch.id]?.let { it.stopMs <= clock } == true }
+            if (ended.isEmpty()) continue
+            val fresh = tuner.nowProgrammes(ended)
+            value = value - ended.map { it.id }.toSet() + fresh
+        }
+    }
     val nowMs by rememberClockTick()
     val sep = stringResource(R.string.content_epg_bits_separator)
     val heading = title?.let { ProviderTags.parse(it).name } ?: stringResource(R.string.content_channel_overlay_title)
